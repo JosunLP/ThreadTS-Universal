@@ -1,0 +1,127 @@
+# 🔄 Dependabot Configuration für ThreadJS Universal
+
+version: 2
+updates:
+  # ═══════════════════════════════════════════════════════════════
+  # 📦 NPM DEPENDENCIES
+  # ═══════════════════════════════════════════════════════════════
+
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'UTC'
+
+    # Update-Strategie
+    versioning-strategy: 'increase'
+    commit-message:
+      prefix: '🔄 chore(deps)'
+      include: 'scope'
+
+    # Reviewer und Assignees
+    reviewers:
+      - 'threadjs-team'
+    assignees:
+      - 'senior-maintainer'
+
+    # Labels für bessere Organisation
+    labels:
+      - 'dependencies'
+      - 'automated'
+      - 'npm'
+
+    # Konfiguration für verschiedene Dependency-Typen
+    groups:
+      # Gruppe für TypeScript und Build-Tools
+      build-tools:
+        patterns:
+          - 'typescript'
+          - '@types/*'
+          - 'ts-jest'
+          - 'typedoc'
+          - 'eslint*'
+          - 'prettier'
+
+      # Gruppe für Testing-Dependencies
+      testing:
+        patterns:
+          - 'jest*'
+          - '@jest/*'
+          - 'playwright*'
+          - '@playwright/*'
+
+      # Gruppe für Development-Tools
+      dev-tools:
+        patterns:
+          - '@typescript-eslint/*'
+          - 'bundlesize'
+          - 'tsx'
+
+    # Update-Limits
+    open-pull-requests-limit: 5
+
+    # Ignorierte Dependencies (falls nötig)
+    ignore:
+      # Beispiel: Bestimmte Versionen ignorieren
+      # - dependency-name: "example-package"
+      #   versions: ["1.x", "2.x"]
+
+    # Allow-Liste für automatische Updates
+    allow:
+      - dependency-type: 'direct'
+      - dependency-type: 'indirect'
+
+    # Rebase-Strategie
+    rebase-strategy: 'auto'
+
+  # ═══════════════════════════════════════════════════════════════
+  # 🎭 GITHUB ACTIONS
+  # ═══════════════════════════════════════════════════════════════
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+      time: '08:00'
+      timezone: 'UTC'
+
+    commit-message:
+      prefix: '🔄 chore(actions)'
+      include: 'scope'
+
+    reviewers:
+      - 'threadjs-team'
+
+    labels:
+      - 'github-actions'
+      - 'automated'
+      - 'infrastructure'
+
+    # Update-Limits
+    open-pull-requests-limit: 3
+
+    # Automatische Genehmigung für Minor Updates
+    allow:
+      - dependency-type: 'direct'
+
+  # ═══════════════════════════════════════════════════════════════
+  # 🐳 DOCKER (falls in Zukunft benötigt)
+  # ═══════════════════════════════════════════════════════════════
+
+  # - package-ecosystem: "docker"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "wednesday"
+  #     time: "10:00"
+  #     timezone: "UTC"
+  #
+  #   commit-message:
+  #     prefix: "🔄 chore(docker)"
+  #
+  #   labels:
+  #     - "docker"
+  #     - "automated"
