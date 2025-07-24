@@ -32,7 +32,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",
     "dev": "tsc -w",
-    "test": "jest",
+    "test": "jest --forceExit",
     "test:browser": "playwright test",
     "test:node": "jest --testPathPattern=node",
     "test:performance": "node benchmarks/performance.js",

@@ -1,0 +1,38 @@
+{
+  "files": [
+    {
+      "path": "dist/index.js",
+      "maxSize": "15 kB",
+      "name": "Core Bundle (CJS)"
+    },
+    {
+      "path": "dist/esm/index.js",
+      "maxSize": "15 kB",
+      "name": "Core Bundle (ESM)"
+    },
+    {
+      "path": "dist/browser.js",
+      "maxSize": "18 kB",
+      "name": "Browser Bundle (CJS)"
+    },
+    {
+      "path": "dist/esm/browser.js",
+      "maxSize": "18 kB",
+      "name": "Browser Bundle (ESM)"
+    },
+    {
+      "path": "dist/node.js",
+      "maxSize": "17 kB",
+      "name": "Node.js Bundle (CJS)"
+    },
+    {
+      "path": "dist/esm/node.js",
+      "maxSize": "17 kB",
+      "name": "Node.js Bundle (ESM)"
+    }
+  ],
+  "ci": {
+    "trackBranches": ["main", "develop"],
+    "repoBranchBase": "main"
+  }
+}
