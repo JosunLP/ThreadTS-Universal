@@ -1,0 +1,91 @@
+{
+  "name": "threadjs-universal",
+  "version": "1.0.0",
+  "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
+  "main": "dist/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/esm/browser.js",
+      "require": "./dist/browser.js",
+      "types": "./dist/browser.d.ts"
+    },
+    "./node": {
+      "import": "./dist/esm/node.js",
+      "require": "./dist/node.js",
+      "types": "./dist/node.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "dev": "tsc -w",
+    "test": "jest",
+    "test:browser": "playwright test",
+    "test:node": "jest --testPathPattern=node",
+    "test:performance": "node benchmarks/performance.js",
+    "test:performance:advanced": "node benchmarks/advanced.js",
+    "benchmark": "npm run test:performance && npm run test:performance:advanced",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "docs": "typedoc",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "parallel",
+    "worker",
+    "threads",
+    "typescript",
+    "universal",
+    "performance",
+    "async",
+    "concurrency",
+    "browser",
+    "nodejs",
+    "deno",
+    "bun"
+  ],
+  "author": "ThreadJS Universal Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/threadjs/universal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/threadjs/universal/issues"
+  },
+  "homepage": "https://threadjs.dev",
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "playwright": "^1.42.1",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.1.2",
+    "typedoc": "^0.25.12",
+    "typescript": "^5.4.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "browser": {
+    "./dist/node.js": false,
+    "./src/adapters/node.ts": false
+  }
+}
