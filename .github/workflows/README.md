@@ -143,7 +143,7 @@ main:
 ### **Badge Integration:**
 
 ```markdown
-![CI/CD](https://github.com/threadjs/universal/workflows/CI%2FCD%20Pipeline/badge.svg)
+![CI/CD](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI%2FCD%20Pipeline/badge.svg)
 ![Performance](https://img.shields.io/badge/performance-optimized-green)
 ![Compatibility](https://img.shields.io/badge/platform%20compatibility-100%25-brightgreen)
 ```

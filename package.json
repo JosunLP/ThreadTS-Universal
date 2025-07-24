@@ -75,10 +75,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/threadjs/universal.git"
+    "url": "https://github.com/JosunLP/ThreadTS-Universal.git"
   },
   "bugs": {
-    "url": "https://github.com/threadjs/universal/issues"
+    "url": "https://github.com/JosunLP/ThreadTS-Universal/issues"
   },
   "homepage": "https://threadjs.dev",
   "devDependencies": {

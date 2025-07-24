@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/threadjs-universal.svg)](https://badge.fury.io/js/threadjs-universal)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-blue.svg)](https://www.typescriptlang.org/)
-[![Build Status](https://github.com/threadjs/universal/workflows/CI/badge.svg)](https://github.com/threadjs/universal/actions)
+[![Build Status](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI/badge.svg)](https://github.com/JosunLP/ThreadTS-Universal/actions)
 
 **The definitive universal TypeScript library that makes true parallelism as effortless as async/await across all JavaScript ecosystems.**
 
@@ -330,7 +330,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/threadjs/universal.git
+git clone https://github.com/JosunLP/ThreadTS-Universal.git
 cd universal
 npm install
 npm run build
@@ -378,4 +378,4 @@ const result = await threadjs.run(fn, data);
 
 **Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadJS Universal.**
 
-[![Star on GitHub](https://img.shields.io/github/stars/threadjs/universal?style=social)](https://github.com/threadjs/universal)
+[![Star on GitHub](https://img.shields.io/github/stars/threadjs/universal?style=social)](https://github.com/JosunLP/ThreadTS-Universal)
