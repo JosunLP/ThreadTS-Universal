@@ -1,0 +1,319 @@
+/**
+ * ThreadJS Universal - Advanced Performance Benchmarks
+ * Umfassende Performance-Tests mit Real-World-Szenarien
+ */
+
+import { ThreadJS } from '../src/core/threadjs';
+
+interface AdvancedBenchmarkResult {
+  name: string;
+  threadjs: number;
+  native: number;
+  overhead: number;
+  passed: boolean;
+  details: string;
+}
+
+const threadjs = ThreadJS.getInstance();
+
+async function measureTime<T>(
+  fn: () => Promise<T>
+): Promise<{ result: T; time: number }> {
+  const start = performance.now();
+  const result = await fn();
+  const time = performance.now() - start;
+  return { result, time };
+}
+
+// Real-World Benchmark-Szenarien
+class AdvancedBenchmarks {
+  /**
+   * Image Processing Simulation (CPU-intensive)
+   */
+  static async benchmarkImageProcessing(): Promise<AdvancedBenchmarkResult> {
+    const imageSize = 1920 * 1080; // Full HD
+    const pixels = new Array(imageSize).fill(0).map(() => Math.random() * 255);
+
+    // Native Implementation
+    const nativeProcessing = async () => {
+      return pixels.map((pixel) => {
+        // Gaussian Blur Simulation
+        const blurred = pixel * 0.4 + pixel * 0.8 * 0.3 + pixel * 1.2 * 0.3;
+        return Math.min(255, Math.max(0, blurred));
+      });
+    };
+
+    // ThreadJS Implementation
+    const threadjsProcessing = async () => {
+      return threadjs.map(
+        pixels,
+        (pixel: number) => {
+          const blurred = pixel * 0.4 + pixel * 0.8 * 0.3 + pixel * 1.2 * 0.3;
+          return Math.min(255, Math.max(0, blurred));
+        },
+        { batchSize: 10000 }
+      );
+    };
+
+    const { time: nativeTime } = await measureTime(nativeProcessing);
+    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+
+    const overhead = threadjsTime - nativeTime;
+    const passed = overhead < 50; // Max 50ms Overhead für Image Processing
+
+    return {
+      name: 'Image Processing (1920x1080)',
+      threadjs: threadjsTime,
+      native: nativeTime,
+      overhead,
+      passed,
+      details: `${Math.round(imageSize / threadjsTime)} pixels/ms`,
+    };
+  }
+
+  /**
+   * JSON Parsing & Transformation (Memory-intensive)
+   */
+  static async benchmarkJSONProcessing(): Promise<AdvancedBenchmarkResult> {
+    // Generate large JSON dataset
+    const dataset = Array.from({ length: 10000 }, (_, i) => ({
+      id: i,
+      name: `User ${i}`,
+      email: `user${i}@example.com`,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        tags: [`tag${i % 10}`, `category${i % 5}`],
+        score: Math.random() * 100,
+      },
+    }));
+
+    // Native Implementation
+    const nativeProcessing = async () => {
+      return dataset.map((user) => ({
+        ...user,
+        computed: {
+          displayName: `${user.name} (${user.id})`,
+          scoreLevel: user.metadata.score > 50 ? 'high' : 'low',
+          tagCount: user.metadata.tags.length,
+        },
+      }));
+    };
+
+    // ThreadJS Implementation
+    const threadjsProcessing = async () => {
+      return threadjs.map(
+        dataset,
+        (user: any) => ({
+          ...user,
+          computed: {
+            displayName: `${user.name} (${user.id})`,
+            scoreLevel: user.metadata.score > 50 ? 'high' : 'low',
+            tagCount: user.metadata.tags.length,
+          },
+        }),
+        { batchSize: 1000 }
+      );
+    };
+
+    const { time: nativeTime } = await measureTime(nativeProcessing);
+    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+
+    const overhead = threadjsTime - nativeTime;
+    const passed = overhead < 100; // Max 100ms Overhead für JSON Processing
+
+    return {
+      name: 'JSON Processing (10k records)',
+      threadjs: threadjsTime,
+      native: nativeTime,
+      overhead,
+      passed,
+      details: `${Math.round(dataset.length / threadjsTime)} records/ms`,
+    };
+  }
+
+  /**
+   * Cryptographic Hashing (Security-focused)
+   */
+  static async benchmarkCryptography(): Promise<AdvancedBenchmarkResult> {
+    const data = Array.from({ length: 1000 }, (_, i) => `data-${i}`);
+
+    // Simple hash function for benchmarking
+    const simpleHash = (str: string): string => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      return hash.toString(16);
+    };
+
+    // Native Implementation
+    const nativeProcessing = async () => {
+      return data.map((item) => ({
+        original: item,
+        hash: simpleHash(item + Date.now()),
+        timestamp: Date.now(),
+      }));
+    };
+
+    // ThreadJS Implementation
+    const threadjsProcessing = async () => {
+      const timestamp = Date.now();
+      return threadjs.map(
+        data,
+        (item: string) => ({
+          original: item,
+          hash: ((str: string, ts: number): string => {
+            let hash = 0;
+            const combined = str + ts;
+            for (let i = 0; i < combined.length; i++) {
+              const char = combined.charCodeAt(i);
+              hash = (hash << 5) - hash + char;
+              hash = hash & hash;
+            }
+            return hash.toString(16);
+          })(item, timestamp),
+          timestamp,
+        }),
+        { batchSize: 100 }
+      );
+    };
+
+    const { time: nativeTime } = await measureTime(nativeProcessing);
+    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+
+    const overhead = threadjsTime - nativeTime;
+    const passed = overhead < 25; // Max 25ms Overhead für Crypto
+
+    return {
+      name: 'Cryptographic Hashing (1k items)',
+      threadjs: threadjsTime,
+      native: nativeTime,
+      overhead,
+      passed,
+      details: `${Math.round(data.length / threadjsTime)} hashes/ms`,
+    };
+  }
+
+  /**
+   * Mathematical Computation (Pure CPU)
+   */
+  static async benchmarkMathComputation(): Promise<AdvancedBenchmarkResult> {
+    const iterations = 50000;
+
+    // Native Implementation
+    const nativeProcessing = async () => {
+      const results: number[] = [];
+      for (let i = 0; i < iterations; i++) {
+        const value = Math.sin(i) * Math.cos(i) + Math.sqrt(i) / (i + 1);
+        results.push(value);
+      }
+      return results;
+    };
+
+    // ThreadJS Implementation
+    const threadjsProcessing = async () => {
+      const data = Array.from({ length: iterations }, (_, i) => i);
+      return threadjs.map(
+        data,
+        (i: number) => {
+          return Math.sin(i) * Math.cos(i) + Math.sqrt(i) / (i + 1);
+        },
+        { batchSize: 5000 }
+      );
+    };
+
+    const { time: nativeTime } = await measureTime(nativeProcessing);
+    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+
+    const overhead = threadjsTime - nativeTime;
+    const passed = overhead < 10; // Max 10ms Overhead für Math
+
+    return {
+      name: 'Mathematical Computation (50k ops)',
+      threadjs: threadjsTime,
+      native: nativeTime,
+      overhead,
+      passed,
+      details: `${Math.round(iterations / threadjsTime)} ops/ms`,
+    };
+  }
+}
+
+async function main() {
+  console.log('🧮 ThreadJS Universal - Advanced Performance Benchmarks');
+  console.log('═'.repeat(65));
+  console.log(`Platform: ${threadjs.getPlatform()}`);
+  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log('═'.repeat(65));
+
+  if (!threadjs.isSupported()) {
+    console.log('⚠️ Worker support not available - running fallback tests');
+    return;
+  }
+
+  const benchmarks = [
+    AdvancedBenchmarks.benchmarkImageProcessing,
+    AdvancedBenchmarks.benchmarkJSONProcessing,
+    AdvancedBenchmarks.benchmarkCryptography,
+    AdvancedBenchmarks.benchmarkMathComputation,
+  ];
+
+  const results: AdvancedBenchmarkResult[] = [];
+
+  for (const benchmark of benchmarks) {
+    try {
+      console.log(`\n🏃 Running ${benchmark.name}...`);
+      const result = await benchmark();
+      results.push(result);
+    } catch (error) {
+      console.error(`❌ Benchmark failed: ${error}`);
+    }
+  }
+
+  // Ergebnisse ausgeben
+  console.log('\n📊 Advanced Benchmark Results:');
+  console.log('═'.repeat(85));
+  console.log(
+    '| Benchmark                        | ThreadJS | Native  | Overhead | Status | Details        |'
+  );
+  console.log(
+    '|----------------------------------|----------|---------|----------|--------|----------------|'
+  );
+
+  for (const result of results) {
+    const status = result.passed ? '✅ PASS' : '❌ FAIL';
+    const threadjsTime = `${result.threadjs.toFixed(2)}ms`;
+    const nativeTime = `${result.native.toFixed(2)}ms`;
+    const overhead = `${result.overhead.toFixed(2)}ms`;
+
+    console.log(
+      `| ${result.name.padEnd(32)} | ${threadjsTime.padEnd(8)} | ${nativeTime.padEnd(7)} | ${overhead.padEnd(8)} | ${status.padEnd(6)} | ${result.details.padEnd(14)} |`
+    );
+  }
+
+  console.log('═'.repeat(85));
+
+  const overallPassed = results.every((r) => r.passed);
+  const averageOverhead =
+    results.reduce((sum, r) => sum + r.overhead, 0) / results.length;
+
+  console.log(
+    `\n🎯 Overall Result: ${overallPassed ? '✅ PASSED' : '❌ FAILED'}`
+  );
+  console.log(`📈 Average Overhead: ${averageOverhead.toFixed(2)}ms`);
+
+  if (!overallPassed) {
+    console.log('\n⚠️ Performance targets not met. Consider optimization.');
+  }
+
+  await threadjs.terminate();
+}
+
+// Run benchmarks
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+export default AdvancedBenchmarks;

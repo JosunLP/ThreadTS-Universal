@@ -61,7 +61,12 @@ export class WorkerPoolManager implements PoolManager {
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {
     if (this.isTerminating) {
-      throw new WorkerError('Pool is terminating');
+      // Return a cancelled result instead of throwing
+      return {
+        result: undefined as T,
+        executionTime: 0,
+        error: new WorkerError('Pool is terminating'),
+      };
     }
 
     return new Promise<ThreadResult<T>>((resolve, reject) => {
@@ -132,9 +137,13 @@ export class WorkerPoolManager implements PoolManager {
   async terminate(): Promise<void> {
     this.isTerminating = true;
 
-    // Reject all queued tasks
+    // Gracefully handle queued tasks
     for (const task of this.taskQueue) {
-      task.reject(new WorkerError('Pool is terminating'));
+      task.resolve({
+        result: undefined as any,
+        executionTime: 0,
+        error: new WorkerError('Pool is terminating'),
+      });
     }
     this.taskQueue = [];
 
@@ -266,10 +275,17 @@ export class WorkerPoolManager implements PoolManager {
     if (!this.isTerminating && worker.isIdle()) {
       this.idleWorkers.push(worker);
 
-      // Set up idle timeout
+      // Set up idle timeout for cleanup
       setTimeout(() => {
         this.cleanupIdleWorker(worker);
       }, this.config.idleTimeout);
+    } else if (!this.isTerminating) {
+      // Worker might not be immediately idle, add back after a short delay
+      setTimeout(() => {
+        if (worker.isIdle() && !this.busyWorkers.has(worker)) {
+          this.idleWorkers.push(worker);
+        }
+      }, 10); // 10ms delay
     }
   }
 
