@@ -3,38 +3,44 @@ const fs = require('fs');
 const path = require('path');
 const target = path.join(__dirname, '../dist/index.cjs');
 const wrapper = `
-const mod = require('module');
 const path = require('path');
 const esmPath = path.join(__dirname, 'index.js');
-let esmExports;
-let esmDefault;
+let esmExports = null;
+let esmDefault = null;
+let esmPromise = null;
 
-function loadExports() {
-  if (!esmExports) {
-    esmExports = mod.createRequire(__filename)(esmPath);
-    esmDefault = esmExports.default || esmExports.ThreadTS || esmExports.threadts;
+function loadExportsSync() {
+  if (!esmPromise) {
+    esmPromise = import(esmPath).then((mod) => {
+      esmExports = mod;
+      esmDefault = mod.default || mod.ThreadTS || mod.threadts;
+    });
   }
 }
 
-Object.defineProperty(module, 'exports', {
-  enumerable: true,
-  configurable: true,
-  get: function() {
-    loadExports();
-    const proxy = new Proxy({}, {
-      get: function(_, prop) {
-        if (prop === 'default') return esmDefault;
-        return esmExports[prop];
-      },
-      ownKeys: function() {
-        return Reflect.ownKeys(esmExports);
-      },
-      getOwnPropertyDescriptor: function(_, prop) {
-        return { enumerable: true, configurable: true };
+const proxy = new Proxy(
+  {},
+  {
+    get: function (_, prop) {
+      if (!esmExports) {
+        throw new Error(
+          "Das ESM-Modul ist noch nicht geladen. Greife asynchron auf die Exporte zu, z.B. via import('threadts-universal')."
+        );
       }
-    });
-    return proxy;
+      if (prop === 'default') return esmDefault;
+      return esmExports[prop];
+    },
+    ownKeys: function () {
+      if (!esmExports) return [];
+      return Reflect.ownKeys(esmExports);
+    },
+    getOwnPropertyDescriptor: function (_, prop) {
+      return { enumerable: true, configurable: true };
+    },
   }
-});
+);
+
+module.exports = proxy;
+loadExportsSync();
 `;
 fs.writeFileSync(target, wrapper);
