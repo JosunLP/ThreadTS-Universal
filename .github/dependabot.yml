@@ -63,10 +63,7 @@ updates:
     open-pull-requests-limit: 5
 
     # Ignorierte Dependencies (falls nötig)
-    ignore:
-      # Beispiel: Bestimmte Versionen ignorieren
-      # - dependency-name: "example-package"
-      #   versions: ["1.x", "2.x"]
+    ignore: []
 
     # Allow-Liste für automatische Updates
     allow:
