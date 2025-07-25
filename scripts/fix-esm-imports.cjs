@@ -1,5 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-var-requires */
+const console = require('console');
 const fs = require('fs');
 const path = require('path');
+const process = require('process');
+const { URL } = require('url');
 
 function fixESMImports() {
   console.log('Fixing ES module imports...');
@@ -78,8 +84,7 @@ function fixESMImports() {
   );
 }
 
+// Check if the script is run directly
 if (require.main === module) {
   fixESMImports();
 }
-
-module.exports = fixESMImports;

@@ -16,5 +16,5 @@ module.exports = {
     'no-useless-catch': 'warn',
     'no-case-declarations': 'warn',
   },
-  ignorePatterns: ['dist/**/*', 'node_modules/**/*', '*.js', '*.d.ts'],
+  ignorePatterns: ['dist/**/*', 'node_modules/**/*', '*.js', '*.d.ts', '*.cjs'],
 };
