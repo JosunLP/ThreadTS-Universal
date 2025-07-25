@@ -183,7 +183,8 @@ export function parallelMap(options: { batchSize?: number } = {}) {
 
       return await threadts.map(
         data,
-        (item, index) => originalMethod.call(this, item, index, ...otherArgs),
+        (item: any, index: number) =>
+          originalMethod.call(this, item, index, ...otherArgs),
         { batchSize: options.batchSize }
       );
     };
