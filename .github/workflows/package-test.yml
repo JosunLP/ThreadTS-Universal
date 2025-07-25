@@ -39,25 +39,25 @@ jobs:
           mkdir -p /tmp/package-test
           cd /tmp/package-test
           npm init -y
-          npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
+          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test CommonJS import
-          echo "const threadjs = require('threadjs-universal'); console.log('CommonJS import successful:', typeof threadjs);" > test-cjs.js
+          echo "const threadts = require('threadts-universal'); console.log('CommonJS import successful:', typeof threadts);" > test-cjs.js
           node test-cjs.js
 
           # Configure package.json for ES modules and test ES import
           npm pkg set type=module
-          echo "import threadjs from 'threadjs-universal'; console.log('ES import successful:', typeof threadjs);" > test-esm.mjs
+          echo "import threadts from 'threadts-universal'; console.log('ES import successful:', typeof threadts);" > test-esm.mjs
           node test-esm.mjs
 
           # Test both exports
-          echo "import { ThreadTS } from 'threadjs-universal'; console.log('Named import successful:', typeof ThreadTS);" > test-named.mjs
+          echo "import { ThreadTS } from 'threadts-universal'; console.log('Named import successful:', typeof ThreadTS);" > test-named.mjs
           node test-named.mjs
 
       - name: 📊 Package Size Analysis
         run: |
           echo "📦 Package Analysis:"
-          ls -lh threadjs-universal-*.tgz
+          ls -lh threadts-universal-*.tgz
 
           echo "📋 Package Contents:"
-          tar -tzf threadjs-universal-*.tgz | head -20
+          tar -tzf threadts-universal-*.tgz | head -20

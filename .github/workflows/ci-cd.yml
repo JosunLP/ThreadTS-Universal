@@ -338,7 +338,7 @@ jobs:
             - Cross-Platform Support: ✅
 
             ### 🔗 Links
-            - [📚 Documentation](https://threadjs.dev)
+            - [📚 Documentation](https://threadts.dev)
             - [🧪 Examples](https://github.com/JosunLP/ThreadTS-Universal/tree/main/examples)
             - [📋 Changelog](https://github.com/JosunLP/ThreadTS-Universal/blob/main/CHANGELOG.md)
 
@@ -424,19 +424,19 @@ jobs:
           mkdir -p /tmp/package-test
           cd /tmp/package-test
           npm init -y
-          npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
+          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test basic import
-          echo "import threadjs from 'threadjs-universal'; console.log('Import successful');" > test.mjs
+          echo "import threadts from 'threadts-universal'; console.log('Import successful');" > test.mjs
           node test.mjs
 
       - name: 📊 Package Size Analysis
         run: |
           echo "📦 Package Analysis:"
-          ls -lh threadjs-universal-*.tgz
+          ls -lh threadts-universal-*.tgz
 
           echo "📋 Package Contents:"
-          tar -tzf threadjs-universal-*.tgz | head -20
+          tar -tzf threadts-universal-*.tgz | head -20
 
 # ═══════════════════════════════════════════════════════════════
 # 🎯 WORKFLOW SUMMARY

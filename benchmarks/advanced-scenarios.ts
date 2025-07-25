@@ -3,18 +3,18 @@
  * Umfassende Performance-Tests mit Real-World-Szenarien
  */
 
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
 interface AdvancedBenchmarkResult {
   name: string;
-  threadjs: number;
+  threadts: number;
   native: number;
   overhead: number;
   passed: boolean;
   details: string;
 }
 
-const threadjs = ThreadTS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 async function measureTime<T>(
   fn: () => Promise<T>
@@ -44,8 +44,8 @@ class AdvancedBenchmarks {
     };
 
     // ThreadTS Implementation
-    const threadjsProcessing = async () => {
-      return threadjs.map(
+    const threadtsProcessing = async () => {
+      return threadts.map(
         pixels,
         (pixel: number) => {
           const blurred = pixel * 0.4 + pixel * 0.8 * 0.3 + pixel * 1.2 * 0.3;
@@ -56,18 +56,18 @@ class AdvancedBenchmarks {
     };
 
     const { time: nativeTime } = await measureTime(nativeProcessing);
-    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+    const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
-    const overhead = threadjsTime - nativeTime;
+    const overhead = threadtsTime - nativeTime;
     const passed = overhead < 50; // Max 50ms Overhead für Image Processing
 
     return {
       name: 'Image Processing (1920x1080)',
-      threadjs: threadjsTime,
+      threadts: threadtsTime,
       native: nativeTime,
       overhead,
       passed,
-      details: `${Math.round(imageSize / threadjsTime)} pixels/ms`,
+      details: `${Math.round(imageSize / threadtsTime)} pixels/ms`,
     };
   }
 
@@ -100,8 +100,8 @@ class AdvancedBenchmarks {
     };
 
     // ThreadTS Implementation
-    const threadjsProcessing = async () => {
-      return threadjs.map(
+    const threadtsProcessing = async () => {
+      return threadts.map(
         dataset,
         (user: any) => ({
           ...user,
@@ -116,18 +116,18 @@ class AdvancedBenchmarks {
     };
 
     const { time: nativeTime } = await measureTime(nativeProcessing);
-    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+    const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
-    const overhead = threadjsTime - nativeTime;
+    const overhead = threadtsTime - nativeTime;
     const passed = overhead < 100; // Max 100ms Overhead für JSON Processing
 
     return {
       name: 'JSON Processing (10k records)',
-      threadjs: threadjsTime,
+      threadts: threadtsTime,
       native: nativeTime,
       overhead,
       passed,
-      details: `${Math.round(dataset.length / threadjsTime)} records/ms`,
+      details: `${Math.round(dataset.length / threadtsTime)} records/ms`,
     };
   }
 
@@ -158,9 +158,9 @@ class AdvancedBenchmarks {
     };
 
     // ThreadTS Implementation
-    const threadjsProcessing = async () => {
+    const threadtsProcessing = async () => {
       const timestamp = Date.now();
-      return threadjs.map(
+      return threadts.map(
         data,
         (item: string) => ({
           original: item,
@@ -181,18 +181,18 @@ class AdvancedBenchmarks {
     };
 
     const { time: nativeTime } = await measureTime(nativeProcessing);
-    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+    const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
-    const overhead = threadjsTime - nativeTime;
+    const overhead = threadtsTime - nativeTime;
     const passed = overhead < 25; // Max 25ms Overhead für Crypto
 
     return {
       name: 'Cryptographic Hashing (1k items)',
-      threadjs: threadjsTime,
+      threadts: threadtsTime,
       native: nativeTime,
       overhead,
       passed,
-      details: `${Math.round(data.length / threadjsTime)} hashes/ms`,
+      details: `${Math.round(data.length / threadtsTime)} hashes/ms`,
     };
   }
 
@@ -213,9 +213,9 @@ class AdvancedBenchmarks {
     };
 
     // ThreadTS Implementation
-    const threadjsProcessing = async () => {
+    const threadtsProcessing = async () => {
       const data = Array.from({ length: iterations }, (_, i) => i);
-      return threadjs.map(
+      return threadts.map(
         data,
         (i: number) => {
           return Math.sin(i) * Math.cos(i) + Math.sqrt(i) / (i + 1);
@@ -225,18 +225,18 @@ class AdvancedBenchmarks {
     };
 
     const { time: nativeTime } = await measureTime(nativeProcessing);
-    const { time: threadjsTime } = await measureTime(threadjsProcessing);
+    const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
-    const overhead = threadjsTime - nativeTime;
+    const overhead = threadtsTime - nativeTime;
     const passed = overhead < 10; // Max 10ms Overhead für Math
 
     return {
       name: 'Mathematical Computation (50k ops)',
-      threadjs: threadjsTime,
+      threadts: threadtsTime,
       native: nativeTime,
       overhead,
       passed,
-      details: `${Math.round(iterations / threadjsTime)} ops/ms`,
+      details: `${Math.round(iterations / threadtsTime)} ops/ms`,
     };
   }
 }
@@ -244,11 +244,11 @@ class AdvancedBenchmarks {
 async function main() {
   console.log('🧮 ThreadTS Universal - Advanced Performance Benchmarks');
   console.log('═'.repeat(65));
-  console.log(`Platform: ${threadjs.getPlatform()}`);
-  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log(`Platform: ${threadts.getPlatform()}`);
+  console.log(`Worker Support: ${threadts.isSupported()}`);
   console.log('═'.repeat(65));
 
-  if (!threadjs.isSupported()) {
+  if (!threadts.isSupported()) {
     console.log('⚠️ Worker support not available - running fallback tests');
     return;
   }
@@ -284,12 +284,12 @@ async function main() {
 
   for (const result of results) {
     const status = result.passed ? '✅ PASS' : '❌ FAIL';
-    const threadjsTime = `${result.threadjs.toFixed(2)}ms`;
+    const threadtsTime = `${result.threadts.toFixed(2)}ms`;
     const nativeTime = `${result.native.toFixed(2)}ms`;
     const overhead = `${result.overhead.toFixed(2)}ms`;
 
     console.log(
-      `| ${result.name.padEnd(32)} | ${threadjsTime.padEnd(8)} | ${nativeTime.padEnd(7)} | ${overhead.padEnd(8)} | ${status.padEnd(6)} | ${result.details.padEnd(14)} |`
+      `| ${result.name.padEnd(32)} | ${threadtsTime.padEnd(8)} | ${nativeTime.padEnd(7)} | ${overhead.padEnd(8)} | ${status.padEnd(6)} | ${result.details.padEnd(14)} |`
     );
   }
 
@@ -308,7 +308,7 @@ async function main() {
     console.log('\n⚠️ Performance targets not met. Consider optimization.');
   }
 
-  await threadjs.terminate();
+  await threadts.terminate();
 }
 
 // Run benchmarks

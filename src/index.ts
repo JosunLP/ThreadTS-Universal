@@ -4,7 +4,7 @@
  */
 
 // Core exports
-export { ThreadTS, default as threadjs } from './core/threadjs';
+export { ThreadTS, default as threadts } from './core/threadts';
 
 // Type exports
 export type {
@@ -75,5 +75,5 @@ export { NodeWorkerAdapter } from './adapters/node';
 export { WorkerPoolManager } from './pool/manager';
 
 // Default export for simple usage
-import threadjs from './core/threadjs';
-export default threadjs;
+import threadts from './core/threadts';
+export default threadts;

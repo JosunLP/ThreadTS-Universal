@@ -204,6 +204,6 @@ npm run test:all
 **📚 Weitere Ressourcen:**
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [ThreadTS Universal Documentation](https://threadjs.dev)
+- [ThreadTS Universal Documentation](https://threadts.dev)
 - [Contributing Guidelines](../CONTRIBUTING.md)
 - [Security Policy](../SECURITY.md)

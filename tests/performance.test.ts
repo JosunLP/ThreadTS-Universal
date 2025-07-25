@@ -3,7 +3,7 @@
  * Lightweight Performance-Tests für die Kernfunktionalität
  */
 
-import threadjs, { ThreadTS } from '../src';
+import threadts, { ThreadTS } from '../src';
 
 // Mock für Test-Umgebung
 jest.mock('../src/utils/platform', () => ({
@@ -34,7 +34,7 @@ describe('🚀 Performance Tests', () => {
 
     // 10 einfache Operationen
     const promises = Array.from({ length: 10 }, (_, i) =>
-      threadjs.run((x: number) => x * 2, i)
+      threadts.run((x: number) => x * 2, i)
     );
 
     const results = await Promise.all(promises);
@@ -52,7 +52,7 @@ describe('🚀 Performance Tests', () => {
       data: i,
     }));
 
-    const results = await threadjs.batch(largeBatch, 5);
+    const results = await threadts.batch(largeBatch, 5);
     const duration = Date.now() - startTime;
 
     expect(results).toHaveLength(50);

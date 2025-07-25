@@ -22,7 +22,7 @@ updates:
 
     # Reviewer und Assignees
     reviewers:
-      - 'threadjs-team'
+      - 'threadts-team'
     assignees:
       - 'senior-maintainer'
 
@@ -90,7 +90,7 @@ updates:
       include: 'scope'
 
     reviewers:
-      - 'threadjs-team'
+      - 'threadts-team'
 
     labels:
       - 'github-actions'

@@ -1,5 +1,5 @@
 {
-  "name": "threadjs-universal",
+  "name": "threadts-universal",
   "version": "1.0.0",
   "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
   "main": "dist/index.js",
@@ -22,6 +22,7 @@
       "types": "./dist/node.d.ts"
     }
   },
+  "type": "module",
   "files": [
     "dist/**/*",
     "src/**/*"
@@ -89,7 +90,7 @@
   "bugs": {
     "url": "https://github.com/JosunLP/ThreadTS-Universal/issues"
   },
-  "homepage": "https://threadjs.dev",
+  "homepage": "https://threadts.dev",
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/jest": "^29.5.12",

@@ -3,14 +3,14 @@
  * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
  */
 
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
 describe('Memory Leak Detection', () => {
-  let threadjs: ThreadTS;
+  let threadts: ThreadTS;
   let initialMemory: number;
 
   beforeEach(async () => {
-    threadjs = ThreadTS.getInstance();
+    threadts = ThreadTS.getInstance();
 
     // Mehrfache Garbage Collection für stabilere Baseline in CI
     if (typeof global !== 'undefined' && (global as any).gc) {
@@ -36,8 +36,8 @@ describe('Memory Leak Detection', () => {
   afterEach(async () => {
     // Cleanup nach jedem Test - sichere Terminierung
     try {
-      if (threadjs) {
-        await threadjs.terminate();
+      if (threadts) {
+        await threadts.terminate();
       }
     } catch (error) {
       // Ignoriere Fehler wenn bereits terminiert
@@ -55,7 +55,7 @@ describe('Memory Leak Detection', () => {
 
     // Mehrfache Worker-Ausführung
     for (let i = 0; i < iterations; i++) {
-      await threadjs.run((x: number) => x * 2, i);
+      await threadts.run((x: number) => x * 2, i);
 
       // Periodic Garbage Collection
       if (i % 10 === 0 && typeof global !== 'undefined' && (global as any).gc) {
@@ -97,7 +97,7 @@ describe('Memory Leak Detection', () => {
   it('should clean up worker pool properly', async () => {
     // Worker-Pool mit mehreren Aufgaben belasten
     const tasks = Array.from({ length: 50 }, (_, i) =>
-      threadjs.run((x: number) => x ** 2, i)
+      threadts.run((x: number) => x ** 2, i)
     );
 
     await Promise.all(tasks);
@@ -106,7 +106,7 @@ describe('Memory Leak Detection', () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Pool-Statistiken prüfen
-    const stats = threadjs.getStats();
+    const stats = threadts.getStats();
 
     // Da Node.js möglicherweise worker-threads nicht unterstützt,
     // prüfen wir auf die Gesamtzahl der Worker
@@ -122,11 +122,11 @@ describe('Memory Leak Detection', () => {
 
   it('should handle worker termination gracefully', async () => {
     // Worker starten
-    const task1 = threadjs.run((x: number) => x * 2, 10);
-    const task2 = threadjs.run((x: number) => x * 3, 20);
+    const task1 = threadts.run((x: number) => x * 2, 10);
+    const task2 = threadts.run((x: number) => x * 3, 20);
 
     // Während Ausführung terminieren
-    const terminatePromise = threadjs.terminate();
+    const terminatePromise = threadts.terminate();
 
     // Tasks sollten graceful abgebrochen werden (resolve statt reject)
     const results = await Promise.allSettled([task1, task2, terminatePromise]);
@@ -142,11 +142,11 @@ describe('Memory Leak Detection', () => {
 
     // Worker sollte mit Serialization-Error fehlschlagen
     await expect(
-      threadjs.run((obj: any) => obj.name, circularObj)
+      threadts.run((obj: any) => obj.name, circularObj)
     ).rejects.toThrow();
 
     // Memory sollte nicht geleakt sein
-    const stats = threadjs.getStats();
+    const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
   });
 

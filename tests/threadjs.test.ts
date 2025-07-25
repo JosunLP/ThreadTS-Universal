@@ -3,7 +3,7 @@
  * Tests für die realen Fähigkeiten des NPM-Pakets
  */
 
-import threadjs, { ThreadTS } from '../src';
+import threadts, { ThreadTS } from '../src';
 
 // Mock Worker für Test-Umgebung
 jest.mock('../src/utils/platform', () => ({
@@ -33,7 +33,7 @@ describe('ThreadTS Universal', () => {
 
   describe('🔧 Grundfunktionalität', () => {
     test('sollte einfache Berechnungen parallel ausführen', async () => {
-      const result = await threadjs.run((x: number) => x * 2, 21);
+      const result = await threadts.run((x: number) => x * 2, 21);
       // Mock gibt Eingabedaten zurück
       expect(result).toBe(21);
     });
@@ -45,7 +45,7 @@ describe('ThreadTS Universal', () => {
         nested: { value: 42 },
       };
 
-      const result = await threadjs.run(
+      const result = await threadts.run(
         (input: typeof data) => ({
           sum: input.numbers.reduce((a, b) => a + b, 0),
           upperText: input.text.toUpperCase(),
@@ -63,7 +63,7 @@ describe('ThreadTS Universal', () => {
         return 'completed';
       };
 
-      const result = await threadjs.run(asyncFn, 10);
+      const result = await threadts.run(asyncFn, 10);
       expect(result).toBe(10); // Mock-Verhalten
     });
   });
@@ -76,7 +76,7 @@ describe('ThreadTS Universal', () => {
         { fn: (x: string) => x.toUpperCase(), data: 'test' },
       ];
 
-      const results = await threadjs.parallel(tasks);
+      const results = await threadts.parallel(tasks);
       expect(results).toHaveLength(3);
       expect(results).toEqual([5, 3, 'test']); // Mock gibt Eingabedaten zurück
     });
@@ -84,7 +84,7 @@ describe('ThreadTS Universal', () => {
     test('sollte Array-Mapping parallel durchführen', async () => {
       const numbers = [1, 2, 3, 4, 5];
 
-      const results = await threadjs.map(numbers, (n: number) => n * n, {
+      const results = await threadts.map(numbers, (n: number) => n * n, {
         batchSize: 2,
       });
 
@@ -98,14 +98,14 @@ describe('ThreadTS Universal', () => {
         data: i,
       }));
 
-      const results = await threadjs.batch(largeTasks, 3);
+      const results = await threadts.batch(largeTasks, 3);
       expect(results).toHaveLength(10);
     });
   });
 
   describe('🎛️ Konfiguration & Optionen', () => {
     test('sollte Pool-Statistiken bereitstellen', () => {
-      const stats = threadjs.getStats();
+      const stats = threadts.getStats();
 
       expect(stats).toHaveProperty('activeWorkers');
       expect(stats).toHaveProperty('idleWorkers');
@@ -116,21 +116,21 @@ describe('ThreadTS Universal', () => {
     });
 
     test('sollte Pool-Größe anpassen können', async () => {
-      await threadjs.resize(6);
+      await threadts.resize(6);
       // Test erfolgreich wenn keine Fehler auftreten
       expect(true).toBe(true);
     });
 
     test('sollte Plattform-Informationen liefern', () => {
-      const platform = threadjs.getPlatform();
-      const isSupported = threadjs.isSupported();
+      const platform = threadts.getPlatform();
+      const isSupported = threadts.isSupported();
 
       expect(['browser', 'node', 'deno', 'bun', 'unknown']).toContain(platform);
       expect(typeof isSupported).toBe('boolean');
     });
 
     test('sollte Prioritäten unterstützen', async () => {
-      const result = await threadjs.run((x: number) => x * 3, 7, {
+      const result = await threadts.run((x: number) => x * 3, 7, {
         priority: 'high',
       });
 
@@ -140,12 +140,12 @@ describe('ThreadTS Universal', () => {
 
   describe('🛡️ Fehlerbehandlung', () => {
     test('sollte ungültige Funktionen abfangen', async () => {
-      await expect(threadjs.run(null as any)).rejects.toThrow();
+      await expect(threadts.run(null as any)).rejects.toThrow();
     });
 
     test('sollte Timeout-Optionen respektieren', async () => {
       // Test dass Timeout-Option akzeptiert wird
-      const result = await threadjs.run(() => 'fast-result', null, {
+      const result = await threadts.run(() => 'fast-result', null, {
         timeout: 1000,
       });
 
@@ -159,7 +159,7 @@ describe('ThreadTS Universal', () => {
 
       // In Mock-Umgebung wird möglicherweise kein Fehler geworfen
       try {
-        const result = await threadjs.run(errorFn);
+        const result = await threadts.run(errorFn);
         expect(result).toBeDefined(); // Mock-Verhalten
       } catch (error) {
         expect(error).toBeInstanceOf(Error);

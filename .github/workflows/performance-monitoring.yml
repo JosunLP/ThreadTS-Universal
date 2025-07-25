@@ -371,9 +371,9 @@ jobs:
 
           ## 📋 Resources
 
-          - [Performance Dashboard](https://performance.threadjs.dev)
+          - [Performance Dashboard](https://performance.threadts.dev)
           - [Benchmark History](https://github.com/${{ github.repository }}/actions)
-          - [Performance Guide](https://docs.threadjs.dev/performance)
+          - [Performance Guide](https://docs.threadts.dev/performance)
 
           ---
 

@@ -3,15 +3,15 @@
  * Praktische Anwendungsfälle für Performance-Validierung
  */
 
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
-const threadjs = ThreadTS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 async function main() {
   console.log('🌍 ThreadTS Universal - Real-World Scenarios');
   console.log('═'.repeat(50));
-  console.log(`Platform: ${threadjs.getPlatform()}`);
-  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log(`Platform: ${threadts.getPlatform()}`);
+  console.log(`Worker Support: ${threadts.isSupported()}`);
   console.log('═'.repeat(50));
 
   // 1. Image Processing Simulation

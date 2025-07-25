@@ -3,7 +3,7 @@
  * Method decorators for automatic parallelization
  */
 
-import { ThreadTS } from '../core/threadjs';
+import { ThreadTS } from '../core/threadts';
 import { ParallelMethodOptions } from '../types';
 
 /**
@@ -34,13 +34,13 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
       }
 
       // Create thread pool instance with custom config if specified
-      const threadjs = options.poolSize
+      const threadts = options.poolSize
         ? ThreadTS.getInstance({ maxWorkers: options.poolSize })
         : ThreadTS.getInstance();
 
       try {
         // Execute method in worker thread
-        const result = await threadjs.run(
+        const result = await threadts.run(
           originalMethod,
           { context: this, args },
           {
@@ -99,8 +99,8 @@ export function parallelClass(options: ParallelMethodOptions = {}) {
             // Apply parallel decorator to method
             const originalMethod = method;
             (this as any)[methodName] = async function (...args: any[]) {
-              const threadjs = ThreadTS.getInstance();
-              return await threadjs.run(
+              const threadts = ThreadTS.getInstance();
+              return await threadts.run(
                 originalMethod.bind(this),
                 args,
                 options
@@ -145,14 +145,14 @@ export function parallelBatch(batchSize: number = 4) {
         throw new Error('First argument must be an array for @parallelBatch');
       }
 
-      const threadjs = ThreadTS.getInstance();
+      const threadts = ThreadTS.getInstance();
 
       const tasks = data.map((item) => ({
         fn: originalMethod,
         data: { context: this, args: [item, ...otherArgs] },
       }));
 
-      return await threadjs.batch(tasks, batchSize);
+      return await threadts.batch(tasks, batchSize);
     };
 
     return descriptor;
@@ -179,9 +179,9 @@ export function parallelMap(options: { batchSize?: number } = {}) {
         throw new Error('First argument must be an array for @parallelMap');
       }
 
-      const threadjs = ThreadTS.getInstance();
+      const threadts = ThreadTS.getInstance();
 
-      return await threadjs.map(
+      return await threadts.map(
         data,
         (item, index) => originalMethod.call(this, item, index, ...otherArgs),
         { batchSize: options.batchSize }
@@ -203,8 +203,8 @@ export function highPriority(
   const originalMethod = descriptor.value;
 
   descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadTS.getInstance();
-    return await threadjs.run(
+    const threadts = ThreadTS.getInstance();
+    return await threadts.run(
       originalMethod,
       { context: this, args },
       {
@@ -227,8 +227,8 @@ export function lowPriority(
   const originalMethod = descriptor.value;
 
   descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadTS.getInstance();
-    return await threadjs.run(
+    const threadts = ThreadTS.getInstance();
+    return await threadts.run(
       originalMethod,
       { context: this, args },
       {
@@ -252,8 +252,8 @@ export function timeout(ms: number) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const threadjs = ThreadTS.getInstance();
-      return await threadjs.run(
+      const threadts = ThreadTS.getInstance();
+      return await threadts.run(
         originalMethod,
         { context: this, args },
         {

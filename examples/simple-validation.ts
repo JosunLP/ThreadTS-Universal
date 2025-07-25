@@ -1,4 +1,4 @@
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
-const threadjs = ThreadTS.getInstance();
-console.log('ThreadTS Universal API:', Object.keys(threadjs));
+const threadts = ThreadTS.getInstance();
+console.log('ThreadTS Universal API:', Object.keys(threadts));

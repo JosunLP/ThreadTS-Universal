@@ -1,11 +1,11 @@
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
-const threadjs = ThreadTS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 console.log('🔍 ThreadTS Universal - Bibliothek Validierung (TS)\n');
-console.log('Platform:', threadjs.getPlatform());
-console.log('Worker Support:', threadjs.isSupported());
+console.log('Platform:', threadts.getPlatform());
+console.log('Worker Support:', threadts.isSupported());
 console.log(
   'API Methoden:',
-  Object.getOwnPropertyNames(Object.getPrototypeOf(threadjs))
+  Object.getOwnPropertyNames(Object.getPrototypeOf(threadts))
 );

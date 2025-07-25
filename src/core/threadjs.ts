@@ -297,6 +297,6 @@ export class ThreadTS {
 }
 
 // Create default instance for convenience
-const threadjs = ThreadTS.getInstance();
+const threadts = ThreadTS.getInstance();
 
-export default threadjs;
+export default threadts;

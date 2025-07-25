@@ -57,7 +57,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 #### ✨ Neue Features
 
 - **Universal API**: Ein identisches API für Browser, Node.js, Deno, und Bun
-- **One-Line Parallelization**: `await threadjs.run(fn, data)` für sofortige parallele Ausführung
+- **One-Line Parallelization**: `await threadts.run(fn, data)` für sofortige parallele Ausführung
 - **Intelligente Worker Pools**: Adaptive Skalierung von 1 bis ∞ Worker
 - **Sub-5ms Overhead**: Quantum-level Performance mit minimalem Overhead
 - **TypeScript-First**: Vollständige Type-Safety mit Generics
@@ -72,13 +72,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 #### 🎯 API Methods
 
-- `threadjs.run<T>(fn, data?, options?)` - Hauptmethode für parallele Ausführung
-- `threadjs.parallel<T>(tasks)` - Mehrere Funktionen parallel ausführen
-- `threadjs.batch<T>(tasks, batchSize?)` - Kontrollierte Batch-Verarbeitung
-- `threadjs.map<T, R>(data, fn, options?)` - Parallele Array-Transformation
-- `threadjs.filter<T>(data, fn, options?)` - Parallele Array-Filterung
-- `threadjs.resize(size)` - Worker-Pool-Größe anpassen
-- `threadjs.getStats()` - Pool-Statistiken abrufen
+- `threadts.run<T>(fn, data?, options?)` - Hauptmethode für parallele Ausführung
+- `threadts.parallel<T>(tasks)` - Mehrere Funktionen parallel ausführen
+- `threadts.batch<T>(tasks, batchSize?)` - Kontrollierte Batch-Verarbeitung
+- `threadts.map<T, R>(data, fn, options?)` - Parallele Array-Transformation
+- `threadts.filter<T>(data, fn, options?)` - Parallele Array-Filterung
+- `threadts.resize(size)` - Worker-Pool-Größe anpassen
+- `threadts.getStats()` - Pool-Statistiken abrufen
 
 #### 🌐 Platform Support
 

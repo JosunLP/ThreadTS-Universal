@@ -3,15 +3,15 @@
  * Tests für Speicherverhalten und Stabilität
  */
 
-import { ThreadTS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
-const threadjs = ThreadTS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 async function main() {
   console.log('🧠 ThreadTS Universal - Memory & Stability Benchmarks');
   console.log('═'.repeat(55));
-  console.log(`Platform: ${threadjs.getPlatform()}`);
-  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log(`Platform: ${threadts.getPlatform()}`);
+  console.log(`Worker Support: ${threadts.isSupported()}`);
   console.log('═'.repeat(55));
 
   const results: Array<{ name: string; passed: boolean }> = [];

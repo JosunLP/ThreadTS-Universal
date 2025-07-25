@@ -436,8 +436,8 @@ jobs:
           // Import from CDN or local build
           import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadTS();
-          const result = await threadjs.execute(() => {
+          const threadts = new ThreadTS();
+          const result = await threadts.execute(() => {
             return 'Hello from Deno Worker!';
           });
           \`\`\`
@@ -589,8 +589,8 @@ jobs:
           // Works with both import and require
           import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadTS();
-          const result = await threadjs.execute(() => {
+          const threadts = new ThreadTS();
+          const result = await threadts.execute(() => {
             return 'Hello from Bun Worker!';
           });
           \`\`\`
