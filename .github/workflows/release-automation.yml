@@ -255,11 +255,9 @@ jobs:
           npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
 
           # Test basic functionality
-          cat > test-installation.mjs << 'EOF'
-          import threadjs from 'threadjs-universal';
-          console.log('✅ Package installation test successful');
-          console.log('ThreadJS loaded:', typeof threadjs);
-          EOF
+          echo "import threadjs from 'threadjs-universal';" > test-installation.mjs
+          echo "console.log('✅ Package installation test successful');" >> test-installation.mjs
+          echo "console.log('ThreadJS loaded:', typeof threadjs);" >> test-installation.mjs
 
           node test-installation.mjs
 
