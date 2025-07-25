@@ -24,11 +24,31 @@ export class BrowserWorkerAdapter implements WorkerAdapter {
   }
 
   isSupported(): boolean {
-    return (
-      typeof Worker !== 'undefined' &&
-      typeof Blob !== 'undefined' &&
-      typeof URL !== 'undefined'
-    );
+    try {
+      // Erweiterte Prüfung mit Fehlerbehandlung
+      if (
+        typeof Worker === 'undefined' ||
+        typeof Blob === 'undefined' ||
+        typeof URL === 'undefined'
+      ) {
+        return false;
+      }
+
+      // Teste ob wir tatsächlich einen Worker erstellen können
+      // (in manchen Umgebungen ist Worker definiert, aber nicht funktional)
+      try {
+        const testBlob = new Blob([''], { type: 'application/javascript' });
+        const testUrl = URL.createObjectURL(testBlob);
+        URL.revokeObjectURL(testUrl);
+        return true;
+      } catch (error) {
+        console.warn('Worker creation test failed:', error);
+        return false;
+      }
+    } catch (error) {
+      console.warn('Worker support detection failed:', error);
+      return false;
+    }
   }
 }
 

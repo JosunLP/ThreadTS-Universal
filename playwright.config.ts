@@ -13,7 +13,20 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Aktiviere Web Workers falls möglich
+        launchOptions: {
+          args: [
+            '--enable-web-workers',
+            '--allow-running-insecure-content',
+            '--disable-web-security',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+          ],
+        },
+      },
     },
     {
       name: 'webkit',
@@ -24,4 +37,6 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
   ],
+  // Global setup für Worker-Detection
+  globalSetup: require.resolve('./tests/global-setup.ts'),
 });

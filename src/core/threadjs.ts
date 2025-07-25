@@ -44,16 +44,27 @@ export class ThreadJS {
   /**
    * Executes a function in a worker thread with the given data
    * This is the main API - one-liner parallel execution
+   * Falls back to synchronous execution if workers are not supported
    */
   async run<T = any>(
     fn: Function,
     data?: any,
     options?: ThreadOptions
   ): Promise<T> {
-    if (!supportsWorkerThreads()) {
-      throw new WorkerError(
-        `Worker threads are not supported in ${this.platform} environment`
+    if (!this.adapter.isSupported()) {
+      console.warn(
+        `Worker threads are not supported in ${this.platform} environment - falling back to synchronous execution`
       );
+
+      // Fallback: synchrone Ausführung
+      try {
+        const result = fn(data);
+        return result instanceof Promise ? await result : result;
+      } catch (error) {
+        throw new WorkerError(
+          `Synchronous fallback execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }
 
     const result = await this.pool.execute<T>(fn as any, data, options);
@@ -62,12 +73,37 @@ export class ThreadJS {
 
   /**
    * Executes a function and returns detailed execution information
+   * Falls back to synchronous execution if workers are not supported
    */
   async execute<T = any>(
     fn: Function,
     data?: any,
     options?: ThreadOptions
   ): Promise<ThreadResult<T>> {
+    if (!this.adapter.isSupported()) {
+      console.warn(
+        `Worker threads are not supported in ${this.platform} environment - using synchronous execution`
+      );
+
+      const startTime = Date.now();
+
+      try {
+        const syncResult = fn(data);
+        const result =
+          syncResult instanceof Promise ? await syncResult : syncResult;
+        const endTime = Date.now();
+
+        return {
+          result,
+          executionTime: endTime - startTime,
+          workerId: 'sync-fallback',
+        };
+      } catch (error) {
+        throw new WorkerError(
+          `Synchronous fallback execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }
     if (!supportsWorkerThreads()) {
       throw new WorkerError(
         `Worker threads are not supported in ${this.platform} environment`
