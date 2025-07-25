@@ -41,9 +41,18 @@ jobs:
           npm init -y
           npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
 
-          # Test basic import
-          echo "import threadjs from 'threadjs-universal'; console.log('Import successful');" > test.mjs
-          node test.mjs
+          # Test CommonJS import
+          echo "const threadjs = require('threadjs-universal'); console.log('CommonJS import successful:', typeof threadjs);" > test-cjs.js
+          node test-cjs.js
+
+          # Configure package.json for ES modules and test ES import
+          npm pkg set type=module
+          echo "import threadjs from 'threadjs-universal'; console.log('ES import successful:', typeof threadjs);" > test-esm.mjs
+          node test-esm.mjs
+
+          # Test both exports
+          echo "import { ThreadJS } from 'threadjs-universal'; console.log('Named import successful:', typeof ThreadJS);" > test-named.mjs
+          node test-named.mjs
 
       - name: 📊 Package Size Analysis
         run: |
