@@ -56,6 +56,24 @@ function fixImportsInFile(filePath) {
     }
   );
 
+  // Also fix export statements with relative paths
+  content = content.replace(
+    /(export\s+[^'"`]*from\s+['"`])(\.\.?\/[^'"`]+?)(['"`])/g,
+    (match, beforePath, importPath, quote) => {
+      if (!path.extname(importPath)) {
+        const resolvedPath = path.resolve(basePath, importPath);
+
+        // Check if it's a directory with index.js
+        if (fs.existsSync(path.join(resolvedPath, 'index.js'))) {
+          return `${beforePath}${importPath}/index.js${quote}`;
+        }
+        // Otherwise, just add .js
+        return `${beforePath}${importPath}.js${quote}`;
+      }
+      return match;
+    }
+  );
+
   if (content !== originalContent) {
     fs.writeFileSync(filePath, content, 'utf8');
     return true;
