@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Browser-specific exports
+ * ThreadTS Universal - Browser-specific exports
  */
 
 export { BrowserWorkerAdapter } from './adapters/browser';

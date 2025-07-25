@@ -1,6 +1,6 @@
-# 🚀 ThreadJS Universal - GitHub Actions Workflows
+# 🚀 ThreadTS Universal - GitHub Actions Workflows
 
-Dieses Verzeichnis enthält die umfassende CI/CD-Pipeline für das ThreadJS Universal Projekt.
+Dieses Verzeichnis enthält die umfassende CI/CD-Pipeline für das ThreadTS Universal Projekt.
 
 ## 📋 **Workflow-Übersicht**
 
@@ -204,6 +204,6 @@ npm run test:all
 **📚 Weitere Ressourcen:**
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [ThreadJS Universal Documentation](https://threadjs.dev)
+- [ThreadTS Universal Documentation](https://threadjs.dev)
 - [Contributing Guidelines](../CONTRIBUTING.md)
 - [Security Policy](../SECURITY.md)

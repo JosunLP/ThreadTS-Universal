@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Worker Pool Manager
+ * ThreadTS Universal - Worker Pool Manager
  * Manages a pool of workers for optimal performance
  */
 

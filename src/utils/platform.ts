@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Platform Detection Utilities
+ * ThreadTS Universal - Platform Detection Utilities
  */
 
 import { Platform } from '../types';

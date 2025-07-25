@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Deno Worker Adapter
+ * ThreadTS Universal - Deno Worker Adapter
  */
 
 import {

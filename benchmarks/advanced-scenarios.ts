@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Advanced Performance Benchmarks
+ * ThreadTS Universal - Advanced Performance Benchmarks
  * Umfassende Performance-Tests mit Real-World-Szenarien
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
 interface AdvancedBenchmarkResult {
   name: string;
@@ -14,7 +14,7 @@ interface AdvancedBenchmarkResult {
   details: string;
 }
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 async function measureTime<T>(
   fn: () => Promise<T>
@@ -43,7 +43,7 @@ class AdvancedBenchmarks {
       });
     };
 
-    // ThreadJS Implementation
+    // ThreadTS Implementation
     const threadjsProcessing = async () => {
       return threadjs.map(
         pixels,
@@ -99,7 +99,7 @@ class AdvancedBenchmarks {
       }));
     };
 
-    // ThreadJS Implementation
+    // ThreadTS Implementation
     const threadjsProcessing = async () => {
       return threadjs.map(
         dataset,
@@ -157,7 +157,7 @@ class AdvancedBenchmarks {
       }));
     };
 
-    // ThreadJS Implementation
+    // ThreadTS Implementation
     const threadjsProcessing = async () => {
       const timestamp = Date.now();
       return threadjs.map(
@@ -212,7 +212,7 @@ class AdvancedBenchmarks {
       return results;
     };
 
-    // ThreadJS Implementation
+    // ThreadTS Implementation
     const threadjsProcessing = async () => {
       const data = Array.from({ length: iterations }, (_, i) => i);
       return threadjs.map(
@@ -242,7 +242,7 @@ class AdvancedBenchmarks {
 }
 
 async function main() {
-  console.log('🧮 ThreadJS Universal - Advanced Performance Benchmarks');
+  console.log('🧮 ThreadTS Universal - Advanced Performance Benchmarks');
   console.log('═'.repeat(65));
   console.log(`Platform: ${threadjs.getPlatform()}`);
   console.log(`Worker Support: ${threadjs.isSupported()}`);
@@ -276,7 +276,7 @@ async function main() {
   console.log('\n📊 Advanced Benchmark Results:');
   console.log('═'.repeat(85));
   console.log(
-    '| Benchmark                        | ThreadJS | Native  | Overhead | Status | Details        |'
+    '| Benchmark                        | ThreadTS | Native  | Overhead | Status | Details        |'
   );
   console.log(
     '|----------------------------------|----------|---------|----------|--------|----------------|'

@@ -142,7 +142,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           flags: unittests
-          name: ThreadJS Universal
+          name: ThreadTS Universal
 
   # ═══════════════════════════════════════════════════════════════
   # 🌐 CROSS-BROWSER TESTING
@@ -330,7 +330,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.new_version }}
           release_name: Release v${{ steps.version.outputs.new_version }}
           body: |
-            ## 🚀 ThreadJS Universal v${{ steps.version.outputs.new_version }}
+            ## 🚀 ThreadTS Universal v${{ steps.version.outputs.new_version }}
 
             ### 📊 Performance Metrics
             - Bundle Size: < 20kB (gzip)
@@ -384,7 +384,7 @@ jobs:
       - name: 🚨 Log Health Check Failure
         if: failure()
         run: |
-          echo "🚨 ThreadJS Universal Health Check Failed!"
+          echo "🚨 ThreadTS Universal Health Check Failed!"
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.ref }}"
           echo "Commit: ${{ github.sha }}"

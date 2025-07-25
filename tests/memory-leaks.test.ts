@@ -1,16 +1,16 @@
 /**
- * ThreadJS Universal - Memory Leak Detection Tests
+ * ThreadTS Universal - Memory Leak Detection Tests
  * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
 describe('Memory Leak Detection', () => {
-  let threadjs: ThreadJS;
+  let threadjs: ThreadTS;
   let initialMemory: number;
 
   beforeEach(async () => {
-    threadjs = ThreadJS.getInstance();
+    threadjs = ThreadTS.getInstance();
 
     // Mehrfache Garbage Collection für stabilere Baseline in CI
     if (typeof global !== 'undefined' && (global as any).gc) {
@@ -41,7 +41,7 @@ describe('Memory Leak Detection', () => {
       }
     } catch (error) {
       // Ignoriere Fehler wenn bereits terminiert
-      console.log('ThreadJS already terminated or cleanup error:', error);
+      console.log('ThreadTS already terminated or cleanup error:', error);
     }
 
     // Force Garbage Collection wenn verfügbar
@@ -162,10 +162,10 @@ describe('Memory Leak Detection', () => {
     const largeArray = new Array(arraySize).fill(0).map((_, i) => i);
 
     // Worker-Pool für bessere Kontrolle explizit erstellen
-    const testThreadJS = ThreadJS.getInstance();
+    const testThreadTS = ThreadTS.getInstance();
 
     for (let i = 0; i < iterations; i++) {
-      await testThreadJS.run(
+      await testThreadTS.run(
         (arr: number[]) => arr.reduce((a, b) => a + b, 0),
         largeArray
       );
@@ -180,7 +180,7 @@ describe('Memory Leak Detection', () => {
     }
 
     // Worker-Pool terminieren
-    await testThreadJS.terminate();
+    await testThreadTS.terminate();
 
     // Ausreichend Zeit für Worker-Cleanup
     await new Promise((resolve) => setTimeout(resolve, isCI ? 1000 : 500));

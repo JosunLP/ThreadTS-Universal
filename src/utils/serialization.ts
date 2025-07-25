@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Serialization Utilities
+ * ThreadTS Universal - Serialization Utilities
  * Handles function and data serialization across different platforms
  */
 
@@ -235,7 +235,7 @@ export function createWorkerScript(
   const { serialized: dataString } = serializeData(data);
 
   return `
-    // ThreadJS Universal Worker Script
+    // ThreadTS Universal Worker Script
     const { deserializeData, restoreTransferables, serializeData } = {
       deserializeData: ${deserializeData.toString()},
       restoreTransferables: ${restoreTransferables.toString()},

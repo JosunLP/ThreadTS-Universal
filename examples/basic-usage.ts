@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Example Usage
+ * ThreadTS Universal - Example Usage
  */
 
 import threadjs, { parallelMap, parallelMethod } from '../src';
@@ -163,7 +163,7 @@ async function errorHandlingExample() {
 // Main execution
 async function main() {
   try {
-    console.log('🌟 ThreadJS Universal Examples\n');
+    console.log('🌟 ThreadTS Universal Examples\n');
 
     await basicExample();
     console.log('');

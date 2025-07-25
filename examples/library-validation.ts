@@ -1,8 +1,8 @@
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
-console.log('🔍 ThreadJS Universal - Bibliothek Validierung (TS)\n');
+console.log('🔍 ThreadTS Universal - Bibliothek Validierung (TS)\n');
 console.log('Platform:', threadjs.getPlatform());
 console.log('Worker Support:', threadjs.isSupported());
 console.log(

@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Node.js Worker Adapter
+ * ThreadTS Universal - Node.js Worker Adapter
  */
 
 import {

@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Performance Tests
+ * ThreadTS Universal - Performance Tests
  * Lightweight Performance-Tests für die Kernfunktionalität
  */
 
-import threadjs, { ThreadJS } from '../src';
+import threadjs, { ThreadTS } from '../src';
 
 // Mock für Test-Umgebung
 jest.mock('../src/utils/platform', () => ({
@@ -14,19 +14,19 @@ jest.mock('../src/utils/platform', () => ({
 
 describe('🚀 Performance Tests', () => {
   beforeEach(() => {
-    (ThreadJS as any).instance = null;
+    (ThreadTS as any).instance = null;
   });
 
   afterEach(async () => {
     try {
-      const instance = (ThreadJS as any).instance;
+      const instance = (ThreadTS as any).instance;
       if (instance) {
         await instance.terminate();
       }
     } catch (error) {
       // Ignore cleanup errors
     }
-    (ThreadJS as any).instance = null;
+    (ThreadTS as any).instance = null;
   });
 
   test('sollte minimalen Overhead haben', async () => {
@@ -60,7 +60,7 @@ describe('🚀 Performance Tests', () => {
   });
 
   test('sollte Pool-Management performant sein', async () => {
-    const instance = ThreadJS.getInstance();
+    const instance = ThreadTS.getInstance();
 
     // Pool-Statistiken sollten sofort verfügbar sein
     const startTime = Date.now();
@@ -72,7 +72,7 @@ describe('🚀 Performance Tests', () => {
   });
 
   test('sollte Memory-Management korrekt funktionieren', async () => {
-    const instance = ThreadJS.getInstance();
+    const instance = ThreadTS.getInstance();
 
     // Viele kleine Tasks ausführen
     for (let i = 0; i < 20; i++) {

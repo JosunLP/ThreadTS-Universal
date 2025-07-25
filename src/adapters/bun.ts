@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Bun Worker Adapter
+ * ThreadTS Universal - Bun Worker Adapter
  */
 
 import {

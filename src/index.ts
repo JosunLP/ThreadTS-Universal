@@ -1,10 +1,10 @@
 /**
- * ThreadJS Universal - Main Entry Point
+ * ThreadTS Universal - Main Entry Point
  * Universal TypeScript library for effortless parallel computing
  */
 
 // Core exports
-export { ThreadJS, default as threadjs } from './core/threadjs';
+export { ThreadTS, default as threadjs } from './core/threadjs';
 
 // Type exports
 export type {

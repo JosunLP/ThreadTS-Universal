@@ -352,7 +352,7 @@ jobs:
           echo "Running Deno compatibility tests..."
 
           # Create Deno test file (cross-platform)
-          echo "// Deno compatibility test for ThreadJS Universal" > deno-test.ts
+          echo "// Deno compatibility test for ThreadTS Universal" > deno-test.ts
           echo "" >> deno-test.ts
           echo "// Test basic module import" >> deno-test.ts
           echo "try {" >> deno-test.ts
@@ -425,7 +425,7 @@ jobs:
 
           ## 📋 Compatibility Notes
 
-          - ThreadJS Universal works with Deno's Web Worker implementation
+          - ThreadTS Universal works with Deno's Web Worker implementation
           - No Node.js-specific APIs used in browser/Deno builds
           - Permissions system respected
           - Import maps supported for dependency management
@@ -434,9 +434,9 @@ jobs:
 
           \`\`\`typescript
           // Import from CDN or local build
-          import { ThreadJS } from './dist/esm/index.js';
+          import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadJS();
+          const threadjs = new ThreadTS();
           const result = await threadjs.execute(() => {
             return 'Hello from Deno Worker!';
           });
@@ -494,7 +494,7 @@ jobs:
           echo "Running Bun compatibility tests..."
 
           # Create Bun test file (cross-platform)
-          echo "// Bun compatibility test for ThreadJS Universal" > bun-test.ts
+          echo "// Bun compatibility test for ThreadTS Universal" > bun-test.ts
           echo "" >> bun-test.ts
           echo "console.log('🥟 Testing Bun compatibility...');" >> bun-test.ts
           echo "console.log('Bun version:', process.versions.bun);" >> bun-test.ts
@@ -578,7 +578,7 @@ jobs:
 
           ## 📋 Compatibility Notes
 
-          - ThreadJS Universal works with Bun's Worker implementation
+          - ThreadTS Universal works with Bun's Worker implementation
           - Excellent performance characteristics
           - Node.js API compatibility for server-side usage
           - Fast package installation and bundling
@@ -587,9 +587,9 @@ jobs:
 
           \`\`\`typescript
           // Works with both import and require
-          import { ThreadJS } from './dist/esm/index.js';
+          import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadJS();
+          const threadjs = new ThreadTS();
           const result = await threadjs.execute(() => {
             return 'Hello from Bun Worker!';
           });
@@ -645,7 +645,7 @@ jobs:
           echo "Generating comprehensive platform compatibility report..."
 
           cat > platform-compatibility-report.md << EOF
-          # 🌐 ThreadJS Universal - Platform Compatibility Report
+          # 🌐 ThreadTS Universal - Platform Compatibility Report
 
           **Report Date:** $(date -u +%Y-%m-%d)
           **Repository:** ${{ github.repository }}

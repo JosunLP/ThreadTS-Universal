@@ -1,5 +1,5 @@
 /**
- * Test setup for ThreadJS Universal
+ * Test setup for ThreadTS Universal
  */
 
 // Mock worker threads for testing environments that don't support them

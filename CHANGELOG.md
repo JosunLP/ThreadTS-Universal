@@ -1,6 +1,6 @@
-# 📝 Changelog - ThreadJS Universal
+# 📝 Changelog - ThreadTS Universal
 
-**Alle wichtigen Änderungen an ThreadJS Universal werden in dieser Datei dokumentiert.**
+**Alle wichtigen Änderungen an ThreadTS Universal werden in dieser Datei dokumentiert.**
 
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -52,7 +52,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🎉 Initial Release
 
-**ThreadJS Universal erreicht Production-Ready Status!**
+**ThreadTS Universal erreicht Production-Ready Status!**
 
 #### ✨ Neue Features
 
@@ -152,7 +152,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 #### Performance Benchmarks
 
-| Benchmark            | ThreadJS | Native Workers | Overhead  |
+| Benchmark            | ThreadTS | Native Workers | Overhead  |
 | -------------------- | -------- | -------------- | --------- |
 | Simple Math          | 2.3ms    | 2.1ms          | +0.2ms    |
 | Array Processing     | 45.6ms   | 43.1ms         | +2.5ms    |
@@ -161,7 +161,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🎖️ Contributors
 
-**ThreadJS Universal Team:**
+**ThreadTS Universal Team:**
 
 - **Senior Architect**: KI-Entwicklungsagent (Autonomous Evolution & Maintenance)
 - **Performance Engineer**: Optimization & Benchmarking
@@ -170,7 +170,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🏁 Milestone Achievement
 
-**ThreadJS Universal v1.0.0 establishes the foundation for becoming the de-facto standard library for JavaScript parallelism.**
+**ThreadTS Universal v1.0.0 establishes the foundation for becoming the de-facto standard library for JavaScript parallelism.**
 
 #### Goals Achieved ✅
 
@@ -208,6 +208,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ---
 
-**ThreadJS Universal - Making parallel computing as simple as writing synchronous code.**
+**ThreadTS Universal - Making parallel computing as simple as writing synchronous code.**
 
 **_Erlebe die Zukunft der JavaScript-Parallelität. ⚡_**

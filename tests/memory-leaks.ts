@@ -1,16 +1,16 @@
 /**
- * ThreadJS Universal - Memory Leak Detection Tests
+ * ThreadTS Universal - Memory Leak Detection Tests
  * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
 describe('Memory Leak Detection', () => {
-  let threadjs: ThreadJS;
+  let threadjs: ThreadTS;
   let initialMemory: number;
 
   beforeEach(() => {
-    threadjs = ThreadJS.getInstance();
+    threadjs = ThreadTS.getInstance();
     // Baseline Memory-Usage ermitteln
     if (typeof process !== 'undefined' && process.memoryUsage) {
       initialMemory = process.memoryUsage().heapUsed;

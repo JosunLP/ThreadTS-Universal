@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Main ThreadJS Manager
+ * ThreadTS Universal - Main ThreadTS Manager
  * The core orchestrator for all parallel execution
  */
 
@@ -19,8 +19,8 @@ import {
 } from '../types';
 import { detectPlatform, supportsWorkerThreads } from '../utils/platform';
 
-export class ThreadJS {
-  private static instance: ThreadJS | null = null;
+export class ThreadTS {
+  private static instance: ThreadTS | null = null;
   private adapter: WorkerAdapter;
   private pool: PoolManager;
   private platform: Platform;
@@ -32,13 +32,13 @@ export class ThreadJS {
   }
 
   /**
-   * Gets the singleton instance of ThreadJS
+   * Gets the singleton instance of ThreadTS
    */
-  static getInstance(poolConfig?: PoolConfig): ThreadJS {
-    if (!ThreadJS.instance) {
-      ThreadJS.instance = new ThreadJS(poolConfig);
+  static getInstance(poolConfig?: PoolConfig): ThreadTS {
+    if (!ThreadTS.instance) {
+      ThreadTS.instance = new ThreadTS(poolConfig);
     }
-    return ThreadJS.instance;
+    return ThreadTS.instance;
   }
 
   /**
@@ -277,7 +277,7 @@ export class ThreadJS {
    */
   async terminate(): Promise<void> {
     await this.pool.terminate();
-    ThreadJS.instance = null;
+    ThreadTS.instance = null;
   }
 
   private createAdapter(): WorkerAdapter {
@@ -297,6 +297,6 @@ export class ThreadJS {
 }
 
 // Create default instance for convenience
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 export default threadjs;

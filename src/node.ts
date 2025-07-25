@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Node.js-specific exports
+ * ThreadTS Universal - Node.js-specific exports
  */
 
 export { NodeWorkerAdapter } from './adapters/node';

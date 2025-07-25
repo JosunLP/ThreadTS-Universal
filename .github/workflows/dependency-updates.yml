@@ -284,7 +284,7 @@ jobs:
 
       - name: 📧 Log Security Alert
         run: |
-          echo "🚨 Security Alert - ThreadJS Universal"
+          echo "🚨 Security Alert - ThreadTS Universal"
           echo "Vulnerabilities Found: ${{ needs.analyze-dependencies.outputs.security-updates }}"
           echo "Repository: ${{ github.repository }}"
           echo "Action Required: Review and apply security updates immediately"

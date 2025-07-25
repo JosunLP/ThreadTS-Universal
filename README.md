@@ -1,4 +1,4 @@
-# 🚀 ThreadJS Universal
+# 🚀 ThreadTS Universal
 
 [![npm version](https://badge.fury.io/js/threadjs-universal.svg)](https://badge.fury.io/js/threadjs-universal)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -271,14 +271,14 @@ async timedTask(): Promise<Result> { ... }
 
 ## 📊 Performance
 
-ThreadJS Universal provides quantum-level performance with sub-5ms overhead:
+ThreadTS Universal provides quantum-level performance with sub-5ms overhead:
 
 ```typescript
 // Benchmark: Fibonacci(40) calculation
 const iterations = 1000;
 
 // Sequential execution: ~2.3s
-// ThreadJS parallel: ~0.6s (4 cores)
+// ThreadTS parallel: ~0.6s (4 cores)
 // Overhead: < 5ms per operation
 ```
 
@@ -287,9 +287,9 @@ const iterations = 1000;
 ### Pool Configuration
 
 ```typescript
-import { ThreadJS } from 'threadjs-universal';
+import { ThreadTS } from 'threadjs-universal';
 
-const threadjs = ThreadJS.getInstance({
+const threadjs = ThreadTS.getInstance({
   minWorkers: 2,
   maxWorkers: 8,
   idleTimeout: 30000,
@@ -341,9 +341,9 @@ npm test
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🌟 Why ThreadJS Universal?
+## 🌟 Why ThreadTS Universal?
 
-### Before ThreadJS
+### Before ThreadTS
 
 ```typescript
 // Complex worker setup
@@ -358,14 +358,14 @@ worker.onerror = (error) => {
 };
 ```
 
-### With ThreadJS
+### With ThreadTS
 
 ```typescript
 // One line parallel execution
 const result = await threadjs.run(fn, data);
 ```
 
-### The ThreadJS Advantage
+### The ThreadTS Advantage
 
 - ✅ **Universal**: Same API across all platforms
 - ✅ **Simple**: One-line parallel execution
@@ -376,6 +376,6 @@ const result = await threadjs.run(fn, data);
 
 ---
 
-**Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadJS Universal.**
+**Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadTS Universal.**
 
 [![Star on GitHub](https://img.shields.io/github/stars/threadjs/universal?style=social)](https://github.com/JosunLP/ThreadTS-Universal)

@@ -51,7 +51,7 @@ jobs:
           node test-esm.mjs
 
           # Test both exports
-          echo "import { ThreadJS } from 'threadjs-universal'; console.log('Named import successful:', typeof ThreadJS);" > test-named.mjs
+          echo "import { ThreadTS } from 'threadjs-universal'; console.log('Named import successful:', typeof ThreadTS);" > test-named.mjs
           node test-named.mjs
 
       - name: 📊 Package Size Analysis

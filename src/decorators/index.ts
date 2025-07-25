@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Decorators
+ * ThreadTS Universal - Decorators
  * Method decorators for automatic parallelization
  */
 
-import { ThreadJS } from '../core/threadjs';
+import { ThreadTS } from '../core/threadjs';
 import { ParallelMethodOptions } from '../types';
 
 /**
@@ -35,8 +35,8 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
 
       // Create thread pool instance with custom config if specified
       const threadjs = options.poolSize
-        ? ThreadJS.getInstance({ maxWorkers: options.poolSize })
-        : ThreadJS.getInstance();
+        ? ThreadTS.getInstance({ maxWorkers: options.poolSize })
+        : ThreadTS.getInstance();
 
       try {
         // Execute method in worker thread
@@ -99,7 +99,7 @@ export function parallelClass(options: ParallelMethodOptions = {}) {
             // Apply parallel decorator to method
             const originalMethod = method;
             (this as any)[methodName] = async function (...args: any[]) {
-              const threadjs = ThreadJS.getInstance();
+              const threadjs = ThreadTS.getInstance();
               return await threadjs.run(
                 originalMethod.bind(this),
                 args,
@@ -145,7 +145,7 @@ export function parallelBatch(batchSize: number = 4) {
         throw new Error('First argument must be an array for @parallelBatch');
       }
 
-      const threadjs = ThreadJS.getInstance();
+      const threadjs = ThreadTS.getInstance();
 
       const tasks = data.map((item) => ({
         fn: originalMethod,
@@ -179,7 +179,7 @@ export function parallelMap(options: { batchSize?: number } = {}) {
         throw new Error('First argument must be an array for @parallelMap');
       }
 
-      const threadjs = ThreadJS.getInstance();
+      const threadjs = ThreadTS.getInstance();
 
       return await threadjs.map(
         data,
@@ -203,7 +203,7 @@ export function highPriority(
   const originalMethod = descriptor.value;
 
   descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadJS.getInstance();
+    const threadjs = ThreadTS.getInstance();
     return await threadjs.run(
       originalMethod,
       { context: this, args },
@@ -227,7 +227,7 @@ export function lowPriority(
   const originalMethod = descriptor.value;
 
   descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadJS.getInstance();
+    const threadjs = ThreadTS.getInstance();
     return await threadjs.run(
       originalMethod,
       { context: this, args },
@@ -252,7 +252,7 @@ export function timeout(ms: number) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const threadjs = ThreadJS.getInstance();
+      const threadjs = ThreadTS.getInstance();
       return await threadjs.run(
         originalMethod,
         { context: this, args },

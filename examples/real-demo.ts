@@ -1,12 +1,12 @@
 /**
- * ThreadJS Universal - Live Demo (TypeScript)
+ * ThreadTS Universal - Live Demo (TypeScript)
  */
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 async function runDemo() {
-  console.log('🌟 ThreadJS Universal Live Demo (TS)\n');
+  console.log('🌟 ThreadTS Universal Live Demo (TS)\n');
   console.log('Platform:', threadjs.getPlatform());
   console.log('Worker Support:', threadjs.isSupported());
 

@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Browser Worker Adapter
+ * ThreadTS Universal - Browser Worker Adapter
  */
 
 import {

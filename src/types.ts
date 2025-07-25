@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Core Types
+ * ThreadTS Universal - Core Types
  * Universal TypeScript library for effortless parallel computing
  */
 

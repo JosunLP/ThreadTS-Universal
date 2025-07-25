@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Core Functionality Tests
+ * ThreadTS Universal - Core Functionality Tests
  * Tests für die realen Fähigkeiten des NPM-Pakets
  */
 
-import threadjs, { ThreadJS } from '../src';
+import threadjs, { ThreadTS } from '../src';
 
 // Mock Worker für Test-Umgebung
 jest.mock('../src/utils/platform', () => ({
@@ -13,22 +13,22 @@ jest.mock('../src/utils/platform', () => ({
   getOptimalWorkerCount: () => 4,
 }));
 
-describe('ThreadJS Universal', () => {
+describe('ThreadTS Universal', () => {
   beforeEach(() => {
-    // ThreadJS-Instanz zwischen Tests zurücksetzen
-    (ThreadJS as any).instance = null;
+    // ThreadTS-Instanz zwischen Tests zurücksetzen
+    (ThreadTS as any).instance = null;
   });
 
   afterEach(async () => {
     try {
-      const instance = (ThreadJS as any).instance;
+      const instance = (ThreadTS as any).instance;
       if (instance) {
         await instance.terminate();
       }
     } catch (error) {
       // Cleanup-Fehler ignorieren
     }
-    (ThreadJS as any).instance = null;
+    (ThreadTS as any).instance = null;
   });
 
   describe('🔧 Grundfunktionalität', () => {
@@ -169,7 +169,7 @@ describe('ThreadJS Universal', () => {
 
   describe('🔄 Lifecycle Management', () => {
     test('sollte graceful shutdown unterstützen', async () => {
-      const instance = ThreadJS.getInstance();
+      const instance = ThreadTS.getInstance();
 
       // Einige Tasks ausführen
       await instance.run((x: number) => x, 1);
@@ -181,7 +181,7 @@ describe('ThreadJS Universal', () => {
     });
 
     test('sollte Worker-Pool korrekt initialisieren', () => {
-      const instance = ThreadJS.getInstance();
+      const instance = ThreadTS.getInstance();
       const stats = instance.getStats();
 
       // Pool sollte initialisiert sein

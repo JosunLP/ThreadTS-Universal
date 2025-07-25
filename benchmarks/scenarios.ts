@@ -1,14 +1,14 @@
 /**
- * ThreadJS Universal - Real-World Scenarios Benchmark
+ * ThreadTS Universal - Real-World Scenarios Benchmark
  * Praktische Anwendungsfälle für Performance-Validierung
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 async function main() {
-  console.log('🌍 ThreadJS Universal - Real-World Scenarios');
+  console.log('🌍 ThreadTS Universal - Real-World Scenarios');
   console.log('═'.repeat(50));
   console.log(`Platform: ${threadjs.getPlatform()}`);
   console.log(`Worker Support: ${threadjs.isSupported()}`);

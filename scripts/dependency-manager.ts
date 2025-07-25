@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 /**
- * ThreadJS Universal - Automated Dependencies Update Check
+ * ThreadTS Universal - Automated Dependencies Update Check
  * Autonomous dependency management with security scanning
  */
 
@@ -272,7 +272,7 @@ class DependencyManager {
 }
 
 async function main() {
-  console.log('🤖 ThreadJS Universal - Autonomous Dependency Manager');
+  console.log('🤖 ThreadTS Universal - Autonomous Dependency Manager');
   console.log('═'.repeat(55));
 
   const manager = new DependencyManager();

@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Core Performance Benchmarks
+ * ThreadTS Universal - Core Performance Benchmarks
  * Fokussierte Tests auf echte Parallelisierungs-Fähigkeiten
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
 interface BenchmarkResult {
   name: string;
@@ -12,7 +12,7 @@ interface BenchmarkResult {
   details?: string;
 }
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 async function measureTime<T>(
   fn: () => Promise<T>
@@ -24,7 +24,7 @@ async function measureTime<T>(
 }
 
 async function main() {
-  console.log('🚀 ThreadJS Universal - Core Performance Benchmarks');
+  console.log('🚀 ThreadTS Universal - Core Performance Benchmarks');
   console.log('═'.repeat(55));
   console.log(`Platform: ${threadjs.getPlatform()}`);
   console.log(`Worker Support: ${threadjs.isSupported()}`);

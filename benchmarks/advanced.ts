@@ -1,14 +1,14 @@
 /**
- * ThreadJS Universal - Memory & Stability Benchmarks
+ * ThreadTS Universal - Memory & Stability Benchmarks
  * Tests für Speicherverhalten und Stabilität
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadjs';
 
-const threadjs = ThreadJS.getInstance();
+const threadjs = ThreadTS.getInstance();
 
 async function main() {
-  console.log('🧠 ThreadJS Universal - Memory & Stability Benchmarks');
+  console.log('🧠 ThreadTS Universal - Memory & Stability Benchmarks');
   console.log('═'.repeat(55));
   console.log(`Platform: ${threadjs.getPlatform()}`);
   console.log(`Worker Support: ${threadjs.isSupported()}`);

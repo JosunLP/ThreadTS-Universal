@@ -1,11 +1,11 @@
 /**
- * ThreadJS Universal - Browser Integration Tests
+ * ThreadTS Universal - Browser Integration Tests
  * Tests für Browser-spezifische Funktionalität mit umgebungsabhängiger Worker-Unterstützung
  */
 
 import { expect, test } from '@playwright/test';
 
-test.describe('ThreadJS Universal - Browser', () => {
+test.describe('ThreadTS Universal - Browser', () => {
   test.beforeAll(async () => {
     // Capability-Detection direkt in den Tests statt im Global Setup
     console.log('🔍 Starting browser capability detection...');
@@ -112,7 +112,7 @@ test.describe('ThreadJS Universal - Browser', () => {
     expect(result).toBe(42);
   });
 
-  test('sollte ThreadJS-ähnliche Parallele Verarbeitung simulieren', async ({
+  test('sollte ThreadTS-ähnliche Parallele Verarbeitung simulieren', async ({
     page,
   }) => {
     await page.goto('data:text/html,<!DOCTYPE html><html><body></body></html>');
@@ -170,7 +170,7 @@ test.describe('ThreadJS Universal - Browser', () => {
 
   test('sollte asynchrone Verarbeitung unterstützen', async ({ page }) => {
     const asyncResult = await page.evaluate(async () => {
-      // Simuliere ThreadJS async processing
+      // Simuliere ThreadTS async processing
       const mockAsyncTask = async (value: number) => {
         return new Promise<number>((resolve) => {
           setTimeout(() => resolve(value * value), 10);
