@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "CommonJS",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "outFile": "./dist/index.cjs"
   }
 }
