@@ -1,0 +1,64 @@
+{
+  "timestamp": "2025-07-25T13:46:19.752Z",
+  "totalDependencies": 7,
+  "updates": [
+    {
+      "name": "@types/jest",
+      "current": "29.5.14",
+      "latest": "30.0.0",
+      "wanted": "29.5.14",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\@types\\jest",
+      "security": "safe"
+    },
+    {
+      "name": "@types/node",
+      "current": "20.19.9",
+      "latest": "24.1.0",
+      "wanted": "20.19.9",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\@types\\node",
+      "security": "safe"
+    },
+    {
+      "name": "@typescript-eslint/eslint-plugin",
+      "current": "7.18.0",
+      "latest": "8.38.0",
+      "wanted": "7.18.0",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\@typescript-eslint\\eslint-plugin",
+      "security": "safe"
+    },
+    {
+      "name": "@typescript-eslint/parser",
+      "current": "7.18.0",
+      "latest": "8.38.0",
+      "wanted": "7.18.0",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\@typescript-eslint\\parser",
+      "security": "safe"
+    },
+    {
+      "name": "eslint",
+      "current": "8.57.1",
+      "latest": "9.31.0",
+      "wanted": "8.57.1",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\eslint",
+      "security": "safe"
+    },
+    {
+      "name": "typedoc",
+      "current": "0.25.13",
+      "latest": "0.28.7",
+      "wanted": "0.25.13",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\typedoc",
+      "security": "safe"
+    },
+    {
+      "name": "typescript",
+      "current": "5.4.5",
+      "latest": "5.8.3",
+      "wanted": "5.8.3",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\typescript",
+      "security": "safe"
+    }
+  ],
+  "securityIssues": 0,
+  "recommendation": "review"
+}
