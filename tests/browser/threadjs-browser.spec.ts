@@ -6,6 +6,11 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('ThreadJS Universal - Browser', () => {
+  test.beforeAll(async () => {
+    // Capability-Detection direkt in den Tests statt im Global Setup
+    console.log('🔍 Starting browser capability detection...');
+  });
+
   test('sollte Worker-Unterstützung prüfen', async ({ page }) => {
     await page.goto('data:text/html,<!DOCTYPE html><html><body></body></html>');
 
@@ -14,6 +19,9 @@ test.describe('ThreadJS Universal - Browser', () => {
         hasWorker: typeof Worker !== 'undefined',
         hasBlob: typeof Blob !== 'undefined',
         hasURL: typeof URL !== 'undefined',
+        hasSharedWorker: typeof SharedWorker !== 'undefined',
+        hasServiceWorker: 'serviceWorker' in navigator,
+        userAgent: navigator.userAgent,
         canCreateWorker: false,
       };
     });
@@ -23,6 +31,7 @@ test.describe('ThreadJS Universal - Browser', () => {
     expect(workerSupport.hasBlob).toBe(true);
     expect(workerSupport.hasURL).toBe(true);
 
+    console.log('🌐 Browser Capabilities:', workerSupport);
     console.log(
       `Worker support detected: ${workerSupport.hasWorker ? '✅ Supported' : '❌ Not supported'}`
     );

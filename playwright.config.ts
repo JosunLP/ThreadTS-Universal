@@ -37,6 +37,6 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
   ],
-  // Global setup für Worker-Detection
-  globalSetup: require.resolve('./tests/global-setup.ts'),
+  // Global setup entfernt da es Browser-spezifische Probleme in CI/CD verursacht
+  // Capability-Detection erfolgt jetzt direkt in den Tests
 });
