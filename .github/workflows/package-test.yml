@@ -1,0 +1,54 @@
+name: 📦 Package Testing
+
+on:
+  push:
+    branches: [main, develop, githubActions]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  package-test:
+    name: 📦 Package Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📋 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Project
+        run: npm run build
+
+      - name: 📦 Pack Package
+        run: npm pack
+
+      - name: 🧪 Test Package Installation
+        run: |
+          # Create temporary directory and test installation
+          mkdir -p /tmp/package-test
+          cd /tmp/package-test
+          npm init -y
+          npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
+
+          # Test basic import
+          echo "import threadjs from 'threadjs-universal'; console.log('Import successful');" > test.mjs
+          node test.mjs
+
+      - name: 📊 Package Size Analysis
+        run: |
+          echo "📦 Package Analysis:"
+          ls -lh threadjs-universal-*.tgz
+
+          echo "📋 Package Contents:"
+          tar -tzf threadjs-universal-*.tgz | head -20
