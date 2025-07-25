@@ -63,7 +63,7 @@ updates:
     open-pull-requests-limit: 5
 
     # Ignorierte Dependencies (falls nötig)
-    ignore: []
+    # ignore entfernt, da leer und nicht benötigt
 
     # Allow-Liste für automatische Updates
     allow:
