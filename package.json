@@ -46,7 +46,7 @@
     "test:memory:local": "npx --node-options=\"--expose-gc\" jest tests/memory-leaks.test.ts --detectOpenHandles",
     "test:all": "npm run test && npm run test:browser && npm run test:memory",
     "test:pack": "jest --testPathIgnorePatterns=memory-leaks.test.ts --testPathIgnorePatterns=browser --forceExit",
-    "test:package": "node test-package.js",
+    "test:package": "node test-package.cjs",
     "benchmark": "npx tsx benchmarks/core.ts",
     "benchmark:memory": "npx tsx benchmarks/advanced.ts",
     "benchmark:scenarios": "npx tsx benchmarks/scenarios.ts",
