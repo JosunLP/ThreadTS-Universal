@@ -4,6 +4,7 @@ const path = require('path');
 const target = path.join(__dirname, '../dist/index.cjs');
 const wrapper = `
 const mod = require('module');
+const path = require('path');
 const esmPath = path.join(__dirname, 'index.js');
 let esmExports;
 let esmDefault;
