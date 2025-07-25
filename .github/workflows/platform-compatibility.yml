@@ -230,39 +230,39 @@ jobs:
           echo "Testing Worker Threads support on Node.js ${{ matrix.node-version }}..."
 
           # Create worker threads test file (cross-platform)
-          echo "const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');" > worker-threads-test.js
-          echo "" >> worker-threads-test.js
-          echo "if (isMainThread) {" >> worker-threads-test.js
-          echo "  console.log('✅ Worker Threads supported on Node.js');" >> worker-threads-test.js
-          echo "  console.log('Main thread:', process.version);" >> worker-threads-test.js
-          echo "" >> worker-threads-test.js
-          echo "  const worker = new Worker(__filename, {" >> worker-threads-test.js
-          echo "    workerData: { test: 'data' }" >> worker-threads-test.js
-          echo "  });" >> worker-threads-test.js
-          echo "" >> worker-threads-test.js
-          echo "  worker.on('message', (data) => {" >> worker-threads-test.js
-          echo "    console.log('✅ Worker communication successful:', data);" >> worker-threads-test.js
-          echo "    process.exit(0);" >> worker-threads-test.js
-          echo "  });" >> worker-threads-test.js
-          echo "" >> worker-threads-test.js
-          echo "  worker.on('error', (error) => {" >> worker-threads-test.js
-          echo "    console.error('❌ Worker error:', error);" >> worker-threads-test.js
-          echo "    process.exit(1);" >> worker-threads-test.js
-          echo "  });" >> worker-threads-test.js
-          echo "" >> worker-threads-test.js
-          echo "  setTimeout(() => {" >> worker-threads-test.js
-          echo "    console.log('⚠️ Worker test timeout');" >> worker-threads-test.js
-          echo "    process.exit(1);" >> worker-threads-test.js
-          echo "  }, 5000);" >> worker-threads-test.js
-          echo "} else {" >> worker-threads-test.js
-          echo "  console.log('Worker thread started:', process.version);" >> worker-threads-test.js
-          echo "  parentPort.postMessage({" >> worker-threads-test.js
-          echo "    received: workerData," >> worker-threads-test.js
-          echo "    timestamp: Date.now()" >> worker-threads-test.js
-          echo "  });" >> worker-threads-test.js
-          echo "}" >> worker-threads-test.js
+          echo "const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');" > worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "if (isMainThread) {" >> worker-threads-test.cjs
+          echo "  console.log('✅ Worker Threads supported on Node.js');" >> worker-threads-test.cjs
+          echo "  console.log('Main thread:', process.version);" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  const worker = new Worker(__filename, {" >> worker-threads-test.cjs
+          echo "    workerData: { test: 'data' }" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  worker.on('message', (data) => {" >> worker-threads-test.cjs
+          echo "    console.log('✅ Worker communication successful:', data);" >> worker-threads-test.cjs
+          echo "    process.exit(0);" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  worker.on('error', (error) => {" >> worker-threads-test.cjs
+          echo "    console.error('❌ Worker error:', error);" >> worker-threads-test.cjs
+          echo "    process.exit(1);" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  setTimeout(() => {" >> worker-threads-test.cjs
+          echo "    console.log('⚠️ Worker test timeout');" >> worker-threads-test.cjs
+          echo "    process.exit(1);" >> worker-threads-test.cjs
+          echo "  }, 5000);" >> worker-threads-test.cjs
+          echo "} else {" >> worker-threads-test.cjs
+          echo "  console.log('Worker thread started:', process.version);" >> worker-threads-test.cjs
+          echo "  parentPort.postMessage({" >> worker-threads-test.cjs
+          echo "    received: workerData," >> worker-threads-test.cjs
+          echo "    timestamp: Date.now()" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "}" >> worker-threads-test.cjs
 
-          node worker-threads-test.js
+          node worker-threads-test.cjs
 
       - name: 📊 Node.js Feature Detection
         run: |
