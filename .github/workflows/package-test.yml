@@ -39,6 +39,9 @@ jobs:
           mkdir -p /tmp/package-test
           cd /tmp/package-test
           npm init -y
+          echo "console.log('Dummy-Test erfolgreich');" > test.js
+          npm pkg set scripts.test="node test.js"
+          npm test
           npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test CommonJS import
