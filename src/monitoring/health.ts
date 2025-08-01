@@ -183,9 +183,17 @@ export class HealthMonitor {
         heapUsed = nodeMemory.heapUsed;
       } else if (
         typeof performance !== 'undefined' &&
-        (performance as any).memory
+        'memory' in performance
       ) {
-        const browserMemory = (performance as any).memory;
+        const browserMemory = (
+          performance as {
+            memory: {
+              usedJSHeapSize: number;
+              totalJSHeapSize: number;
+              jsHeapSizeLimit: number;
+            };
+          }
+        ).memory;
         memoryUsage = browserMemory.usedJSHeapSize;
         totalMemory = browserMemory.totalJSHeapSize;
         heapUsed = browserMemory.usedJSHeapSize;

@@ -31,14 +31,14 @@ export {
 
 // Decorator exports
 export {
-  highPriority,
-  lowPriority,
+  memoize,
   parallel,
   parallelBatch,
   parallelClass,
   parallelMap,
   parallelMethod,
-  timeout,
+  rateLimit,
+  retry,
 } from './decorators';
 
 // Utility exports
@@ -46,7 +46,7 @@ export {
   detectPlatform,
   getHighResTimestamp,
   getMemoryInfo,
-  getOptimalWorkerCount,
+  getOptimalThreadCount,
   supportsOffscreenCanvas,
   supportsTransferableObjects,
   supportsWebLocks,

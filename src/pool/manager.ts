@@ -7,18 +7,20 @@ import {
   PoolConfig,
   PoolManager,
   PoolStats,
+  SerializableData,
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
   WorkerError,
   WorkerInstance,
 } from '../types';
-import { getOptimalWorkerCount } from '../utils/platform';
+import { getOptimalThreadCount } from '../utils/platform';
 
-interface PoolTask<T = any> {
+interface PoolTask<T = unknown> {
   id: string;
-  fn: Function;
-  data: any;
+  fn: SerializableFunction;
+  data: SerializableData;
   options: ThreadOptions;
   resolve: (result: ThreadResult<T>) => void;
   reject: (error: Error) => void;
@@ -41,7 +43,7 @@ export class WorkerPoolManager implements PoolManager {
     private adapter: WorkerAdapter,
     config: PoolConfig = {}
   ) {
-    const optimalWorkerCount = getOptimalWorkerCount();
+    const optimalWorkerCount = getOptimalThreadCount();
 
     this.config = {
       minWorkers: config.minWorkers ?? 1,
@@ -55,9 +57,9 @@ export class WorkerPoolManager implements PoolManager {
     this.initializeWorkers().catch(console.error);
   }
 
-  async execute<T = any>(
-    fn: Function,
-    data: any,
+  async execute<T = unknown>(
+    fn: SerializableFunction,
+    data: SerializableData,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {
     if (this.isTerminating) {
@@ -89,7 +91,7 @@ export class WorkerPoolManager implements PoolManager {
       }
 
       // Add to queue with priority sorting
-      this.taskQueue.push(task);
+      this.taskQueue.push(task as PoolTask);
       this.taskQueue.sort((a, b) => b.priority - a.priority);
 
       // Process queue
@@ -140,7 +142,7 @@ export class WorkerPoolManager implements PoolManager {
     // Gracefully handle queued tasks
     for (const task of this.taskQueue) {
       task.resolve({
-        result: undefined as any,
+        result: undefined as unknown,
         executionTime: 0,
         error: new WorkerError('Pool is terminating'),
       });
@@ -246,11 +248,7 @@ export class WorkerPoolManager implements PoolManager {
     task: PoolTask<T>
   ): Promise<void> {
     try {
-      const result = await worker.execute<T>(
-        task.fn as any,
-        task.data,
-        task.options
-      );
+      const result = await worker.execute<T>(task.fn, task.data, task.options);
 
       // Update statistics
       this.completedTasks++;

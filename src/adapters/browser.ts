@@ -3,6 +3,7 @@
  */
 
 import {
+  SerializableData,
   SerializableFunction,
   ThreadOptions,
   ThreadResult,
@@ -63,9 +64,9 @@ class BrowserWorkerInstance implements WorkerInstance {
     this.id = `browser-worker-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  async execute<T = any>(
+  async execute<T = unknown>(
     fn: SerializableFunction,
-    data: any,
+    data: SerializableData,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {
     if (this.isTerminated) {

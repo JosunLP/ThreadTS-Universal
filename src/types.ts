@@ -11,6 +11,35 @@ export interface ThreadOptions {
   transferable?: Transferable[];
   maxRetries?: number;
   poolSize?: number;
+  // Enhanced Node.js specific options
+  resourceLimits?: {
+    maxOldGenerationSizeMb?: number;
+    maxYoungGenerationSizeMb?: number;
+    codeRangeSizeMb?: number;
+    stackSizeMb?: number;
+  };
+  // Enhanced Deno specific options
+  denoPermissions?: {
+    net?: boolean | string[];
+    read?: boolean | string[];
+    write?: boolean | string[];
+    env?: boolean | string[];
+    run?: boolean | string[];
+    ffi?: boolean | string[];
+    hrtime?: boolean;
+    sys?: boolean | string[];
+  };
+  // Enhanced Bun specific options
+  bunOptions?: {
+    name?: string;
+    credentials?: 'omit' | 'same-origin' | 'include';
+    highPrecisionTiming?: boolean;
+    forceGC?: boolean;
+  };
+  // Cross-platform worker options
+  workerName?: string;
+  isolateContext?: boolean;
+  trackResources?: boolean;
 }
 
 // Progress monitoring
@@ -40,9 +69,31 @@ export interface PoolConfig {
 // Platform detection
 export type Platform = 'browser' | 'node' | 'deno' | 'bun' | 'unknown';
 
-// Serialization types - more flexible for usability
-export type SerializableFunction = (...args: any[]) => any;
-export type SerializableData = any;
+// Serialization types - Type-safe alternatives to any
+export type SerializableFunction = (...args: unknown[]) => unknown;
+export type SerializableData =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ArrayBuffer
+  | { [key: string]: unknown }
+  | unknown[];
+
+// TypedArray union type for better type safety
+export type TypedArray =
+  | Int8Array
+  | Uint8Array
+  | Uint8ClampedArray
+  | Int16Array
+  | Uint16Array
+  | Int32Array
+  | Uint32Array
+  | Float32Array
+  | Float64Array
+  | BigInt64Array
+  | BigUint64Array;
 
 // Worker adapter interface
 export interface WorkerAdapter {

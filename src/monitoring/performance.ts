@@ -128,9 +128,17 @@ export class PerformanceMonitor {
       };
     }
 
-    if (typeof performance !== 'undefined' && (performance as any).memory) {
+    if (typeof performance !== 'undefined' && 'memory' in performance) {
       // Browser environment with memory API
-      const browserMemory = (performance as any).memory;
+      const browserMemory = (
+        performance as {
+          memory: {
+            usedJSHeapSize: number;
+            totalJSHeapSize: number;
+            jsHeapSizeLimit: number;
+          };
+        }
+      ).memory;
       return {
         used: browserMemory.usedJSHeapSize,
         total: browserMemory.totalJSHeapSize,
