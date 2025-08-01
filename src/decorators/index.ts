@@ -35,7 +35,7 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
 
       // Create thread pool instance with custom config if specified
       const threadts = options.poolSize
-        ? ThreadTS.getInstance({ maxWorkers: options.poolSize })
+        ? ThreadTS.getInstance({ poolSize: options.poolSize })
         : ThreadTS.getInstance();
 
       // Execute method in worker thread
@@ -44,10 +44,7 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
         { context: this, args },
         {
           timeout: options.timeout,
-          priority: options.priority,
-          signal: options.signal,
-          transferable: options.transferable,
-          maxRetries: options.maxRetries,
+          retries: options.maxRetries,
         }
       );
 

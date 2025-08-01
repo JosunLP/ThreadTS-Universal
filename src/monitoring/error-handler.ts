@@ -86,7 +86,12 @@ export class ErrorHandler {
         error instanceof WorkerError ||
         error.message.includes('worker') ||
         error.message.includes('terminated'),
-      action: async (error, context) => {
+      action: async (
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        error,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        context
+      ) => {
         console.log('🔄 Executing worker restart strategy...');
 
         // This would be implemented by the calling code
@@ -103,7 +108,12 @@ export class ErrorHandler {
         error instanceof SerializationError ||
         error.message.includes('serialize') ||
         error.message.includes('JSON'),
-      action: async (error, context) => {
+      action: async (
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        error,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        context
+      ) => {
         console.log('📦 Executing serialization fallback strategy...');
 
         // Switch to simpler serialization method

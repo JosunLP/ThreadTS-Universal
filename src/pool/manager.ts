@@ -17,12 +17,12 @@ import {
 } from '../types';
 import { getOptimalThreadCount } from '../utils/platform';
 
-interface PoolTask<T = unknown> {
+interface PoolTask {
   id: string;
   fn: SerializableFunction;
   data: SerializableData;
   options: ThreadOptions;
-  resolve: (result: ThreadResult<T>) => void;
+  resolve: (result: ThreadResult<unknown>) => void;
   reject: (error: Error) => void;
   priority: number;
   createdAt: number;
@@ -73,12 +73,12 @@ export class WorkerPoolManager implements PoolManager {
 
     return new Promise<ThreadResult<T>>((resolve, reject) => {
       const priority = this.getPriority(options.priority);
-      const task: PoolTask<T> = {
+      const task: PoolTask = {
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         fn,
         data,
         options,
-        resolve,
+        resolve: resolve as (result: ThreadResult<unknown>) => void,
         reject,
         priority,
         createdAt: Date.now(),
@@ -91,7 +91,7 @@ export class WorkerPoolManager implements PoolManager {
       }
 
       // Add to queue with priority sorting
-      this.taskQueue.push(task as PoolTask);
+      this.taskQueue.push(task);
       this.taskQueue.sort((a, b) => b.priority - a.priority);
 
       // Process queue
@@ -243,12 +243,12 @@ export class WorkerPoolManager implements PoolManager {
     return null;
   }
 
-  private async executeTask<T>(
+  private async executeTask(
     worker: WorkerInstance,
-    task: PoolTask<T>
+    task: PoolTask
   ): Promise<void> {
     try {
-      const result = await worker.execute<T>(task.fn, task.data, task.options);
+      const result = await worker.execute(task.fn, task.data, task.options);
 
       // Update statistics
       this.completedTasks++;
@@ -321,3 +321,6 @@ export class WorkerPoolManager implements PoolManager {
     }
   }
 }
+
+// Export as PoolManager for compatibility
+export { WorkerPoolManager as PoolManager };

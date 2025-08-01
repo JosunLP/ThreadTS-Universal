@@ -287,3 +287,15 @@ export function getMemoryInfo(): MemoryInfo | null {
       return null;
   }
 }
+
+// Platform utilities class for easier access
+export class PlatformUtils {
+  static detectPlatform = detectPlatform;
+  static supportsWorkerThreads = supportsWorkerThreads;
+  static supportsTransferableObjects = supportsTransferableObjects;
+  static getOptimalWorkerCount = getOptimalThreadCount;
+  static supportsOffscreenCanvas = supportsOffscreenCanvas;
+  static supportsWebLocks = supportsWebLocks;
+  static getHighResTimestamp = getHighResTimestamp;
+  static getMemoryInfo = getMemoryInfo;
+}

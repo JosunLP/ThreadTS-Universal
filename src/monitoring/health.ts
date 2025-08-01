@@ -64,6 +64,7 @@ export class HealthMonitor {
    */
   async performHealthCheck(): Promise<HealthStatus> {
     const checks: HealthCheck[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const startTime = Date.now();
 
     // Platform compatibility check

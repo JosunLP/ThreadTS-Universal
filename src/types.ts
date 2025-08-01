@@ -70,7 +70,8 @@ export interface PoolConfig {
 export type Platform = 'browser' | 'node' | 'deno' | 'bun' | 'unknown';
 
 // Serialization types - Type-safe alternatives to any
-export type SerializableFunction = (...args: unknown[]) => unknown;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SerializableFunction = (...args: any[]) => any;
 export type SerializableData =
   | string
   | number
@@ -177,4 +178,26 @@ export interface ProgressTracker {
   on(event: 'progress', handler: (event: ProgressEvent) => void): void;
   off(event: 'progress', handler: (event: ProgressEvent) => void): void;
   emit(event: 'progress', data: ProgressEvent): void;
+}
+
+// Main thread configuration
+export interface ThreadConfig {
+  poolSize: number;
+  timeout: number;
+  retries: number;
+  autoResize: boolean;
+  debug: boolean;
+  serializationStrategy: 'auto' | 'json' | 'custom';
+  enableDecorators: boolean;
+  enableMetrics: boolean;
+  maxQueueSize: number;
+  workerIdleTimeout: number;
+  taskPriority: 'low' | 'normal' | 'high';
+}
+
+// Task execution result
+export interface TaskResult {
+  success: boolean;
+  result: SerializableData | null;
+  error: string | null;
 }

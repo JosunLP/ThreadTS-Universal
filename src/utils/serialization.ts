@@ -309,3 +309,14 @@ export function createWorkerScript(
     }
   `;
 }
+
+// Serialization utilities class for easier access
+export class SerializationUtils {
+  static serializeFunction = serializeFunction;
+  static deserializeFunction = deserializeFunction;
+  static serializeData = serializeData;
+  static deserializeData = deserializeData;
+  static restoreTransferables = restoreTransferables;
+  static hasTransferables = hasTransferables;
+  static createWorkerScript = createWorkerScript;
+}
