@@ -4,7 +4,7 @@
 
 export { NodeWorkerAdapter } from './adapters/node';
 export * from './index';
-export { threadts as default } from './index';
+export { default } from './index';
 
 // Node.js-specific utilities can be added here
 // For example: cluster management, process monitoring, etc.

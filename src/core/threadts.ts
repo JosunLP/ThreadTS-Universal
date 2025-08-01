@@ -12,6 +12,7 @@ import {
   Platform,
   PoolConfig,
   PoolManager,
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
@@ -47,7 +48,7 @@ export class ThreadTS {
    * Falls back to synchronous execution if workers are not supported
    */
   async run<T = any>(
-    fn: Function,
+    fn: SerializableFunction,
     data?: any,
     options?: ThreadOptions
   ): Promise<T> {
@@ -76,7 +77,7 @@ export class ThreadTS {
    * Falls back to synchronous execution if workers are not supported
    */
   async execute<T = any>(
-    fn: Function,
+    fn: SerializableFunction,
     data?: any,
     options?: ThreadOptions
   ): Promise<ThreadResult<T>> {
@@ -118,7 +119,7 @@ export class ThreadTS {
    */
   async parallel<T = any>(
     tasks: Array<{
-      fn: Function;
+      fn: SerializableFunction;
       data?: any;
       options?: ThreadOptions;
     }>
@@ -135,7 +136,7 @@ export class ThreadTS {
    */
   async batch<T = any>(
     tasks: Array<{
-      fn: Function;
+      fn: SerializableFunction;
       data?: any;
       options?: ThreadOptions;
     }>,

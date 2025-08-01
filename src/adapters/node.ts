@@ -3,6 +3,7 @@
  */
 
 import {
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
@@ -60,7 +61,7 @@ class NodeWorkerInstance implements WorkerInstance {
   }
 
   async execute<T = any>(
-    fn: Function,
+    fn: SerializableFunction,
     data: any,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {

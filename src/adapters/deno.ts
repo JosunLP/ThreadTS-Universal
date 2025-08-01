@@ -3,6 +3,7 @@
  */
 
 import {
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
@@ -42,7 +43,7 @@ class DenoWorkerInstance implements WorkerInstance {
   }
 
   async execute<T = any>(
-    fn: Function,
+    fn: SerializableFunction,
     data: any,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {

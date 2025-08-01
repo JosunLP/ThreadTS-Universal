@@ -3,12 +3,12 @@
  * Handles function and data serialization across different platforms
  */
 
-import { SerializationError } from '../types';
+import { SerializableFunction, SerializationError } from '../types';
 
 /**
  * Serializes a function for worker execution
  */
-export function serializeFunction(fn: Function): string {
+export function serializeFunction(fn: SerializableFunction): string {
   if (typeof fn !== 'function') {
     throw new SerializationError('Input must be a function');
   }
@@ -32,7 +32,7 @@ export function serializeFunction(fn: Function): string {
  * Deserializes a function string back to a function
  */
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
-export function deserializeFunction(fnString: string): Function {
+export function deserializeFunction(fnString: string): SerializableFunction {
   try {
     // Use Function constructor for safe evaluation
     return new Function('return (' + fnString + ')')();
@@ -227,7 +227,7 @@ export function hasTransferables(obj: any): boolean {
  * Creates a worker script string with the function and data
  */
 export function createWorkerScript(
-  fn: Function,
+  fn: SerializableFunction,
   data: any,
   options: { timeout?: number } = {}
 ): string {

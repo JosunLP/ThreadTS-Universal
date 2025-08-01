@@ -1,7 +1,15 @@
 {
-  "timestamp": "2025-07-25T13:46:19.752Z",
-  "totalDependencies": 7,
+  "timestamp": "2025-08-01T22:46:24.959Z",
+  "totalDependencies": 9,
   "updates": [
+    {
+      "name": "@playwright/test",
+      "current": "1.54.1",
+      "latest": "1.54.2",
+      "wanted": "1.54.2",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\@playwright\\test",
+      "security": "safe"
+    },
     {
       "name": "@types/jest",
       "current": "29.5.14",
@@ -37,15 +45,23 @@
     {
       "name": "eslint",
       "current": "8.57.1",
-      "latest": "9.31.0",
+      "latest": "9.32.0",
       "wanted": "8.57.1",
       "location": "D:\\git\\ThreadTS Universal\\node_modules\\eslint",
       "security": "safe"
     },
     {
+      "name": "playwright",
+      "current": "1.54.1",
+      "latest": "1.54.2",
+      "wanted": "1.54.2",
+      "location": "D:\\git\\ThreadTS Universal\\node_modules\\playwright",
+      "security": "safe"
+    },
+    {
       "name": "typedoc",
       "current": "0.25.13",
-      "latest": "0.28.7",
+      "latest": "0.28.9",
       "wanted": "0.25.13",
       "location": "D:\\git\\ThreadTS Universal\\node_modules\\typedoc",
       "security": "safe"
@@ -53,8 +69,8 @@
     {
       "name": "typescript",
       "current": "5.4.5",
-      "latest": "5.8.3",
-      "wanted": "5.8.3",
+      "latest": "5.9.2",
+      "wanted": "5.9.2",
       "location": "D:\\git\\ThreadTS Universal\\node_modules\\typescript",
       "security": "safe"
     }

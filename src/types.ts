@@ -17,11 +17,11 @@ export interface ThreadOptions {
 export interface ProgressEvent {
   progress: number; // 0-100
   message?: string;
-  data?: any;
+  data?: unknown;
 }
 
 // Execution result with metadata
-export interface ThreadResult<T = any> {
+export interface ThreadResult<T = unknown> {
   result: T;
   executionTime: number;
   workerId?: string;
@@ -40,7 +40,7 @@ export interface PoolConfig {
 // Platform detection
 export type Platform = 'browser' | 'node' | 'deno' | 'bun' | 'unknown';
 
-// Serialization types
+// Serialization types - more flexible for usability
 export type SerializableFunction = (...args: any[]) => any;
 export type SerializableData = any;
 
@@ -55,7 +55,7 @@ export interface WorkerAdapter {
 // Worker instance interface
 export interface WorkerInstance {
   id: string;
-  execute<T = any>(
+  execute<T = unknown>(
     fn: SerializableFunction,
     data: SerializableData,
     options?: ThreadOptions
@@ -66,7 +66,7 @@ export interface WorkerInstance {
 
 // Pool manager interface
 export interface PoolManager {
-  execute<T = any>(
+  execute<T = unknown>(
     fn: SerializableFunction,
     data: SerializableData,
     options?: ThreadOptions

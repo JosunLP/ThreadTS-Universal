@@ -307,9 +307,7 @@ async function main() {
   }
 }
 
-// CLI execution
-if (require.main === module) {
-  main().catch(console.error);
-}
+// CLI execution - directly execute when imported by tsx
+main().catch(console.error);
 
 export { DependencyManager };

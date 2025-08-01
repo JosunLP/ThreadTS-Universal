@@ -312,8 +312,7 @@ async function main() {
 }
 
 // Run benchmarks
-if (require.main === module) {
-  main().catch(console.error);
-}
+// Direct execution for ESM
+main().catch(console.error);
 
 export default AdvancedBenchmarks;

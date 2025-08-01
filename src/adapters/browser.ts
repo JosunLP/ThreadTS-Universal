@@ -3,6 +3,7 @@
  */
 
 import {
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
@@ -63,7 +64,7 @@ class BrowserWorkerInstance implements WorkerInstance {
   }
 
   async execute<T = any>(
-    fn: Function,
+    fn: SerializableFunction,
     data: any,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {

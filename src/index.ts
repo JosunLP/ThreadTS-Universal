@@ -74,6 +74,24 @@ export { NodeWorkerAdapter } from './adapters/node';
 // Pool manager export
 export { WorkerPoolManager } from './pool/manager';
 
+// Monitoring and diagnostics
+export { ErrorHandler, errorHandler } from './monitoring/error-handler';
+export type {
+  ErrorContext,
+  ErrorMetrics,
+  RecoveryStrategy,
+} from './monitoring/error-handler';
+export { HealthMonitor, healthMonitor } from './monitoring/health';
+export type { HealthCheck, HealthStatus } from './monitoring/health';
+export {
+  PerformanceMonitor,
+  performanceMonitor,
+} from './monitoring/performance';
+export type {
+  PerformanceAlert,
+  PerformanceMetrics,
+} from './monitoring/performance';
+
 // Default export for simple usage
 import threadts from './core/threadts';
 export default threadts;

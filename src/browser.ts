@@ -4,7 +4,7 @@
 
 export { BrowserWorkerAdapter } from './adapters/browser';
 export * from './index';
-export { threadts as default } from './index';
+export { default } from './index';
 
 // Browser-specific utilities
 export { supportsOffscreenCanvas, supportsWebLocks } from './utils/platform';
