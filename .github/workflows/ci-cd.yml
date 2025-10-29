@@ -191,6 +191,10 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     needs: quality-gate
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
     steps:
       - name: 📦 Checkout Repository
