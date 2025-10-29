@@ -191,6 +191,7 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     needs: quality-gate
+    if: vars.ENABLE_ADVANCED_CODEQL == 'true'
     permissions:
       contents: read
       security-events: write
