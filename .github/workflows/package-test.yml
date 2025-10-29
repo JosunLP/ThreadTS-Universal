@@ -1,4 +1,6 @@
 name: 📦 Package Testing
+permissions:
+  contents: read
 
 on:
   push:
