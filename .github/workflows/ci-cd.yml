@@ -7,11 +7,11 @@ on:
     branches: [main, develop]
   schedule:
     # Daily health check at 02:00 UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 env:
-  NODE_VERSION: '18'
-  PNPM_VERSION: '8'
+  NODE_VERSION: "18"
+  PNPM_VERSION: "8"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -35,7 +35,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -97,11 +97,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['16', '18', '20', '21']
+        node-version: ["16", "18", "20", "21"]
         include:
           # Extended testing on Ubuntu
           - os: ubuntu-latest
-            node-version: '18'
+            node-version: "18"
             extended: true
 
     steps:
@@ -112,7 +112,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -161,7 +161,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -200,7 +200,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -209,7 +209,7 @@ jobs:
         run: npm run deps:check
 
       - name: 🔍 CodeQL Analysis
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: javascript
           queries: security-extended
@@ -218,7 +218,7 @@ jobs:
         run: npm run build
 
       - name: 📊 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
 
       - name: 🚨 Snyk Security Scan
         uses: snyk/actions/node@master
@@ -246,7 +246,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -295,8 +295,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -365,7 +365,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -407,7 +407,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
