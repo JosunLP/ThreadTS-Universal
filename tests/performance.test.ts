@@ -14,19 +14,19 @@ jest.mock('../src/utils/platform', () => ({
 
 describe('🚀 Performance Tests', () => {
   beforeEach(() => {
-    (ThreadTS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   afterEach(async () => {
     try {
-      const instance = (ThreadTS as any).instance;
+      const instance = Reflect.get(ThreadTS, '_instance') as ThreadTS | null;
       if (instance) {
         await instance.terminate();
       }
     } catch (error) {
       // Ignore cleanup errors
     }
-    (ThreadTS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   test('sollte minimalen Overhead haben', async () => {
@@ -41,6 +41,7 @@ describe('🚀 Performance Tests', () => {
     const duration = Date.now() - startTime;
 
     expect(results).toHaveLength(10);
+    expect(results).toEqual(Array.from({ length: 10 }, (_, i) => i * 2));
     expect(duration).toBeLessThan(1000); // Sollte unter 1 Sekunde sein
   });
 
@@ -56,6 +57,7 @@ describe('🚀 Performance Tests', () => {
     const duration = Date.now() - startTime;
 
     expect(results).toHaveLength(50);
+    expect(results.every((task) => task.success)).toBe(true);
     expect(duration).toBeLessThan(2000); // Batch sollte effizient sein
   });
 

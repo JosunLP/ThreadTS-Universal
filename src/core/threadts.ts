@@ -1,8 +1,17 @@
 import type {
+  MapOptions,
   SerializableData,
   SerializableFunction,
   TaskResult,
   ThreadConfig,
+  ThreadOptions,
+  ThreadTask,
+} from '../types';
+import {
+  SerializationError,
+  ThreadError,
+  TimeoutError,
+  WorkerError,
 } from '../types';
 import { PlatformUtils } from '../utils/platform';
 
@@ -22,11 +31,33 @@ type ThreadEventListener<K extends keyof ThreadEventMap> = (
   detail: ThreadEventMap[K]
 ) => void;
 
+const INTERNAL_ARGS_KEY = '__THREADTS_ARGS__' as const;
+
+type InternalArgsPayload = {
+  [INTERNAL_ARGS_KEY]: unknown[];
+};
+
+type LegacyTask = {
+  fn?: SerializableFunction;
+  func?: SerializableFunction;
+  data?: SerializableData;
+  options?: ThreadOptions;
+};
+
+interface NormalizedTask {
+  fn: SerializableFunction;
+  data?: SerializableData;
+  options?: ThreadOptions;
+}
+
 export class ThreadTS extends EventTarget {
   private static _instance: ThreadTS | null = null;
   private config!: ThreadConfig;
   private isReady: boolean = false;
   private taskCounter: number = 0;
+  private completedTasks: number = 0;
+  private failedTasks: number = 0;
+  private totalExecutionTime: number = 0;
   private eventListeners: Map<
     keyof ThreadEventMap,
     Set<ThreadEventListener<keyof ThreadEventMap>>
@@ -126,129 +157,382 @@ export class ThreadTS extends EventTarget {
     }
   }
 
-  async run<T extends SerializableData>(
+  private isArgsPayload(value: unknown): value is InternalArgsPayload {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      INTERNAL_ARGS_KEY in (value as Record<string, unknown>) &&
+      Array.isArray((value as Record<string, unknown>)[INTERNAL_ARGS_KEY])
+    );
+  }
+
+  private createArgsPayload(...args: unknown[]): InternalArgsPayload {
+    return {
+      [INTERNAL_ARGS_KEY]: args,
+    };
+  }
+
+  private prepareArguments(
+    data?: SerializableData | InternalArgsPayload
+  ): unknown[] {
+    if (typeof data === 'undefined') {
+      return [];
+    }
+
+    if (this.isArgsPayload(data)) {
+      return [...data[INTERNAL_ARGS_KEY]];
+    }
+
+    return [data];
+  }
+
+  private ensureSerializable(
+    value: unknown,
+    seen = new WeakSet<object>()
+  ): void {
+    if (value === null || typeof value !== 'object') {
+      if (typeof value === 'function') {
+        throw new SerializationError(
+          'Functions cannot be transferred as task data'
+        );
+      }
+      return;
+    }
+
+    if (seen.has(value)) {
+      throw new SerializationError('Circular reference detected in task data');
+    }
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        this.ensureSerializable(item, seen);
+      }
+      return;
+    }
+
+    for (const item of Object.values(value)) {
+      this.ensureSerializable(item, seen);
+    }
+  }
+
+  private async executeWithControls<T>(
     func: SerializableFunction,
-    data?: SerializableData,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: Partial<ThreadConfig> = {}
+    args: unknown[],
+    options: ThreadOptions
+  ): Promise<T> {
+    if (options.signal?.aborted) {
+      throw new WorkerError('Operation was aborted before execution');
+    }
+
+    const execution = Promise.resolve().then(() => func(...args)) as Promise<T>;
+    const controlled = this.wrapWithAbort(execution, options.signal);
+
+    if (typeof options.timeout === 'number') {
+      return this.withTimeout(controlled, options.timeout);
+    }
+
+    return controlled;
+  }
+
+  private wrapWithAbort<T>(
+    promise: Promise<T>,
+    signal?: AbortSignal
+  ): Promise<T> {
+    if (!signal) {
+      return promise;
+    }
+
+    if (signal.aborted) {
+      return Promise.reject(new WorkerError('Operation was aborted'));
+    }
+
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        reject(new WorkerError('Operation was aborted'));
+      };
+
+      signal.addEventListener('abort', onAbort, { once: true });
+
+      promise.then(
+        (value) => {
+          signal.removeEventListener('abort', onAbort);
+          resolve(value);
+        },
+        (error) => {
+          signal.removeEventListener('abort', onAbort);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
+    if (timeout <= 0) {
+      return promise;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    return new Promise<T>((resolve, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new TimeoutError(timeout));
+      }, timeout);
+
+      promise.then(
+        (value) => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          resolve(value);
+        },
+        (error) => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          reject(error);
+        }
+      );
+    });
+  }
+
+  private normalizeTask(task: ThreadTask | LegacyTask): NormalizedTask {
+    const candidateFn =
+      typeof task.fn === 'function'
+        ? task.fn
+        : typeof (task as LegacyTask).func === 'function'
+          ? (task as LegacyTask).func
+          : undefined;
+
+    if (typeof candidateFn !== 'function') {
+      throw new ThreadError(
+        'Invalid task definition: missing function',
+        'INVALID_TASK'
+      );
+    }
+
+    return {
+      fn: candidateFn,
+      data: task.data,
+      options: task.options,
+    };
+  }
+
+  async run<T = unknown>(
+    func: SerializableFunction,
+    data?: SerializableData | InternalArgsPayload,
+    options: ThreadOptions = {}
   ): Promise<T> {
     if (!this.isReady) {
       await this.initialize();
     }
 
+    if (typeof func !== 'function') {
+      throw new ThreadError('Task must be a function', 'INVALID_TASK');
+    }
+
     const taskId = this.generateTaskId();
-    const startTime = performance.now();
+    const startTime = PlatformUtils.getHighResTimestamp();
+    const args = this.prepareArguments(data);
 
-    try {
-      // Simplified execution - for now just call the function directly
-      // In a real implementation, this would use worker threads
-      const result = (func as (...args: unknown[]) => unknown)(data);
+    for (const arg of args) {
+      this.ensureSerializable(arg);
+    }
 
-      const duration = performance.now() - startTime;
-      this.emitEvent('task-complete', {
-        taskId,
-        result: result as SerializableData,
-        duration,
-      });
+    const maxRetries = Math.max(
+      0,
+      options.maxRetries ?? this.config.retries ?? 0
+    );
+    let attempt = 0;
 
-      return result as T;
-    } catch (error) {
-      const duration = performance.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.emitEvent('task-error', { taskId, error: errorMessage, duration });
-      throw error;
+    // Retry loop with configurable attempts
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        const result = await this.executeWithControls<T>(func, args, options);
+
+        const duration = PlatformUtils.getHighResTimestamp() - startTime;
+        this.completedTasks += 1;
+        this.totalExecutionTime += duration;
+
+        this.emitEvent('task-complete', {
+          taskId,
+          result: result as SerializableData,
+          duration,
+        });
+
+        return result;
+      } catch (error) {
+        if (attempt >= maxRetries) {
+          const duration = PlatformUtils.getHighResTimestamp() - startTime;
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          this.failedTasks += 1;
+          this.emitEvent('task-error', {
+            taskId,
+            error: errorMessage,
+            duration,
+          });
+
+          throw error;
+        }
+
+        attempt += 1;
+
+        if (this.config.debug) {
+          console.warn(
+            `ThreadTS retrying task ${taskId} (attempt ${attempt} of ${maxRetries})`,
+            error
+          );
+        }
+      }
     }
   }
 
-  async map<T extends SerializableData>(
+  async map<T, R = T>(
     array: T[],
     func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
-  ): Promise<T[]> {
-    if (!array.length) return [];
+    options: MapOptions = {}
+  ): Promise<R[]> {
+    if (!array.length) {
+      return [];
+    }
 
-    const tasks = array.map((item, index) =>
-      this.run(func, { item, index }, options)
-    );
+    const { batchSize = array.length, ...runOptions } = options;
+    const executionOptions: ThreadOptions = { ...runOptions };
+    const normalizedBatchSize = Math.max(1, Math.floor(batchSize));
+    const results: R[] = [];
 
-    const results = await Promise.all(tasks);
-    return results as T[];
+    for (let index = 0; index < array.length; index += normalizedBatchSize) {
+      const chunk = array.slice(index, index + normalizedBatchSize);
+      const chunkResults = await Promise.all(
+        chunk.map((item, offset) =>
+          this.run<R>(
+            func,
+            this.createArgsPayload(item, index + offset, array),
+            executionOptions
+          )
+        )
+      );
+      results.push(...chunkResults);
+    }
+
+    return results;
   }
 
-  async filter<T extends SerializableData>(
+  async filter<T>(
     array: T[],
-    func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
+    predicate: SerializableFunction,
+    options: MapOptions = {}
   ): Promise<T[]> {
-    if (!array.length) return [];
+    if (!array.length) {
+      return [];
+    }
 
-    const filterResults = await this.map(
-      array.map((item, index) => ({ item, index })),
-      func,
-      options
-    );
-
-    return array.filter((_, index) => Boolean(filterResults[index]));
+    const results = await this.map<T, boolean>(array, predicate, options);
+    return array.filter((_, index) => Boolean(results[index]));
   }
 
-  async reduce<T extends SerializableData, R extends SerializableData>(
+  async reduce<T, R>(
     array: T[],
-    func: SerializableFunction,
+    reducer: SerializableFunction,
     initialValue: R,
-    options: Partial<ThreadConfig> = {}
+    options: ThreadOptions = {}
   ): Promise<R> {
     let accumulator = initialValue;
 
-    for (const item of array) {
-      accumulator = (await this.run(func, { accumulator, item }, options)) as R;
+    if (!array.length) {
+      return accumulator;
+    }
+
+    for (let index = 0; index < array.length; index++) {
+      accumulator = await this.run<R>(
+        reducer,
+        this.createArgsPayload(accumulator, array[index], index, array),
+        options
+      );
     }
 
     return accumulator;
   }
 
-  async forEach<T extends SerializableData>(
+  async forEach<T>(
     array: T[],
     func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
+    options: MapOptions = {}
   ): Promise<void> {
-    await this.map(array, func, options);
+    await this.map<T, void>(array, func, options);
   }
 
   async batch(
-    tasks: Array<{
-      func: SerializableFunction;
-      data?: SerializableData;
-      options?: Partial<ThreadConfig>;
-    }>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _batchSize?: number
+    tasks: Array<ThreadTask | LegacyTask>,
+    batchSize: number = tasks.length
   ): Promise<TaskResult[]> {
-    const batchTasks = tasks.map(async ({ func, data, options = {} }) => {
-      try {
-        const result = await this.run(func, data, options);
-        return { success: true, result, error: null };
-      } catch (error) {
-        return {
-          success: false,
-          result: null,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
+    if (!tasks.length) {
+      return [];
+    }
 
-    return Promise.all(batchTasks);
+    const normalizedBatchSize = Math.max(1, Math.floor(batchSize));
+    const results: TaskResult[] = [];
+
+    for (let index = 0; index < tasks.length; index += normalizedBatchSize) {
+      const chunk = tasks.slice(index, index + normalizedBatchSize);
+
+      const chunkResults = await Promise.all(
+        chunk.map(async (task) => {
+          try {
+            const normalized = this.normalizeTask(task);
+            const result = await this.run(
+              normalized.fn,
+              normalized.data as
+                | SerializableData
+                | InternalArgsPayload
+                | undefined,
+              normalized.options ?? {}
+            );
+
+            return {
+              success: true,
+              result: result as SerializableData,
+              error: null,
+            } satisfies TaskResult;
+          } catch (error) {
+            return {
+              success: false,
+              result: null,
+              error: error instanceof Error ? error.message : String(error),
+            } satisfies TaskResult;
+          }
+        })
+      );
+
+      results.push(...chunkResults);
+    }
+
+    return results;
   }
 
-  async parallel<T extends SerializableData>(
-    tasks: Array<{
-      func: SerializableFunction;
-      data?: SerializableData;
-      options?: Partial<ThreadConfig>;
-    }>
+  async parallel<T = unknown>(
+    tasks: Array<ThreadTask | LegacyTask>
   ): Promise<T[]> {
     const results = await this.batch(tasks);
-    return results.map((r) => r.result as T);
+    const failures = results.filter((result) => !result.success);
+
+    if (failures.length > 0) {
+      const message = failures
+        .map((failure) => failure.error)
+        .filter((error): error is string => Boolean(error))
+        .join('; ');
+
+      throw new WorkerError(
+        message || 'Parallel execution failed for one or more tasks'
+      );
+    }
+
+    return results.map((result) => result.result as T);
   }
 
   async resize(newSize: number): Promise<void> {
@@ -262,7 +546,7 @@ export class ThreadTS extends EventTarget {
   }
 
   getActiveWorkers(): number {
-    return 1; // Simplified
+    return 0;
   }
 
   getQueueLength(): number {
@@ -292,8 +576,11 @@ export class ThreadTS extends EventTarget {
       activeWorkers: this.getActiveWorkers(),
       idleWorkers: Math.max(0, this.config.poolSize - this.getActiveWorkers()),
       queuedTasks: this.getQueueLength(),
-      completedTasks: this.taskCounter,
-      averageExecutionTime: 0,
+      completedTasks: this.completedTasks,
+      averageExecutionTime:
+        this.completedTasks > 0
+          ? this.totalExecutionTime / this.completedTasks
+          : 0,
     };
   }
 
@@ -311,6 +598,10 @@ export class ThreadTS extends EventTarget {
 
   async terminate(): Promise<void> {
     this.isReady = false;
+    this.completedTasks = 0;
+    this.failedTasks = 0;
+    this.totalExecutionTime = 0;
+    this.taskCounter = 0;
     this.eventListeners.clear();
 
     if (ThreadTS._instance === this) {
@@ -325,70 +616,62 @@ export class ThreadTS extends EventTarget {
   }
 
   // Static methods for backward compatibility
-  static async run<T extends SerializableData>(
+  static async run<T = unknown>(
     func: SerializableFunction,
     data?: SerializableData,
-    options: Partial<ThreadConfig> = {}
+    options: ThreadOptions = {}
   ): Promise<T> {
     const instance = ThreadTS.getInstance();
     return instance.run<T>(func, data, options);
   }
 
-  static async map<T extends SerializableData>(
+  static async map<T, R = T>(
     array: T[],
     func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
-  ): Promise<T[]> {
+    options: MapOptions = {}
+  ): Promise<R[]> {
     const instance = ThreadTS.getInstance();
-    return instance.map(array, func, options);
+    return instance.map<T, R>(array, func, options);
   }
 
-  static async filter<T extends SerializableData>(
+  static async filter<T>(
     array: T[],
     func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
+    options: MapOptions = {}
   ): Promise<T[]> {
     const instance = ThreadTS.getInstance();
     return instance.filter(array, func, options);
   }
 
-  static async reduce<T extends SerializableData, R extends SerializableData>(
+  static async reduce<T, R>(
     array: T[],
     func: SerializableFunction,
     initialValue: R,
-    options: Partial<ThreadConfig> = {}
+    options: ThreadOptions = {}
   ): Promise<R> {
     const instance = ThreadTS.getInstance();
     return instance.reduce(array, func, initialValue, options);
   }
 
-  static async forEach<T extends SerializableData>(
+  static async forEach<T>(
     array: T[],
     func: SerializableFunction,
-    options: Partial<ThreadConfig> = {}
+    options: MapOptions = {}
   ): Promise<void> {
     const instance = ThreadTS.getInstance();
     return instance.forEach(array, func, options);
   }
 
   static async batch(
-    tasks: Array<{
-      func: SerializableFunction;
-      data?: SerializableData;
-      options?: Partial<ThreadConfig>;
-    }>,
+    tasks: Array<ThreadTask | LegacyTask>,
     batchSize?: number
   ): Promise<TaskResult[]> {
     const instance = ThreadTS.getInstance();
     return instance.batch(tasks, batchSize);
   }
 
-  static async parallel<T extends SerializableData>(
-    tasks: Array<{
-      func: SerializableFunction;
-      data?: SerializableData;
-      options?: Partial<ThreadConfig>;
-    }>
+  static async parallel<T = unknown>(
+    tasks: Array<ThreadTask | LegacyTask>
   ): Promise<T[]> {
     const instance = ThreadTS.getInstance();
     return instance.parallel(tasks);

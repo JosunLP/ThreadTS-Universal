@@ -42,6 +42,18 @@ export interface ThreadOptions {
   trackResources?: boolean;
 }
 
+// Generic task definition used by batch/parallel helpers
+export interface ThreadTask<TData = SerializableData> {
+  fn: SerializableFunction;
+  data?: TData;
+  options?: ThreadOptions;
+}
+
+// Map/reduce helpers can specify batching behaviour in addition to thread options
+export interface MapOptions extends ThreadOptions {
+  batchSize?: number;
+}
+
 // Progress monitoring
 export interface ProgressEvent {
   progress: number; // 0-100

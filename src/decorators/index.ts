@@ -44,7 +44,8 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
         { context: this, args },
         {
           timeout: options.timeout,
-          retries: options.maxRetries,
+          maxRetries: options.maxRetries,
+          priority: options.priority,
         }
       );
 

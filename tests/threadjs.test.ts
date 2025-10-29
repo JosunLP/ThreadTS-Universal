@@ -16,26 +16,25 @@ jest.mock('../src/utils/platform', () => ({
 describe('ThreadTS Universal', () => {
   beforeEach(() => {
     // ThreadTS-Instanz zwischen Tests zurücksetzen
-    (ThreadTS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   afterEach(async () => {
     try {
-      const instance = (ThreadTS as any).instance;
+      const instance = Reflect.get(ThreadTS, '_instance') as ThreadTS | null;
       if (instance) {
         await instance.terminate();
       }
     } catch (error) {
       // Cleanup-Fehler ignorieren
     }
-    (ThreadTS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   describe('🔧 Grundfunktionalität', () => {
     test('sollte einfache Berechnungen parallel ausführen', async () => {
       const result = await threadts.run((x: number) => x * 2, 21);
-      // Mock gibt Eingabedaten zurück
-      expect(result).toBe(21);
+      expect(result).toBe(42);
     });
 
     test('sollte komplexe Datenstrukturen verarbeiten', async () => {
@@ -54,7 +53,11 @@ describe('ThreadTS Universal', () => {
         data
       );
 
-      expect(result).toEqual(data); // Mock gibt Eingabe zurück
+      expect(result).toEqual({
+        sum: 15,
+        upperText: 'HELLO',
+        doubledValue: 84,
+      });
     });
 
     test('sollte asynchrone Funktionen unterstützen', async () => {
@@ -64,7 +67,7 @@ describe('ThreadTS Universal', () => {
       };
 
       const result = await threadts.run(asyncFn, 10);
-      expect(result).toBe(10); // Mock-Verhalten
+      expect(result).toBe('completed');
     });
   });
 
@@ -78,7 +81,7 @@ describe('ThreadTS Universal', () => {
 
       const results = await threadts.parallel(tasks);
       expect(results).toHaveLength(3);
-      expect(results).toEqual([5, 3, 'test']); // Mock gibt Eingabedaten zurück
+      expect(results).toEqual([10, 13, 'TEST']);
     });
 
     test('sollte Array-Mapping parallel durchführen', async () => {
@@ -88,8 +91,7 @@ describe('ThreadTS Universal', () => {
         batchSize: 2,
       });
 
-      expect(Array.isArray(results)).toBe(true);
-      expect(results.length).toBeGreaterThan(0);
+      expect(results).toEqual([1, 4, 9, 16, 25]);
     });
 
     test('sollte Batch-Verarbeitung unterstützen', async () => {
@@ -100,6 +102,10 @@ describe('ThreadTS Universal', () => {
 
       const results = await threadts.batch(largeTasks, 3);
       expect(results).toHaveLength(10);
+      results.forEach((task, index) => {
+        expect(task.success).toBe(true);
+        expect(task.result).toBe(index * 2);
+      });
     });
   });
 
@@ -113,6 +119,7 @@ describe('ThreadTS Universal', () => {
       expect(stats).toHaveProperty('completedTasks');
       expect(stats).toHaveProperty('averageExecutionTime');
       expect(typeof stats.activeWorkers).toBe('number');
+      expect(stats.completedTasks).toBeGreaterThanOrEqual(0);
     });
 
     test('sollte Pool-Größe anpassen können', async () => {
@@ -134,13 +141,15 @@ describe('ThreadTS Universal', () => {
         priority: 'high',
       });
 
-      expect(result).toBe(7); // Mock-Verhalten
+      expect(result).toBe(21);
     });
   });
 
   describe('🛡️ Fehlerbehandlung', () => {
     test('sollte ungültige Funktionen abfangen', async () => {
-      await expect(threadts.run(null as any)).rejects.toThrow();
+      await expect(
+        threadts.run(undefined as unknown as (...args: unknown[]) => unknown)
+      ).rejects.toThrow();
     });
 
     test('sollte Timeout-Optionen respektieren', async () => {
@@ -149,7 +158,7 @@ describe('ThreadTS Universal', () => {
         timeout: 1000,
       });
 
-      expect(result).toBe(null); // Mock gibt Eingabe zurück
+      expect(result).toBe('fast-result');
     });
 
     test('sollte Worker-Fehler korrekt behandeln', async () => {
@@ -157,13 +166,9 @@ describe('ThreadTS Universal', () => {
         throw new Error('Simulated worker error');
       };
 
-      // In Mock-Umgebung wird möglicherweise kein Fehler geworfen
-      try {
-        const result = await threadts.run(errorFn);
-        expect(result).toBeDefined(); // Mock-Verhalten
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-      }
+      await expect(threadts.run(errorFn)).rejects.toThrow(
+        'Simulated worker error'
+      );
     });
   });
 

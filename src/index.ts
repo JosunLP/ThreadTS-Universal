@@ -8,6 +8,7 @@ export { ThreadTS, default as threadts } from './core/threadts';
 
 // Type exports
 export type {
+  MapOptions,
   ParallelMethodOptions,
   Platform,
   PoolConfig,
@@ -17,6 +18,7 @@ export type {
   ProgressTracker,
   ThreadOptions,
   ThreadResult,
+  ThreadTask,
   WorkerAdapter,
   WorkerInstance,
 } from './types';
