@@ -39,26 +39,45 @@ function fixESMImports() {
     let modified = false;
 
     // Fix relative imports to include .js extension
+    const ensureExtension = (importPath) => {
+      const hasExtension = /\.[a-z0-9]+$/i.test(
+        importPath.split('/').pop() || ''
+      );
+      if (hasExtension) {
+        return importPath;
+      }
+
+      const sourceDir = path.dirname(filePath);
+      const resolvedPath = path.resolve(sourceDir, importPath);
+      const candidateFile = `${resolvedPath}.js`;
+
+      if (fs.existsSync(candidateFile)) {
+        modified = true;
+        return `${importPath}.js`;
+      }
+
+      if (
+        fs.existsSync(resolvedPath) &&
+        fs.statSync(resolvedPath).isDirectory()
+      ) {
+        modified = true;
+        return `${importPath}/index.js`;
+      }
+
+      modified = true;
+      return `${importPath}.js`;
+    };
+
     const fixedContent = content
       .replace(/from\s+['"](\.[^'"]*?)['"];?/g, (match, importPath) => {
-        // Don't modify if already has extension or is not a relative import
-        if (importPath.includes('.') && importPath.match(/\.[a-z]+$/)) {
-          return match;
-        }
-
-        modified = true;
-        return match.replace(importPath, importPath + '.js');
+        const updatedPath = ensureExtension(importPath);
+        return match.replace(importPath, updatedPath);
       })
       .replace(
         /import\s*\(\s*['"](\.[^'"]*?)['"](?:\s*,\s*[^)]+)?\s*\)/g,
         (match, importPath) => {
-          // Don't modify if already has extension or is not a relative import
-          if (importPath.includes('.') && importPath.match(/\.[a-z]+$/)) {
-            return match;
-          }
-
-          modified = true;
-          return match.replace(importPath, importPath + '.js');
+          const updatedPath = ensureExtension(importPath);
+          return match.replace(importPath, updatedPath);
         }
       );
 
