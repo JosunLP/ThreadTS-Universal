@@ -6,7 +6,7 @@
       "name": "Core Bundle (CJS)"
     },
     {
-      "path": "dist/esm/index.js",
+      "path": "dist/esm/index.mjs",
       "maxSize": "15 kB",
       "name": "Core Bundle (ESM)"
     },
@@ -16,7 +16,7 @@
       "name": "Browser Bundle (CJS)"
     },
     {
-      "path": "dist/esm/browser.js",
+      "path": "dist/esm/browser.mjs",
       "maxSize": "18 kB",
       "name": "Browser Bundle (ESM)"
     },
@@ -26,7 +26,7 @@
       "name": "Node.js Bundle (CJS)"
     },
     {
-      "path": "dist/esm/node.js",
+      "path": "dist/esm/node.mjs",
       "maxSize": "17 kB",
       "name": "Node.js Bundle (ESM)"
     }
