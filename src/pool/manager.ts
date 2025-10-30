@@ -28,7 +28,7 @@ interface PoolTask {
   createdAt: number;
 }
 
-export class WorkerPoolManager implements PoolManager {
+export class ThreadPoolManager implements PoolManager {
   private workers: WorkerInstance[] = [];
   private idleWorkers: WorkerInstance[] = [];
   private busyWorkers: Set<WorkerInstance> = new Set();
@@ -323,4 +323,4 @@ export class WorkerPoolManager implements PoolManager {
 }
 
 // Export as PoolManager for compatibility
-export { WorkerPoolManager as PoolManager };
+export { ThreadPoolManager as PoolManager };

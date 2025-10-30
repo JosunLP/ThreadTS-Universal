@@ -1,14 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-var-requires */
 const console = require('console');
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
-const { URL } = require('url');
 
-function fixESMImports() {
-  console.log('Fixing ES module imports...');
+const TARGET_EXTENSION = '.mjs';
+
+function fixESMOutputs() {
+  console.log('Fixing ES module outputs...');
 
   const esmDir = path.join(__dirname, '..', 'dist', 'esm');
 
@@ -17,81 +15,128 @@ function fixESMImports() {
     return;
   }
 
-  let fixedFiles = 0;
+  let updatedCount = 0;
+  let renamedCount = 0;
 
   function processDirectory(dir) {
-    const files = fs.readdirSync(dir);
+    const entries = fs.readdirSync(dir);
 
-    for (const file of files) {
-      const fullPath = path.join(dir, file);
+    for (const entry of entries) {
+      if (entry.endsWith('.map')) {
+        continue;
+      }
+      const fullPath = path.join(dir, entry);
       const stat = fs.statSync(fullPath);
 
       if (stat.isDirectory()) {
         processDirectory(fullPath);
-      } else if (file.endsWith('.js')) {
-        processJSFile(fullPath);
+      } else if (entry.endsWith('.js') || entry.endsWith('.mjs')) {
+        processModuleFile(fullPath);
       }
     }
   }
 
-  function processJSFile(filePath) {
+  function processModuleFile(filePath) {
+    const ext = path.extname(filePath);
+    const basePath = filePath.slice(0, -ext.length);
+    const desiredPath = `${basePath}${TARGET_EXTENSION}`;
+    const desiredFileName = path.basename(desiredPath);
+    const desiredMapPath = `${desiredPath}.map`;
+    const currentMapPath =
+      ext === TARGET_EXTENSION ? desiredMapPath : `${filePath}.map`;
+
     const content = fs.readFileSync(filePath, 'utf8');
     let modified = false;
 
-    // Fix relative imports to include .js extension
-    const ensureExtension = (importPath) => {
-      const hasExtension = /\.[a-z0-9]+$/i.test(
-        importPath.split('/').pop() || ''
-      );
-      if (hasExtension) {
+    const ensureExtension = (rawImportPath) => {
+      const importPath = rawImportPath.replace(/\\/g, '/');
+
+      if (!importPath.startsWith('.')) {
         return importPath;
+      }
+
+      if (importPath.endsWith('.mjs')) {
+        return importPath;
+      }
+
+      if (importPath.endsWith('.js')) {
+        modified = true;
+        return `${importPath.slice(0, -3)}.mjs`;
       }
 
       const sourceDir = path.dirname(filePath);
       const resolvedPath = path.resolve(sourceDir, importPath);
-      const candidateFile = `${resolvedPath}.js`;
-
-      if (fs.existsSync(candidateFile)) {
-        modified = true;
-        return `${importPath}.js`;
-      }
 
       if (
         fs.existsSync(resolvedPath) &&
         fs.statSync(resolvedPath).isDirectory()
       ) {
         modified = true;
-        return `${importPath}/index.js`;
+        return `${importPath.replace(/\/$/, '')}/index.mjs`;
       }
 
       modified = true;
-      return `${importPath}.js`;
+      return `${importPath}.mjs`;
     };
 
-    const fixedContent = content
+    const updatedContent = content
       .replace(/from\s+['"](\.[^'"]*?)['"];?/g, (match, importPath) => {
         const updatedPath = ensureExtension(importPath);
-        return match.replace(importPath, updatedPath);
+        return updatedPath === importPath
+          ? match
+          : match.replace(importPath, updatedPath);
       })
       .replace(
         /import\s*\(\s*['"](\.[^'"]*?)['"](?:\s*,\s*[^)]+)?\s*\)/g,
         (match, importPath) => {
           const updatedPath = ensureExtension(importPath);
-          return match.replace(importPath, updatedPath);
+          return updatedPath === importPath
+            ? match
+            : match.replace(importPath, updatedPath);
         }
       );
 
-    if (modified) {
-      fs.writeFileSync(filePath, fixedContent, 'utf8');
-      console.log(`Fixed imports in: ${filePath}`);
-      fixedFiles++;
+    let finalContent = updatedContent;
+    const desiredMapName = `${desiredFileName}.map`;
+    const sourceMapRegex = /\/\/\# sourceMappingURL=([^\s]+)$/m;
 
-      // Special handling for index.js decorators import
-      if (
-        filePath.endsWith('index.js') &&
-        fixedContent.includes('./decorators')
-      ) {
-        console.log('Fixed decorators import in index.js');
+    const sourceMapMatch = sourceMapRegex.exec(finalContent);
+    if (sourceMapMatch && sourceMapMatch[1] !== desiredMapName) {
+      finalContent = finalContent.replace(
+        sourceMapRegex,
+        `//# sourceMappingURL=${desiredMapName}`
+      );
+      modified = true;
+    }
+
+    if (modified) {
+      fs.writeFileSync(filePath, finalContent, 'utf8');
+      updatedCount++;
+    }
+
+    if (ext !== TARGET_EXTENSION) {
+      fs.renameSync(filePath, desiredPath);
+      renamedCount++;
+    }
+
+    if (fs.existsSync(currentMapPath)) {
+      let mapContent = fs.readFileSync(currentMapPath, 'utf8');
+      let mapModified = false;
+
+      if (!mapContent.includes(`"file":"${desiredFileName}"`)) {
+        mapContent = mapContent.replace(
+          /"file":"([^\"]+)"/,
+          `"file":"${desiredFileName}"`
+        );
+        mapModified = true;
+      }
+
+      if (mapModified) {
+        fs.writeFileSync(currentMapPath, mapContent, 'utf8');
+      }
+
+      if (currentMapPath !== desiredMapPath) {
+        fs.renameSync(currentMapPath, desiredMapPath);
       }
     }
   }
@@ -99,11 +144,17 @@ function fixESMImports() {
   processDirectory(esmDir);
 
   console.log(
-    `ES module imports fixed successfully! Fixed ${fixedFiles} files.`
+    `ES module outputs fixed successfully! Updated ${updatedCount} files, renamed ${renamedCount} files.`
   );
 }
 
-// Check if the script is run directly
 if (require.main === module) {
-  fixESMImports();
+  try {
+    fixESMOutputs();
+  } catch (error) {
+    console.error('Failed to fix ES module outputs.', error);
+    process.exitCode = 1;
+  }
 }
+
+module.exports = fixESMOutputs;

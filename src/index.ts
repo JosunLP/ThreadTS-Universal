@@ -74,7 +74,7 @@ export { DenoWorkerAdapter } from './adapters/deno';
 export { NodeWorkerAdapter } from './adapters/node';
 
 // Pool manager export
-export { WorkerPoolManager } from './pool/manager';
+export { ThreadPoolManager } from './pool/manager';
 
 // Monitoring and diagnostics
 export { ErrorHandler, errorHandler } from './monitoring/error-handler';
