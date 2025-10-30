@@ -136,7 +136,7 @@ jobs:
         continue-on-error: true
 
       - name: 📊 Coverage Report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         if: matrix.extended
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
