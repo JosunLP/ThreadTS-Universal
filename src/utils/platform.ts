@@ -1,8 +1,61 @@
 /**
- * ThreadJS Universal - Platform Detection Utilities
+ * ThreadTS Universal - Platform Detection Utilities
  */
 
 import { Platform } from '../types';
+
+// Global environment type definitions
+interface NodeGlobal {
+  process?: {
+    versions?: {
+      node?: string;
+    };
+    memoryUsage?: () => {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+      arrayBuffers: number;
+    };
+  };
+  require?: NodeRequire;
+}
+
+interface DenoGlobal {
+  Deno?: {
+    version: {
+      deno: string;
+    };
+  };
+  navigator?: {
+    hardwareConcurrency?: number;
+  };
+}
+
+interface BunGlobal {
+  Bun?: {
+    version: string;
+  };
+  navigator?: {
+    hardwareConcurrency?: number;
+  };
+}
+
+interface BrowserGlobal {
+  navigator?: {
+    hardwareConcurrency?: number;
+  };
+  performance?: {
+    memory?: {
+      usedJSHeapSize: number;
+      totalJSHeapSize: number;
+      jsHeapSizeLimit: number;
+    };
+    now(): number;
+  };
+}
+
+type GlobalEnvironment = NodeGlobal & DenoGlobal & BunGlobal & BrowserGlobal;
 
 /**
  * Detects the current JavaScript runtime platform
@@ -13,22 +66,24 @@ export function detectPlatform(): Platform {
     return 'browser';
   }
 
+  const env = globalThis as unknown as GlobalEnvironment;
+
   // Node.js detection
   if (
-    typeof (globalThis as any).process !== 'undefined' &&
-    (globalThis as any).process.versions &&
-    (globalThis as any).process.versions.node
+    typeof env.process !== 'undefined' &&
+    env.process.versions &&
+    env.process.versions.node
   ) {
     return 'node';
   }
 
   // Deno detection
-  if (typeof (globalThis as any).Deno !== 'undefined') {
+  if (typeof env.Deno !== 'undefined') {
     return 'deno';
   }
 
   // Bun detection
-  if (typeof (globalThis as any).Bun !== 'undefined') {
+  if (typeof env.Bun !== 'undefined') {
     return 'bun';
   }
 
@@ -47,7 +102,8 @@ export function supportsWorkerThreads(): boolean {
     case 'node':
       try {
         // Dynamic import for Node.js worker_threads
-        const nodeRequire = (globalThis as any).require;
+        const env = globalThis as unknown as GlobalEnvironment;
+        const nodeRequire = env.require;
         if (nodeRequire) {
           nodeRequire('worker_threads');
           return true;
@@ -91,15 +147,18 @@ export function supportsTransferableObjects(): boolean {
 /**
  * Gets the optimal number of workers for the current platform
  */
-export function getOptimalWorkerCount(): number {
+export function getOptimalThreadCount(): number {
   const platform = detectPlatform();
 
   switch (platform) {
-    case 'browser':
-      return (globalThis as any).navigator?.hardwareConcurrency || 4;
-    case 'node':
+    case 'browser': {
+      const env = globalThis as unknown as GlobalEnvironment;
+      return env.navigator?.hardwareConcurrency || 4;
+    }
+    case 'node': {
       try {
-        const nodeRequire = (globalThis as any).require;
+        const env = globalThis as unknown as GlobalEnvironment;
+        const nodeRequire = env.require;
         if (nodeRequire) {
           const os = nodeRequire('os');
           return os.cpus().length;
@@ -108,10 +167,15 @@ export function getOptimalWorkerCount(): number {
       } catch {
         return 4;
       }
-    case 'deno':
-      return (globalThis as any).navigator?.hardwareConcurrency || 4;
-    case 'bun':
-      return (globalThis as any).navigator?.hardwareConcurrency || 4;
+    }
+    case 'deno': {
+      const denoEnv = globalThis as unknown as GlobalEnvironment;
+      return denoEnv.navigator?.hardwareConcurrency || 4;
+    }
+    case 'bun': {
+      const bunEnv = globalThis as unknown as GlobalEnvironment;
+      return bunEnv.navigator?.hardwareConcurrency || 4;
+    }
     default:
       return 4;
   }
@@ -142,7 +206,8 @@ export function getHighResTimestamp(): number {
       return performance.now();
     case 'node':
       try {
-        const nodeRequire = (globalThis as any).require;
+        const env = globalThis as unknown as GlobalEnvironment;
+        const nodeRequire = env.require;
         if (nodeRequire) {
           const { performance: nodePerf } = nodeRequire('perf_hooks');
           return nodePerf.now();
@@ -178,18 +243,22 @@ export function getMemoryInfo(): MemoryInfo | null {
   switch (platform) {
     case 'browser':
       if (typeof performance !== 'undefined' && 'memory' in performance) {
-        const mem = (performance as any).memory;
-        return {
-          used: mem.usedJSHeapSize,
-          total: mem.totalJSHeapSize,
-          available: mem.jsHeapSizeLimit - mem.usedJSHeapSize,
-        };
+        const env = globalThis as unknown as GlobalEnvironment;
+        const mem = env.performance?.memory;
+        if (mem) {
+          return {
+            used: mem.usedJSHeapSize,
+            total: mem.totalJSHeapSize,
+            available: mem.jsHeapSizeLimit - mem.usedJSHeapSize,
+          };
+        }
       }
       return null;
     case 'node':
       try {
-        const nodeProcess = (globalThis as any).process;
-        if (nodeProcess && nodeProcess.memoryUsage) {
+        const env = globalThis as unknown as GlobalEnvironment;
+        const nodeProcess = env.process;
+        if (nodeProcess?.memoryUsage) {
           const mem = nodeProcess.memoryUsage();
           return {
             used: mem.heapUsed,
@@ -203,15 +272,30 @@ export function getMemoryInfo(): MemoryInfo | null {
       }
     case 'deno':
       if (typeof performance !== 'undefined' && 'memory' in performance) {
-        const mem = (performance as any).memory;
-        return {
-          used: mem.usedJSHeapSize,
-          total: mem.totalJSHeapSize,
-          available: mem.jsHeapSizeLimit - mem.usedJSHeapSize,
-        };
+        const env = globalThis as unknown as GlobalEnvironment;
+        const mem = env.performance?.memory;
+        if (mem) {
+          return {
+            used: mem.usedJSHeapSize,
+            total: mem.totalJSHeapSize,
+            available: mem.jsHeapSizeLimit - mem.usedJSHeapSize,
+          };
+        }
       }
       return null;
     default:
       return null;
   }
+}
+
+// Platform utilities class for easier access
+export class PlatformUtils {
+  static detectPlatform = detectPlatform;
+  static supportsWorkerThreads = supportsWorkerThreads;
+  static supportsTransferableObjects = supportsTransferableObjects;
+  static getOptimalWorkerCount = getOptimalThreadCount;
+  static supportsOffscreenCanvas = supportsOffscreenCanvas;
+  static supportsWebLocks = supportsWebLocks;
+  static getHighResTimestamp = getHighResTimestamp;
+  static getMemoryInfo = getMemoryInfo;
 }

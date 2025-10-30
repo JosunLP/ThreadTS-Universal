@@ -1,16 +1,16 @@
 /**
- * ThreadJS Universal - Memory Leak Detection Tests
+ * ThreadTS Universal - Memory Leak Detection Tests
  * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
 describe('Memory Leak Detection', () => {
-  let threadjs: ThreadJS;
+  let threadts: ThreadTS;
   let initialMemory: number;
 
   beforeEach(() => {
-    threadjs = ThreadJS.getInstance();
+    threadts = ThreadTS.getInstance();
     // Baseline Memory-Usage ermitteln
     if (typeof process !== 'undefined' && process.memoryUsage) {
       initialMemory = process.memoryUsage().heapUsed;
@@ -26,7 +26,7 @@ describe('Memory Leak Detection', () => {
 
   afterEach(async () => {
     // Cleanup nach jedem Test
-    await threadjs.terminate();
+    await threadts.terminate();
 
     // Force Garbage Collection wenn verfügbar
     if (typeof global !== 'undefined' && (global as any).gc) {
@@ -39,7 +39,7 @@ describe('Memory Leak Detection', () => {
 
     // Mehrfache Worker-Ausführung
     for (let i = 0; i < iterations; i++) {
-      await threadjs.run((x: number) => x * 2, i);
+      await threadts.run((x: number) => x * 2, i);
     }
 
     // Memory-Usage nach Verarbeitung prüfen
@@ -65,24 +65,24 @@ describe('Memory Leak Detection', () => {
   it('should clean up worker pool properly', async () => {
     // Worker-Pool mit mehreren Aufgaben belasten
     const tasks = Array.from({ length: 50 }, (_, i) =>
-      threadjs.run((x: number) => x ** 2, i)
+      threadts.run((x: number) => x ** 2, i)
     );
 
     await Promise.all(tasks);
 
     // Pool-Statistiken prüfen
-    const stats = threadjs.getStats();
+    const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
     expect(stats.idleWorkers).toBeGreaterThanOrEqual(0);
   });
 
   it('should handle worker termination gracefully', async () => {
     // Worker starten
-    const task1 = threadjs.run((x: number) => x * 2, 10);
-    const task2 = threadjs.run((x: number) => x * 3, 20);
+    const task1 = threadts.run((x: number) => x * 2, 10);
+    const task2 = threadts.run((x: number) => x * 3, 20);
 
     // Während Ausführung terminieren
-    const terminatePromise = threadjs.terminate();
+    const terminatePromise = threadts.terminate();
 
     // Tasks sollten graceful abgebrochen werden
     await expect(
@@ -97,11 +97,11 @@ describe('Memory Leak Detection', () => {
 
     // Worker sollte mit Serialization-Error fehlschlagen
     await expect(
-      threadjs.run((obj: any) => obj.name, circularObj)
+      threadts.run((obj: any) => obj.name, circularObj)
     ).rejects.toThrow();
 
     // Memory sollte nicht geleakt sein
-    const stats = threadjs.getStats();
+    const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
   });
 
@@ -110,7 +110,7 @@ describe('Memory Leak Detection', () => {
     const largeArray = new Array(1_000_000).fill(0).map((_, i) => i);
 
     for (let i = 0; i < 10; i++) {
-      await threadjs.run(
+      await threadts.run(
         (arr: number[]) => arr.reduce((a, b) => a + b, 0),
         largeArray
       );

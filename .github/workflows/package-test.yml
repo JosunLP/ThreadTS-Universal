@@ -1,0 +1,68 @@
+name: 📦 Package Testing
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, develop, githubActions]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  package-test:
+    name: 📦 Package Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📋 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Project
+        run: npm run build
+
+      - name: 📦 Pack Package
+        run: npm pack
+
+      - name: 🧪 Test Package Installation
+        run: |
+          # Create temporary directory and test installation
+          mkdir -p /tmp/package-test
+          cd /tmp/package-test
+          npm init -y
+          echo "console.log('Dummy-Test erfolgreich');" > test.js
+          npm pkg set scripts.test="node test.js"
+          npm test
+          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
+
+          # Test CommonJS import
+          echo "const threadts = require('threadts-universal'); console.log('CommonJS import successful:', typeof threadts);" > test-cjs.js
+          node test-cjs.js
+
+          # Configure package.json for ES modules and test ES import
+          npm pkg set type=module
+          echo "import threadts from 'threadts-universal'; console.log('ES import successful:', typeof threadts);" > test-esm.mjs
+          node test-esm.mjs
+
+          # Test both exports
+          echo "import { ThreadTS } from 'threadts-universal'; console.log('Named import successful:', typeof ThreadTS);" > test-named.mjs
+          node test-named.mjs
+
+      - name: 📊 Package Size Analysis
+        run: |
+          echo "📦 Package Analysis:"
+          ls -lh threadts-universal-*.tgz
+
+          echo "📋 Package Contents:"
+          tar -tzf threadts-universal-*.tgz | head -20

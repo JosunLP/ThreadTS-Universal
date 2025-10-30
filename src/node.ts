@@ -1,10 +1,10 @@
 /**
- * ThreadJS Universal - Node.js-specific exports
+ * ThreadTS Universal - Node.js-specific exports
  */
 
 export { NodeWorkerAdapter } from './adapters/node';
 export * from './index';
-export { threadjs as default } from './index';
+export { default } from './index';
 
 // Node.js-specific utilities can be added here
 // For example: cluster management, process monitoring, etc.

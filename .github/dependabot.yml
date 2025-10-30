@@ -1,4 +1,4 @@
-# 🔄 Dependabot Configuration für ThreadJS Universal
+# 🔄 Dependabot Configuration für ThreadTS Universal
 
 version: 2
 updates:
@@ -22,7 +22,7 @@ updates:
 
     # Reviewer und Assignees
     reviewers:
-      - 'threadjs-team'
+      - 'threadts-team'
     assignees:
       - 'senior-maintainer'
 
@@ -63,10 +63,7 @@ updates:
     open-pull-requests-limit: 5
 
     # Ignorierte Dependencies (falls nötig)
-    ignore:
-      # Beispiel: Bestimmte Versionen ignorieren
-      # - dependency-name: "example-package"
-      #   versions: ["1.x", "2.x"]
+    # ignore entfernt, da leer und nicht benötigt
 
     # Allow-Liste für automatische Updates
     allow:
@@ -93,7 +90,7 @@ updates:
       include: 'scope'
 
     reviewers:
-      - 'threadjs-team'
+      - 'threadts-team'
 
     labels:
       - 'github-actions'

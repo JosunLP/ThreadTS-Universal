@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Core Types
+ * ThreadTS Universal - Core Types
  * Universal TypeScript library for effortless parallel computing
  */
 
@@ -11,17 +11,58 @@ export interface ThreadOptions {
   transferable?: Transferable[];
   maxRetries?: number;
   poolSize?: number;
+  // Enhanced Node.js specific options
+  resourceLimits?: {
+    maxOldGenerationSizeMb?: number;
+    maxYoungGenerationSizeMb?: number;
+    codeRangeSizeMb?: number;
+    stackSizeMb?: number;
+  };
+  // Enhanced Deno specific options
+  denoPermissions?: {
+    net?: boolean | string[];
+    read?: boolean | string[];
+    write?: boolean | string[];
+    env?: boolean | string[];
+    run?: boolean | string[];
+    ffi?: boolean | string[];
+    hrtime?: boolean;
+    sys?: boolean | string[];
+  };
+  // Enhanced Bun specific options
+  bunOptions?: {
+    name?: string;
+    credentials?: 'omit' | 'same-origin' | 'include';
+    highPrecisionTiming?: boolean;
+    forceGC?: boolean;
+  };
+  // Cross-platform worker options
+  workerName?: string;
+  isolateContext?: boolean;
+  trackResources?: boolean;
+}
+
+// Generic task definition used by batch/parallel helpers
+export interface ThreadTask<TData = SerializableData> {
+  fn: SerializableFunction;
+  data?: TData;
+  options?: ThreadOptions;
+}
+
+// Map/reduce helpers can specify batching behaviour in addition to thread options
+export interface MapOptions extends ThreadOptions {
+  batchSize?: number;
 }
 
 // Progress monitoring
 export interface ProgressEvent {
   progress: number; // 0-100
   message?: string;
-  data?: any;
+  data?: unknown;
 }
 
 // Execution result with metadata
-export interface ThreadResult<T = any> {
+export interface ThreadResult<T = unknown> {
   result: T;
   executionTime: number;
   workerId?: string;
@@ -40,9 +81,32 @@ export interface PoolConfig {
 // Platform detection
 export type Platform = 'browser' | 'node' | 'deno' | 'bun' | 'unknown';
 
-// Serialization types
+// Serialization types - Type-safe alternatives to any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SerializableFunction = (...args: any[]) => any;
-export type SerializableData = any;
+export type SerializableData =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ArrayBuffer
+  | { [key: string]: unknown }
+  | unknown[];
+
+// TypedArray union type for better type safety
+export type TypedArray =
+  | Int8Array
+  | Uint8Array
+  | Uint8ClampedArray
+  | Int16Array
+  | Uint16Array
+  | Int32Array
+  | Uint32Array
+  | Float32Array
+  | Float64Array
+  | BigInt64Array
+  | BigUint64Array;
 
 // Worker adapter interface
 export interface WorkerAdapter {
@@ -55,7 +119,7 @@ export interface WorkerAdapter {
 // Worker instance interface
 export interface WorkerInstance {
   id: string;
-  execute<T = any>(
+  execute<T = unknown>(
     fn: SerializableFunction,
     data: SerializableData,
     options?: ThreadOptions
@@ -66,7 +130,7 @@ export interface WorkerInstance {
 
 // Pool manager interface
 export interface PoolManager {
-  execute<T = any>(
+  execute<T = unknown>(
     fn: SerializableFunction,
     data: SerializableData,
     options?: ThreadOptions
@@ -126,4 +190,26 @@ export interface ProgressTracker {
   on(event: 'progress', handler: (event: ProgressEvent) => void): void;
   off(event: 'progress', handler: (event: ProgressEvent) => void): void;
   emit(event: 'progress', data: ProgressEvent): void;
+}
+
+// Main thread configuration
+export interface ThreadConfig {
+  poolSize: number;
+  timeout: number;
+  retries: number;
+  autoResize: boolean;
+  debug: boolean;
+  serializationStrategy: 'auto' | 'json' | 'custom';
+  enableDecorators: boolean;
+  enableMetrics: boolean;
+  maxQueueSize: number;
+  workerIdleTimeout: number;
+  taskPriority: 'low' | 'normal' | 'high';
+}
+
+// Task execution result
+export interface TaskResult {
+  success: boolean;
+  result: SerializableData | null;
+  error: string | null;
 }

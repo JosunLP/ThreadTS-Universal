@@ -1,6 +1,6 @@
-# 📝 Changelog - ThreadJS Universal
+# 📝 Changelog - ThreadTS Universal
 
-**Alle wichtigen Änderungen an ThreadJS Universal werden in dieser Datei dokumentiert.**
+**Alle wichtigen Änderungen an ThreadTS Universal werden in dieser Datei dokumentiert.**
 
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -52,12 +52,12 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🎉 Initial Release
 
-**ThreadJS Universal erreicht Production-Ready Status!**
+**ThreadTS Universal erreicht Production-Ready Status!**
 
 #### ✨ Neue Features
 
 - **Universal API**: Ein identisches API für Browser, Node.js, Deno, und Bun
-- **One-Line Parallelization**: `await threadjs.run(fn, data)` für sofortige parallele Ausführung
+- **One-Line Parallelization**: `await threadts.run(fn, data)` für sofortige parallele Ausführung
 - **Intelligente Worker Pools**: Adaptive Skalierung von 1 bis ∞ Worker
 - **Sub-5ms Overhead**: Quantum-level Performance mit minimalem Overhead
 - **TypeScript-First**: Vollständige Type-Safety mit Generics
@@ -72,13 +72,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 #### 🎯 API Methods
 
-- `threadjs.run<T>(fn, data?, options?)` - Hauptmethode für parallele Ausführung
-- `threadjs.parallel<T>(tasks)` - Mehrere Funktionen parallel ausführen
-- `threadjs.batch<T>(tasks, batchSize?)` - Kontrollierte Batch-Verarbeitung
-- `threadjs.map<T, R>(data, fn, options?)` - Parallele Array-Transformation
-- `threadjs.filter<T>(data, fn, options?)` - Parallele Array-Filterung
-- `threadjs.resize(size)` - Worker-Pool-Größe anpassen
-- `threadjs.getStats()` - Pool-Statistiken abrufen
+- `threadts.run<T>(fn, data?, options?)` - Hauptmethode für parallele Ausführung
+- `threadts.parallel<T>(tasks)` - Mehrere Funktionen parallel ausführen
+- `threadts.batch<T>(tasks, batchSize?)` - Kontrollierte Batch-Verarbeitung
+- `threadts.map<T, R>(data, fn, options?)` - Parallele Array-Transformation
+- `threadts.filter<T>(data, fn, options?)` - Parallele Array-Filterung
+- `threadts.resize(size)` - Worker-Pool-Größe anpassen
+- `threadts.getStats()` - Pool-Statistiken abrufen
 
 #### 🌐 Platform Support
 
@@ -152,7 +152,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 #### Performance Benchmarks
 
-| Benchmark            | ThreadJS | Native Workers | Overhead  |
+| Benchmark            | ThreadTS | Native Workers | Overhead  |
 | -------------------- | -------- | -------------- | --------- |
 | Simple Math          | 2.3ms    | 2.1ms          | +0.2ms    |
 | Array Processing     | 45.6ms   | 43.1ms         | +2.5ms    |
@@ -161,7 +161,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🎖️ Contributors
 
-**ThreadJS Universal Team:**
+**ThreadTS Universal Team:**
 
 - **Senior Architect**: KI-Entwicklungsagent (Autonomous Evolution & Maintenance)
 - **Performance Engineer**: Optimization & Benchmarking
@@ -170,7 +170,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### 🏁 Milestone Achievement
 
-**ThreadJS Universal v1.0.0 establishes the foundation for becoming the de-facto standard library for JavaScript parallelism.**
+**ThreadTS Universal v1.0.0 establishes the foundation for becoming the de-facto standard library for JavaScript parallelism.**
 
 #### Goals Achieved ✅
 
@@ -208,6 +208,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ---
 
-**ThreadJS Universal - Making parallel computing as simple as writing synchronous code.**
+**ThreadTS Universal - Making parallel computing as simple as writing synchronous code.**
 
 **_Erlebe die Zukunft der JavaScript-Parallelität. ⚡_**

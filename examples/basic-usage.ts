@@ -1,18 +1,18 @@
 /**
- * ThreadJS Universal - Example Usage
+ * ThreadTS Universal - Example Usage
  */
 
-import threadjs, { parallelMap, parallelMethod } from '../src';
+import threadts, { parallelMap, parallelMethod } from '../src';
 
 // Example 1: Basic parallel execution
 async function basicExample() {
   console.log('🚀 Basic Parallel Execution');
 
   // Basic parallel execution
-  const result = await threadjs.run((x: number) => x * x, 10);
+  const result = await threadts.run((x: number) => x * x, 10);
   console.log('Square of 10:', result); // 100
 
-  const complexResult = await threadjs.run(
+  const complexResult = await threadts.run(
     (data: { numbers: number[] }) => {
       return data.numbers.reduce((sum, num) => sum + num * num, 0);
     },
@@ -28,15 +28,15 @@ async function arrayOperationsExample() {
   const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
 
   // Parallel map
-  const squares = await threadjs.map(numbers, (x) => x * x);
+  const squares = await threadts.map(numbers, (x) => x * x);
   console.log('Squares:', squares);
 
   // Parallel filter
-  const evens = await threadjs.filter(numbers, (x) => x % 2 === 0);
+  const evens = await threadts.filter(numbers, (x) => x % 2 === 0);
   console.log('Even numbers:', evens);
 
   // Parallel reduce
-  const sum = await threadjs.reduce(numbers, (a, b) => a + b, 0);
+  const sum = await threadts.reduce(numbers, (a, b) => a + b, 0);
   console.log('Sum:', sum);
 }
 
@@ -46,7 +46,7 @@ async function batchProcessingExample() {
 
   const largeDataset = Array.from({ length: 100 }, (_, i) => i + 1);
 
-  const results = await threadjs.batch(
+  const results = await threadts.batch(
     largeDataset.map((item) => ({
       fn: (x: number) => {
         // Simulate heavy computation
@@ -95,7 +95,7 @@ async function decoratorExample() {
   const processedItems = await processor.processItems([
     'hello',
     'world',
-    'threadjs',
+    'threadts',
   ]);
   console.log('Processed items:', processedItems);
 }
@@ -124,7 +124,7 @@ async function performanceComparison() {
 
   // Parallel execution
   console.time('Parallel');
-  const parallelResults = await threadjs.map(numbers, fibonacci);
+  const parallelResults = await threadts.map(numbers, fibonacci);
   console.timeEnd('Parallel');
   console.log('Parallel results:', parallelResults);
 }
@@ -134,7 +134,7 @@ async function errorHandlingExample() {
   console.log('🚨 Error Handling');
 
   try {
-    await threadjs.run(() => {
+    await threadts.run(() => {
       throw new Error('Something went wrong!');
     });
   } catch (error: any) {
@@ -143,7 +143,7 @@ async function errorHandlingExample() {
 
   // Timeout example
   try {
-    await threadjs.run(
+    await threadts.run(
       () => {
         // Simulate long-running task
         const start = Date.now();
@@ -163,7 +163,7 @@ async function errorHandlingExample() {
 // Main execution
 async function main() {
   try {
-    console.log('🌟 ThreadJS Universal Examples\n');
+    console.log('🌟 ThreadTS Universal Examples\n');
 
     await basicExample();
     console.log('');
@@ -184,14 +184,14 @@ async function main() {
     console.log('');
 
     // Pool statistics
-    const stats = threadjs.getStats();
+    const stats = threadts.getStats();
     console.log('📊 Pool Statistics:', stats);
 
     console.log('✅ All examples completed successfully!');
   } catch (error) {
     console.error('❌ Error running examples:', error);
   } finally {
-    await threadjs.terminate();
+    await threadts.terminate();
   }
 }
 

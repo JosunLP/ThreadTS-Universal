@@ -1,8 +1,10 @@
 /**
- * ThreadJS Universal - Browser Worker Adapter
+ * ThreadTS Universal - Browser Worker Adapter
  */
 
 import {
+  SerializableData,
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
@@ -24,11 +26,31 @@ export class BrowserWorkerAdapter implements WorkerAdapter {
   }
 
   isSupported(): boolean {
-    return (
-      typeof Worker !== 'undefined' &&
-      typeof Blob !== 'undefined' &&
-      typeof URL !== 'undefined'
-    );
+    try {
+      // Erweiterte Prüfung mit Fehlerbehandlung
+      if (
+        typeof Worker === 'undefined' ||
+        typeof Blob === 'undefined' ||
+        typeof URL === 'undefined'
+      ) {
+        return false;
+      }
+
+      // Teste ob wir tatsächlich einen Worker erstellen können
+      // (in manchen Umgebungen ist Worker definiert, aber nicht funktional)
+      try {
+        const testBlob = new Blob([''], { type: 'application/javascript' });
+        const testUrl = URL.createObjectURL(testBlob);
+        URL.revokeObjectURL(testUrl);
+        return true;
+      } catch (error) {
+        console.warn('Worker creation test failed:', error);
+        return false;
+      }
+    } catch (error) {
+      console.warn('Worker support detection failed:', error);
+      return false;
+    }
   }
 }
 
@@ -42,9 +64,9 @@ class BrowserWorkerInstance implements WorkerInstance {
     this.id = `browser-worker-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  async execute<T = any>(
-    fn: Function,
-    data: any,
+  async execute<T = unknown>(
+    fn: SerializableFunction,
+    data: SerializableData,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {
     if (this.isTerminated) {

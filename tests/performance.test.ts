@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Performance Tests
+ * ThreadTS Universal - Performance Tests
  * Lightweight Performance-Tests für die Kernfunktionalität
  */
 
-import threadjs, { ThreadJS } from '../src';
+import threadts, { ThreadTS } from '../src';
 
 // Mock für Test-Umgebung
 jest.mock('../src/utils/platform', () => ({
@@ -14,19 +14,19 @@ jest.mock('../src/utils/platform', () => ({
 
 describe('🚀 Performance Tests', () => {
   beforeEach(() => {
-    (ThreadJS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   afterEach(async () => {
     try {
-      const instance = (ThreadJS as any).instance;
+      const instance = Reflect.get(ThreadTS, '_instance') as ThreadTS | null;
       if (instance) {
         await instance.terminate();
       }
     } catch (error) {
       // Ignore cleanup errors
     }
-    (ThreadJS as any).instance = null;
+    Reflect.set(ThreadTS, '_instance', null);
   });
 
   test('sollte minimalen Overhead haben', async () => {
@@ -34,13 +34,14 @@ describe('🚀 Performance Tests', () => {
 
     // 10 einfache Operationen
     const promises = Array.from({ length: 10 }, (_, i) =>
-      threadjs.run((x: number) => x * 2, i)
+      threadts.run((x: number) => x * 2, i)
     );
 
     const results = await Promise.all(promises);
     const duration = Date.now() - startTime;
 
     expect(results).toHaveLength(10);
+    expect(results).toEqual(Array.from({ length: 10 }, (_, i) => i * 2));
     expect(duration).toBeLessThan(1000); // Sollte unter 1 Sekunde sein
   });
 
@@ -52,15 +53,16 @@ describe('🚀 Performance Tests', () => {
       data: i,
     }));
 
-    const results = await threadjs.batch(largeBatch, 5);
+    const results = await threadts.batch(largeBatch, 5);
     const duration = Date.now() - startTime;
 
     expect(results).toHaveLength(50);
+    expect(results.every((task) => task.success)).toBe(true);
     expect(duration).toBeLessThan(2000); // Batch sollte effizient sein
   });
 
   test('sollte Pool-Management performant sein', async () => {
-    const instance = ThreadJS.getInstance();
+    const instance = ThreadTS.getInstance();
 
     // Pool-Statistiken sollten sofort verfügbar sein
     const startTime = Date.now();
@@ -72,7 +74,7 @@ describe('🚀 Performance Tests', () => {
   });
 
   test('sollte Memory-Management korrekt funktionieren', async () => {
-    const instance = ThreadJS.getInstance();
+    const instance = ThreadTS.getInstance();
 
     // Viele kleine Tasks ausführen
     for (let i = 0; i < 20; i++) {

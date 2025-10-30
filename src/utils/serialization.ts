@@ -1,14 +1,19 @@
 /**
- * ThreadJS Universal - Serialization Utilities
+ * ThreadTS Universal - Serialization Utilities
  * Handles function and data serialization across different platforms
  */
 
-import { SerializationError } from '../types';
+import {
+  SerializableData,
+  SerializableFunction,
+  SerializationError,
+  TypedArray,
+} from '../types';
 
 /**
  * Serializes a function for worker execution
  */
-export function serializeFunction(fn: Function): string {
+export function serializeFunction(fn: SerializableFunction): string {
   if (typeof fn !== 'function') {
     throw new SerializationError('Input must be a function');
   }
@@ -32,7 +37,7 @@ export function serializeFunction(fn: Function): string {
  * Deserializes a function string back to a function
  */
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
-export function deserializeFunction(fnString: string): Function {
+export function deserializeFunction(fnString: string): SerializableFunction {
   try {
     // Use Function constructor for safe evaluation
     return new Function('return (' + fnString + ')')();
@@ -47,7 +52,7 @@ export function deserializeFunction(fnString: string): Function {
 /**
  * Serializes data for worker transfer
  */
-export function serializeData(data: any): {
+export function serializeData(data: SerializableData): {
   serialized: string;
   transferables: Transferable[];
 } {
@@ -69,7 +74,7 @@ export function serializeData(data: any): {
 /**
  * Deserializes data from worker
  */
-export function deserializeData(serialized: string): any {
+export function deserializeData(serialized: string): unknown {
   try {
     return JSON.parse(serialized);
   } catch (error) {
@@ -80,7 +85,10 @@ export function deserializeData(serialized: string): any {
 /**
  * Processes data to extract transferable objects
  */
-function processTransferables(obj: any, transferables: Transferable[]): any {
+function processTransferables(
+  obj: unknown,
+  transferables: Transferable[]
+): unknown {
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }
@@ -93,16 +101,17 @@ function processTransferables(obj: any, transferables: Transferable[]): any {
 
   // Handle TypedArrays
   if (ArrayBuffer.isView(obj)) {
-    const buffer = obj.buffer.slice(
-      obj.byteOffset,
-      obj.byteOffset + obj.byteLength
+    const typedArray = obj as TypedArray;
+    const buffer = typedArray.buffer.slice(
+      typedArray.byteOffset,
+      typedArray.byteOffset + typedArray.byteLength
     );
     transferables.push(buffer);
     return {
-      __type: obj.constructor.name,
+      __type: typedArray.constructor.name,
       __data: buffer,
-      __byteOffset: obj.byteOffset,
-      __length: (obj as any).length,
+      __byteOffset: typedArray.byteOffset,
+      __length: typedArray.length,
     };
   }
 
@@ -133,7 +142,7 @@ function processTransferables(obj: any, transferables: Transferable[]): any {
   }
 
   // Handle Objects
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     result[key] = processTransferables(value, transferables);
   }
@@ -144,25 +153,27 @@ function processTransferables(obj: any, transferables: Transferable[]): any {
 /**
  * Restores transferable objects after deserialization
  */
-export function restoreTransferables(obj: any): any {
+export function restoreTransferables(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }
 
+  const typedObj = obj as Record<string, unknown>;
+
   // Handle special transferable markers
-  if (obj.__type) {
-    switch (obj.__type) {
+  if (typedObj.__type) {
+    switch (typedObj.__type) {
       case 'ArrayBuffer':
-        return obj.__data;
+        return typedObj.__data;
 
       case 'MessagePort':
-        return obj.__data;
+        return typedObj.__data;
 
       case 'OffscreenCanvas':
-        return obj.__data;
+        return typedObj.__data;
 
       case 'ImageBitmap':
-        return obj.__data;
+        return typedObj.__data;
 
       // Handle TypedArrays
       case 'Int8Array':
@@ -175,9 +186,12 @@ export function restoreTransferables(obj: any): any {
       case 'Float32Array':
       case 'Float64Array':
       case 'BigInt64Array':
-      case 'BigUint64Array':
-        const TypedArrayConstructor = (globalThis as any)[obj.__type];
-        return new TypedArrayConstructor(obj.__data);
+      case 'BigUint64Array': {
+        const TypedArrayConstructor = (globalThis as Record<string, unknown>)[
+          typedObj.__type as string
+        ] as new (buffer: ArrayBuffer) => TypedArray;
+        return new TypedArrayConstructor(typedObj.__data as ArrayBuffer);
+      }
     }
   }
 
@@ -187,7 +201,7 @@ export function restoreTransferables(obj: any): any {
   }
 
   // Handle Objects
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     result[key] = restoreTransferables(value);
   }
@@ -198,7 +212,7 @@ export function restoreTransferables(obj: any): any {
 /**
  * Checks if an object contains transferable objects
  */
-export function hasTransferables(obj: any): boolean {
+export function hasTransferables(obj: unknown): boolean {
   if (obj === null || typeof obj !== 'object') {
     return false;
   }
@@ -227,15 +241,15 @@ export function hasTransferables(obj: any): boolean {
  * Creates a worker script string with the function and data
  */
 export function createWorkerScript(
-  fn: Function,
-  data: any,
+  fn: SerializableFunction,
+  data: unknown,
   options: { timeout?: number } = {}
 ): string {
   const fnString = serializeFunction(fn);
-  const { serialized: dataString } = serializeData(data);
+  const { serialized: dataString } = serializeData(data as SerializableData);
 
   return `
-    // ThreadJS Universal Worker Script
+    // ThreadTS Universal Worker Script
     const { deserializeData, restoreTransferables, serializeData } = {
       deserializeData: ${deserializeData.toString()},
       restoreTransferables: ${restoreTransferables.toString()},
@@ -294,4 +308,15 @@ export function createWorkerScript(
       });
     }
   `;
+}
+
+// Serialization utilities class for easier access
+export class SerializationUtils {
+  static serializeFunction = serializeFunction;
+  static deserializeFunction = deserializeFunction;
+  static serializeData = serializeData;
+  static deserializeData = deserializeData;
+  static restoreTransferables = restoreTransferables;
+  static hasTransferables = hasTransferables;
+  static createWorkerScript = createWorkerScript;
 }

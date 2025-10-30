@@ -1,17 +1,17 @@
 /**
- * ThreadJS Universal - Real-World Scenarios Benchmark
+ * ThreadTS Universal - Real-World Scenarios Benchmark
  * Praktische Anwendungsfälle für Performance-Validierung
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
-const threadjs = ThreadJS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 async function main() {
-  console.log('🌍 ThreadJS Universal - Real-World Scenarios');
+  console.log('🌍 ThreadTS Universal - Real-World Scenarios');
   console.log('═'.repeat(50));
-  console.log(`Platform: ${threadjs.getPlatform()}`);
-  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log(`Platform: ${threadts.getPlatform()}`);
+  console.log(`Worker Support: ${threadts.isSupported()}`);
   console.log('═'.repeat(50));
 
   // 1. Image Processing Simulation

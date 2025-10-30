@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Core Performance Benchmarks
+ * ThreadTS Universal - Core Performance Benchmarks
  * Fokussierte Tests auf echte Parallelisierungs-Fähigkeiten
  */
 
-import { ThreadJS } from '../src/core/threadjs';
+import { ThreadTS } from '../src/core/threadts';
 
 interface BenchmarkResult {
   name: string;
@@ -12,7 +12,7 @@ interface BenchmarkResult {
   details?: string;
 }
 
-const threadjs = ThreadJS.getInstance();
+const threadts = ThreadTS.getInstance();
 
 async function measureTime<T>(
   fn: () => Promise<T>
@@ -24,15 +24,15 @@ async function measureTime<T>(
 }
 
 async function main() {
-  console.log('🚀 ThreadJS Universal - Core Performance Benchmarks');
+  console.log('🚀 ThreadTS Universal - Core Performance Benchmarks');
   console.log('═'.repeat(55));
-  console.log(`Platform: ${threadjs.getPlatform()}`);
-  console.log(`Worker Support: ${threadjs.isSupported()}`);
+  console.log(`Platform: ${threadts.getPlatform()}`);
+  console.log(`Worker Support: ${threadts.isSupported()}`);
   console.log('═'.repeat(55));
 
   const results: BenchmarkResult[] = [];
 
-  if (threadjs.isSupported()) {
+  if (threadts.isSupported()) {
     // Worker-basierte Tests
     results.push(await testWorkerOverhead());
     results.push(await testParallelArrayProcessing());
@@ -80,7 +80,7 @@ async function testWorkerOverhead(): Promise<BenchmarkResult> {
   const task = (x: number) => x * 2;
 
   const { time } = await measureTime(async () => {
-    return threadjs.run(task, 42);
+    return threadts.run(task, 42);
   });
 
   return {
@@ -96,7 +96,7 @@ async function testParallelArrayProcessing(): Promise<BenchmarkResult> {
   const computeFn = (x: number) => Math.sqrt(x * x + 1);
 
   const { time } = await measureTime(async () => {
-    return threadjs.map(data, computeFn);
+    return threadts.map(data, computeFn);
   });
 
   return {
@@ -114,7 +114,7 @@ async function testCPUIntensiveTask(): Promise<BenchmarkResult> {
   };
 
   const { time } = await measureTime(async () => {
-    return threadjs.run(fibonacci, 30);
+    return threadts.run(fibonacci, 30);
   });
 
   return {
@@ -136,7 +136,7 @@ async function testBatchProcessing(): Promise<BenchmarkResult> {
   };
 
   const { time } = await measureTime(async () => {
-    return threadjs.map(data, heavyTask, { batchSize: 200 });
+    return threadts.map(data, heavyTask, { batchSize: 200 });
   });
 
   return {

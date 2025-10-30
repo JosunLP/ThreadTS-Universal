@@ -240,7 +240,7 @@ jobs:
 
           # Verify package contents
           echo "📋 Package contents:"
-          tar -tzf threadjs-universal-*.tgz | head -20
+          tar -tzf threadts-universal-*.tgz | head -20
 
       - name: 🧪 Test Package Installation
         run: |
@@ -252,14 +252,12 @@ jobs:
           npm init -y
 
           # Install the packed package
-          npm install $GITHUB_WORKSPACE/threadjs-universal-*.tgz
+          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test basic functionality
-          cat > test-installation.mjs << 'EOF'
-          import threadjs from 'threadjs-universal';
-          console.log('✅ Package installation test successful');
-          console.log('ThreadJS loaded:', typeof threadjs);
-          EOF
+          echo "import threadts from 'threadts-universal';" > test-installation.mjs
+          echo "console.log('✅ Package installation test successful');" >> test-installation.mjs
+          echo "console.log('ThreadTS loaded:', typeof threadts);" >> test-installation.mjs
 
           node test-installation.mjs
 
@@ -293,7 +291,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.NEW_VERSION }}
-          release_name: ThreadJS Universal ${{ env.NEW_VERSION }}
+          release_name: ThreadTS Universal ${{ env.NEW_VERSION }}
           body_path: artifacts/changelog-entry.md
           draft: false
           prerelease: ${{ github.event.inputs.release_type == 'prerelease' }}
@@ -381,11 +379,11 @@ jobs:
           # In a real implementation, this would send notifications
           # via email, Discord, teams, etc.
 
-          echo "🎉 ThreadJS Universal ${{ needs.pre-release-validation.outputs.next-version }} Released!"
+          echo "🎉 ThreadTS Universal ${{ needs.pre-release-validation.outputs.next-version }} Released!"
           echo "- Release Type: ${{ github.event.inputs.release_type }}"
-          echo "- NPM: https://npmjs.com/package/threadjs-universal"
+          echo "- NPM: https://npmjs.com/package/threadts-universal"
           echo "- GitHub: https://github.com/${{ github.repository }}/releases"
-          echo "- Documentation: https://threadjs.dev"
+          echo "- Documentation: https://threadts.dev"
 
       - name: 📊 Update Release Dashboard
         run: |
@@ -406,7 +404,7 @@ jobs:
       - name: 🎯 Release Success Summary
         run: |
           cat > release-summary.md << EOF
-          # 🎉 Release Successful: ThreadJS Universal v${{ needs.pre-release-validation.outputs.next-version }}
+          # 🎉 Release Successful: ThreadTS Universal v${{ needs.pre-release-validation.outputs.next-version }}
 
           **Release Date:** $(date -u +%Y-%m-%d)
           **Release Type:** ${{ github.event.inputs.release_type }}
@@ -423,9 +421,9 @@ jobs:
 
           ## 🔗 Links
 
-          - [NPM Package](https://npmjs.com/package/threadjs-universal)
+          - [NPM Package](https://npmjs.com/package/threadts-universal)
           - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-validation.outputs.next-version }})
-          - [Documentation](https://threadjs.dev)
+          - [Documentation](https://threadts.dev)
           - [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
 
           ## 📋 Next Steps

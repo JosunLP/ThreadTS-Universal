@@ -1,17 +1,17 @@
-# 🚀 ThreadJS Universal
+# 🚀 ThreadTS Universal
 
-[![npm version](https://badge.fury.io/js/threadjs-universal.svg)](https://badge.fury.io/js/threadjs-universal)
+[![npm version](https://badge.fury.io/js/threadts-universal.svg)](https://badge.fury.io/js/threadts-universal)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-blue.svg)](https://www.typescriptlang.org/)
-[![Build Status](https://github.com/threadjs/universal/workflows/CI/badge.svg)](https://github.com/threadjs/universal/actions)
+[![Build Status](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI/badge.svg)](https://github.com/JosunLP/ThreadTS-Universal/actions)
 
 **The definitive universal TypeScript library that makes true parallelism as effortless as async/await across all JavaScript ecosystems.**
 
 ```typescript
-import threadjs from 'threadjs-universal';
+import threadts from 'threadts-universal';
 
 // Transform any function into parallel execution with one line
-const result = await threadjs.run((x) => x * 2, 42);
+const result = await threadts.run((x) => x * 2, 42);
 console.log(result); // 84
 ```
 
@@ -19,7 +19,7 @@ console.log(result); // 84
 
 ### 🎯 **One-Command Paradigm**
 
-- **Single-line API**: `await threadjs.run(fn, data)` → instant parallel execution
+- **Single-line API**: `await threadts.run(fn, data)` → instant parallel execution
 - **Zero-Config**: Intelligent defaults with infinite customization layers
 - **Quantum Performance**: Sub-5ms overhead vs handwritten worker wrappers
 
@@ -45,19 +45,19 @@ console.log(result); // 84
 ### Installation
 
 ```bash
-npm install threadjs-universal
+npm install threadts-universal
 ```
 
 ### Basic Usage
 
 ```typescript
-import threadjs from 'threadjs-universal';
+import threadts from 'threadts-universal';
 
 // Simple parallel execution
-const doubled = await threadjs.run((x) => x * 2, 21);
+const doubled = await threadts.run((x) => x * 2, 21);
 
 // Complex calculations
-const fibonacci = await threadjs.run((n) => {
+const fibonacci = await threadts.run((n) => {
   if (n <= 1) return n;
   let a = 0,
     b = 1;
@@ -68,14 +68,14 @@ const fibonacci = await threadjs.run((n) => {
 }, 40);
 
 // Parallel array processing
-const squares = await threadjs.map([1, 2, 3, 4, 5], (x) => x * x);
+const squares = await threadts.map([1, 2, 3, 4, 5], (x) => x * x);
 // Result: [1, 4, 9, 16, 25]
 ```
 
 ### Method Decorators
 
 ```typescript
-import { parallelMethod } from 'threadjs-universal';
+import { parallelMethod } from 'threadts-universal';
 
 class DataProcessor {
   @parallelMethod()
@@ -95,12 +95,12 @@ class DataProcessor {
 
 ### Core Methods
 
-#### `threadjs.run<T>(fn, data?, options?): Promise<T>`
+#### `threadts.run<T>(fn, data?, options?): Promise<T>`
 
 Executes a function in a worker thread.
 
 ```typescript
-const result = await threadjs.run(
+const result = await threadts.run(
   (data: { x: number; y: number }) => data.x + data.y,
   { x: 10, y: 20 },
   {
@@ -111,12 +111,12 @@ const result = await threadjs.run(
 );
 ```
 
-#### `threadjs.parallel<T>(tasks): Promise<T[]>`
+#### `threadts.parallel<T>(tasks): Promise<T[]>`
 
 Executes multiple functions in parallel.
 
 ```typescript
-const results = await threadjs.parallel([
+const results = await threadts.parallel([
   { fn: (x) => x * 2, data: 5 },
   { fn: (x) => x * 3, data: 7 },
   { fn: (x) => x * 4, data: 9 },
@@ -124,35 +124,35 @@ const results = await threadjs.parallel([
 // Results: [10, 21, 36]
 ```
 
-#### `threadjs.map<T, R>(array, fn, options?): Promise<R[]>`
+#### `threadts.map<T, R>(array, fn, options?): Promise<R[]>`
 
 Maps an array through a function in parallel.
 
 ```typescript
-const results = await threadjs.map(
+const results = await threadts.map(
   [1, 2, 3, 4, 5],
   (x, index) => ({ value: x * x, index }),
   { batchSize: 2 }
 );
 ```
 
-#### `threadjs.filter<T>(array, fn, options?): Promise<T[]>`
+#### `threadts.filter<T>(array, fn, options?): Promise<T[]>`
 
 Filters an array in parallel.
 
 ```typescript
-const evens = await threadjs.filter(
+const evens = await threadts.filter(
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   (x) => x % 2 === 0
 );
 ```
 
-#### `threadjs.reduce<T, R>(array, fn, initialValue, options?): Promise<R>`
+#### `threadts.reduce<T, R>(array, fn, initialValue, options?): Promise<R>`
 
 Reduces an array in parallel (for associative operations).
 
 ```typescript
-const sum = await threadjs.reduce(
+const sum = await threadts.reduce(
   [1, 2, 3, 4, 5],
   (acc, curr) => acc + curr,
   0
@@ -164,7 +164,7 @@ const sum = await threadjs.reduce(
 #### Progress Tracking
 
 ```typescript
-const result = await threadjs.execute((data) => {
+const result = await threadts.execute((data) => {
   // Emit progress updates
   for (let i = 0; i < 100; i++) {
     postMessage({ progress: i, message: `Processing ${i}%` });
@@ -178,7 +178,7 @@ const result = await threadjs.execute((data) => {
 
 ```typescript
 const buffer = new ArrayBuffer(1024 * 1024);
-const result = await threadjs.run(
+const result = await threadts.run(
   (buffer) => {
     // Process buffer in worker
     const view = new Uint8Array(buffer);
@@ -194,10 +194,10 @@ const result = await threadjs.run(
 
 ```typescript
 // Resize worker pool
-await threadjs.resize(8);
+await threadts.resize(8);
 
 // Get pool statistics
-const stats = threadjs.getStats();
+const stats = threadts.getStats();
 console.log(stats);
 // {
 //   activeWorkers: 2,
@@ -215,7 +215,7 @@ console.log(stats);
 Automatically parallelizes method execution.
 
 ```typescript
-import { parallelMethod } from 'threadjs-universal';
+import { parallelMethod } from 'threadts-universal';
 
 class ImageProcessor {
   @parallelMethod({ cacheResults: true })
@@ -271,14 +271,14 @@ async timedTask(): Promise<Result> { ... }
 
 ## 📊 Performance
 
-ThreadJS Universal provides quantum-level performance with sub-5ms overhead:
+ThreadTS Universal provides quantum-level performance with sub-5ms overhead:
 
 ```typescript
 // Benchmark: Fibonacci(40) calculation
 const iterations = 1000;
 
 // Sequential execution: ~2.3s
-// ThreadJS parallel: ~0.6s (4 cores)
+// ThreadTS parallel: ~0.6s (4 cores)
 // Overhead: < 5ms per operation
 ```
 
@@ -287,9 +287,9 @@ const iterations = 1000;
 ### Pool Configuration
 
 ```typescript
-import { ThreadJS } from 'threadjs-universal';
+import { ThreadTS } from 'threadts-universal';
 
-const threadjs = ThreadJS.getInstance({
+const threadts = ThreadTS.getInstance({
   minWorkers: 2,
   maxWorkers: 8,
   idleTimeout: 30000,
@@ -301,7 +301,7 @@ const threadjs = ThreadJS.getInstance({
 ### Platform Detection
 
 ```typescript
-import { detectPlatform, supportsWorkerThreads } from 'threadjs-universal';
+import { detectPlatform, supportsWorkerThreads } from 'threadts-universal';
 
 console.log('Platform:', detectPlatform());
 console.log('Worker Support:', supportsWorkerThreads());
@@ -330,7 +330,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/threadjs/universal.git
+git clone https://github.com/JosunLP/ThreadTS-Universal.git
 cd universal
 npm install
 npm run build
@@ -341,9 +341,9 @@ npm test
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🌟 Why ThreadJS Universal?
+## 🌟 Why ThreadTS Universal?
 
-### Before ThreadJS
+### Before ThreadTS
 
 ```typescript
 // Complex worker setup
@@ -358,14 +358,14 @@ worker.onerror = (error) => {
 };
 ```
 
-### With ThreadJS
+### With ThreadTS
 
 ```typescript
 // One line parallel execution
-const result = await threadjs.run(fn, data);
+const result = await threadts.run(fn, data);
 ```
 
-### The ThreadJS Advantage
+### The ThreadTS Advantage
 
 - ✅ **Universal**: Same API across all platforms
 - ✅ **Simple**: One-line parallel execution
@@ -376,6 +376,6 @@ const result = await threadjs.run(fn, data);
 
 ---
 
-**Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadJS Universal.**
+**Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadTS Universal.**
 
-[![Star on GitHub](https://img.shields.io/github/stars/threadjs/universal?style=social)](https://github.com/threadjs/universal)
+[![Star on GitHub](https://img.shields.io/github/stars/threadts/universal?style=social)](https://github.com/JosunLP/ThreadTS-Universal)

@@ -1,9 +1,9 @@
 /**
- * ThreadJS Universal - Decorators
+ * ThreadTS Universal - Decorators
  * Method decorators for automatic parallelization
  */
 
-import { ThreadJS } from '../core/threadjs';
+import { ThreadTS } from '../core/threadts';
 import { ParallelMethodOptions } from '../types';
 
 /**
@@ -11,7 +11,7 @@ import { ParallelMethodOptions } from '../types';
  */
 export function parallelMethod(options: ParallelMethodOptions = {}) {
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
@@ -22,9 +22,9 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
     }
 
     // Cache for results if enabled
-    const resultCache = new Map<string, any>();
+    const resultCache = new Map<string, unknown>();
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       // Generate cache key if caching is enabled
       const cacheKey = options.cacheResults ? JSON.stringify(args) : null;
 
@@ -34,41 +34,27 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
       }
 
       // Create thread pool instance with custom config if specified
-      const threadjs = options.poolSize
-        ? ThreadJS.getInstance({ maxWorkers: options.poolSize })
-        : ThreadJS.getInstance();
+      const threadts = options.poolSize
+        ? ThreadTS.getInstance({ poolSize: options.poolSize })
+        : ThreadTS.getInstance();
 
-      try {
-        // Execute method in worker thread
-        const result = await threadjs.run(
-          originalMethod,
-          { context: this, args },
-          {
-            timeout: options.timeout,
-            priority: options.priority,
-            signal: options.signal,
-            transferable: options.transferable,
-            maxRetries: options.maxRetries,
-          }
-        );
-
-        // Cache result if enabled
-        if (cacheKey) {
-          resultCache.set(cacheKey, result);
-
-          // Limit cache size to prevent memory leaks
-          if (resultCache.size > 100) {
-            const firstKey = resultCache.keys().next().value;
-            if (firstKey) {
-              resultCache.delete(firstKey);
-            }
-          }
+      // Execute method in worker thread
+      const result = await threadts.run(
+        originalMethod,
+        { context: this, args },
+        {
+          timeout: options.timeout,
+          maxRetries: options.maxRetries,
+          priority: options.priority,
         }
+      );
 
-        return result;
-      } catch (error) {
-        throw error;
+      // Cache result if enabled
+      if (cacheKey && options.cacheResults) {
+        resultCache.set(cacheKey, result);
       }
+
+      return result;
     };
 
     return descriptor;
@@ -76,52 +62,42 @@ export function parallelMethod(options: ParallelMethodOptions = {}) {
 }
 
 /**
- * Class decorator that parallelizes all methods marked with @parallel
+ * Class decorator that auto-parallelizes all marked methods
  */
-export function parallelClass(options: ParallelMethodOptions = {}) {
-  return function <T extends { new (...args: any[]): {} }>(constructor: T) {
-    return class extends constructor {
-      constructor(...args: any[]) {
-        super(...args);
+export function parallelClass() {
+  return function <T extends new (...args: unknown[]) => object>(
+    constructor: T
+  ): T {
+    const parallelMethods =
+      (constructor as unknown as { parallelMethods?: string[] })
+        .parallelMethods || [];
 
-        // Find all methods with parallel metadata
-        const prototype = constructor.prototype;
-        const methodNames = Object.getOwnPropertyNames(prototype);
-
-        for (const methodName of methodNames) {
-          const method = prototype[methodName];
-
-          if (
-            typeof method === 'function' &&
-            methodName !== 'constructor' &&
-            method._parallel
-          ) {
-            // Apply parallel decorator to method
-            const originalMethod = method;
-            (this as any)[methodName] = async function (...args: any[]) {
-              const threadjs = ThreadJS.getInstance();
-              return await threadjs.run(
-                originalMethod.bind(this),
-                args,
-                options
-              );
-            };
-          }
-        }
+    // Return the same constructor but with modified prototype methods
+    for (const methodName of parallelMethods) {
+      const originalMethod = constructor.prototype[methodName];
+      if (typeof originalMethod === 'function') {
+        constructor.prototype[methodName] = async function (
+          ...args: unknown[]
+        ) {
+          const threadts = ThreadTS.getInstance();
+          return threadts.run(originalMethod.bind(this), args);
+        };
       }
-    };
+    }
+
+    return constructor;
   };
 }
 
 /**
- * Simple decorator to mark methods for parallelization
+ * Mark a method for auto-parallelization in parallel classes
  */
 export function parallel(
-  target: any,
+  target: unknown,
   propertyKey: string,
   descriptor: PropertyDescriptor
 ) {
-  descriptor.value._parallel = true;
+  (descriptor.value as { _parallel?: boolean })._parallel = true;
   return descriptor;
 }
 
@@ -130,7 +106,7 @@ export function parallel(
  */
 export function parallelBatch(batchSize: number = 4) {
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
@@ -140,19 +116,29 @@ export function parallelBatch(batchSize: number = 4) {
       throw new Error('@parallelBatch can only be applied to methods');
     }
 
-    descriptor.value = async function (data: any[], ...otherArgs: any[]) {
+    descriptor.value = async function (
+      data: unknown[],
+      ...otherArgs: unknown[]
+    ) {
       if (!Array.isArray(data)) {
         throw new Error('First argument must be an array for @parallelBatch');
       }
 
-      const threadjs = ThreadJS.getInstance();
+      const threadts = ThreadTS.getInstance();
 
-      const tasks = data.map((item) => ({
-        fn: originalMethod,
-        data: { context: this, args: [item, ...otherArgs] },
-      }));
+      // Split data into batches
+      const batches: unknown[][] = [];
+      for (let i = 0; i < data.length; i += batchSize) {
+        batches.push(data.slice(i, i + batchSize));
+      }
 
-      return await threadjs.batch(tasks, batchSize);
+      // Process each batch in parallel
+      const batchPromises = batches.map((batch) =>
+        threadts.run(originalMethod.bind(this), [batch, ...otherArgs])
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      return batchResults.flat();
     };
 
     return descriptor;
@@ -160,11 +146,11 @@ export function parallelBatch(batchSize: number = 4) {
 }
 
 /**
- * Decorator for parallel mapping operations
+ * Decorator for parallel map operations
  */
-export function parallelMap(options: { batchSize?: number } = {}) {
+export function parallelMap() {
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
@@ -174,18 +160,19 @@ export function parallelMap(options: { batchSize?: number } = {}) {
       throw new Error('@parallelMap can only be applied to methods');
     }
 
-    descriptor.value = async function (data: any[], ...otherArgs: any[]) {
+    descriptor.value = async function (data: unknown[]) {
       if (!Array.isArray(data)) {
         throw new Error('First argument must be an array for @parallelMap');
       }
 
-      const threadjs = ThreadJS.getInstance();
+      const threadts = ThreadTS.getInstance();
 
-      return await threadjs.map(
-        data,
-        (item, index) => originalMethod.call(this, item, index, ...otherArgs),
-        { batchSize: options.batchSize }
+      // Execute parallel operations using Promise.all for parallel execution
+      const promises = data.map((item) =>
+        threadts.run(originalMethod.bind(this), [item])
       );
+
+      return Promise.all(promises);
     };
 
     return descriptor;
@@ -193,74 +180,131 @@ export function parallelMap(options: { batchSize?: number } = {}) {
 }
 
 /**
- * Decorator for methods that need to run with high priority
+ * Decorator for memoization with optional cache size limit
  */
-export function highPriority(
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor
-) {
-  const originalMethod = descriptor.value;
-
-  descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadJS.getInstance();
-    return await threadjs.run(
-      originalMethod,
-      { context: this, args },
-      {
-        priority: 'high',
-      }
-    );
-  };
-
-  return descriptor;
-}
-
-/**
- * Decorator for methods that can run with low priority
- */
-export function lowPriority(
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor
-) {
-  const originalMethod = descriptor.value;
-
-  descriptor.value = async function (...args: any[]) {
-    const threadjs = ThreadJS.getInstance();
-    return await threadjs.run(
-      originalMethod,
-      { context: this, args },
-      {
-        priority: 'low',
-      }
-    );
-  };
-
-  return descriptor;
-}
-
-/**
- * Decorator for methods with timeout
- */
-export function timeout(ms: number) {
+export function memoize(maxCacheSize: number = 100) {
   return function (
-    target: any,
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const cache = new Map<string, unknown>();
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: unknown[]) {
+      const key = JSON.stringify(args);
+
+      if (cache.has(key)) {
+        return cache.get(key);
+      }
+
+      const result = await originalMethod.apply(this, args);
+
+      // Implement LRU-like behavior
+      if (cache.size >= maxCacheSize) {
+        const firstKey = cache.keys().next().value;
+        if (firstKey !== undefined) {
+          cache.delete(firstKey);
+        }
+      }
+
+      cache.set(key, result);
+      return result;
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Decorator for retry logic with exponential backoff
+ */
+export function retry(maxAttempts: number = 3, baseDelay: number = 1000) {
+  return function (
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
-      const threadjs = ThreadJS.getInstance();
-      return await threadjs.run(
-        originalMethod,
-        { context: this, args },
-        {
-          timeout: ms,
+    descriptor.value = async function (...args: unknown[]) {
+      let lastError: Error;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          return await originalMethod.apply(this, args);
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+
+          if (attempt === maxAttempts) {
+            throw lastError;
+          }
+
+          // Exponential backoff
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
-      );
+      }
+
+      throw lastError!;
     };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Decorator for rate limiting method calls
+ */
+export function rateLimit(callsPerSecond: number = 10) {
+  return function (
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const queue: Array<{
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      args: unknown[];
+    }> = [];
+    const interval = 1000 / callsPerSecond;
+    let lastCall = 0;
+
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: unknown[]) {
+      return new Promise((resolve, reject) => {
+        queue.push({ resolve, reject, args });
+        processQueue.call(this);
+      });
+    };
+
+    async function processQueue(this: unknown) {
+      if (queue.length === 0) return;
+
+      const now = Date.now();
+      const timeSinceLastCall = now - lastCall;
+
+      if (timeSinceLastCall >= interval) {
+        const { resolve, reject, args } = queue.shift()!;
+        lastCall = now;
+
+        try {
+          const result = await originalMethod.apply(this, args);
+          resolve(result);
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+
+        // Process next item if any
+        if (queue.length > 0) {
+          setTimeout(() => processQueue.call(this), interval);
+        }
+      } else {
+        // Wait for the remaining time
+        setTimeout(() => processQueue.call(this), interval - timeSinceLastCall);
+      }
+    }
 
     return descriptor;
   };

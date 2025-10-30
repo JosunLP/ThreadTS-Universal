@@ -1,5 +1,5 @@
 /**
- * ThreadJS Universal - Worker Pool Manager
+ * ThreadTS Universal - Worker Pool Manager
  * Manages a pool of workers for optimal performance
  */
 
@@ -7,26 +7,28 @@ import {
   PoolConfig,
   PoolManager,
   PoolStats,
+  SerializableData,
+  SerializableFunction,
   ThreadOptions,
   ThreadResult,
   WorkerAdapter,
   WorkerError,
   WorkerInstance,
 } from '../types';
-import { getOptimalWorkerCount } from '../utils/platform';
+import { getOptimalThreadCount } from '../utils/platform';
 
-interface PoolTask<T = any> {
+interface PoolTask {
   id: string;
-  fn: Function;
-  data: any;
+  fn: SerializableFunction;
+  data: SerializableData;
   options: ThreadOptions;
-  resolve: (result: ThreadResult<T>) => void;
+  resolve: (result: ThreadResult<unknown>) => void;
   reject: (error: Error) => void;
   priority: number;
   createdAt: number;
 }
 
-export class WorkerPoolManager implements PoolManager {
+export class ThreadPoolManager implements PoolManager {
   private workers: WorkerInstance[] = [];
   private idleWorkers: WorkerInstance[] = [];
   private busyWorkers: Set<WorkerInstance> = new Set();
@@ -41,7 +43,7 @@ export class WorkerPoolManager implements PoolManager {
     private adapter: WorkerAdapter,
     config: PoolConfig = {}
   ) {
-    const optimalWorkerCount = getOptimalWorkerCount();
+    const optimalWorkerCount = getOptimalThreadCount();
 
     this.config = {
       minWorkers: config.minWorkers ?? 1,
@@ -55,9 +57,9 @@ export class WorkerPoolManager implements PoolManager {
     this.initializeWorkers().catch(console.error);
   }
 
-  async execute<T = any>(
-    fn: Function,
-    data: any,
+  async execute<T = unknown>(
+    fn: SerializableFunction,
+    data: SerializableData,
     options: ThreadOptions = {}
   ): Promise<ThreadResult<T>> {
     if (this.isTerminating) {
@@ -71,12 +73,12 @@ export class WorkerPoolManager implements PoolManager {
 
     return new Promise<ThreadResult<T>>((resolve, reject) => {
       const priority = this.getPriority(options.priority);
-      const task: PoolTask<T> = {
+      const task: PoolTask = {
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         fn,
         data,
         options,
-        resolve,
+        resolve: resolve as (result: ThreadResult<unknown>) => void,
         reject,
         priority,
         createdAt: Date.now(),
@@ -140,7 +142,7 @@ export class WorkerPoolManager implements PoolManager {
     // Gracefully handle queued tasks
     for (const task of this.taskQueue) {
       task.resolve({
-        result: undefined as any,
+        result: undefined as unknown,
         executionTime: 0,
         error: new WorkerError('Pool is terminating'),
       });
@@ -241,16 +243,12 @@ export class WorkerPoolManager implements PoolManager {
     return null;
   }
 
-  private async executeTask<T>(
+  private async executeTask(
     worker: WorkerInstance,
-    task: PoolTask<T>
+    task: PoolTask
   ): Promise<void> {
     try {
-      const result = await worker.execute<T>(
-        task.fn as any,
-        task.data,
-        task.options
-      );
+      const result = await worker.execute(task.fn, task.data, task.options);
 
       // Update statistics
       this.completedTasks++;
@@ -323,3 +321,6 @@ export class WorkerPoolManager implements PoolManager {
     }
   }
 }
+
+// Export as PoolManager for compatibility
+export { ThreadPoolManager as PoolManager };

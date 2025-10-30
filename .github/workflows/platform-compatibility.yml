@@ -76,32 +76,65 @@ jobs:
         run: |
           echo "Testing Worker support in ${{ matrix.browser }}..."
 
-          # Create a simple worker test
+          # Create a simple worker test file (cross-platform)
           cat > worker-test.js << 'EOF'
-          // Test Web Worker support
           if (typeof Worker !== 'undefined') {
-            console.log('✅ Web Workers supported');
-
-            // Test SharedWorker support
-            if (typeof SharedWorker !== 'undefined') {
-              console.log('✅ SharedWorkers supported');
-            } else {
-              console.log('⚠️ SharedWorkers not supported');
-            }
-
-            // Test ServiceWorker support
-            if ('serviceWorker' in navigator) {
-              console.log('✅ ServiceWorkers supported');
-            } else {
-              console.log('⚠️ ServiceWorkers not supported');
-            }
+            console.log('✅ Workers are supported');
+            const workerCode = 'self.onmessage = function(e) { self.postMessage(e.data * 2); };';
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            const worker = new Worker(URL.createObjectURL(blob));
+            worker.postMessage(21);
+            worker.onmessage = function(e) {
+              console.log('✅ Worker communication successful:', e.data);
+              worker.terminate();
+            };
+            worker.onerror = function(error) {
+              console.error('❌ Worker error:', error);
+            };
           } else {
-            console.log('❌ Web Workers not supported');
+            console.log('❌ Workers are not supported');
           }
           EOF
 
-          # Run the test in the browser
-          npx playwright test --grep "worker support" || echo "Worker test completed"
+          # Test the worker support detection
+          node worker-test.js || echo "Worker test completed with fallback"
+
+          # Additional browser-specific test using playwright
+          cat > browser-worker-test.js << 'EOF'
+          const { chromium, firefox, webkit } = require('@playwright/test');
+
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+
+            const workerSupport = await page.evaluate(() => {
+              return {
+                hasWorker: typeof Worker !== 'undefined',
+                hasBlob: typeof Blob !== 'undefined',
+                hasURL: typeof URL !== 'undefined'
+              };
+            });
+
+            console.log('Browser Worker Support:', workerSupport);
+
+            if (workerSupport.hasWorker) {
+              console.log('✅ Web Workers supported');
+
+              if (typeof SharedWorker !== 'undefined') {
+                console.log('✅ SharedWorkers supported');
+              } else {
+                console.log('⚠️ SharedWorkers not supported');
+              }
+            } else {
+              console.log('❌ Web Workers not supported');
+            }
+
+            await browser.close();
+          })().catch(console.error);
+          EOF
+
+          # Run the browser-specific test
+          node browser-worker-test.js || echo "Browser worker test completed"
 
       - name: 📊 Generate Browser Compatibility Report
         if: always()
@@ -196,88 +229,84 @@ jobs:
         run: |
           echo "Testing Worker Threads support on Node.js ${{ matrix.node-version }}..."
 
-          # Create worker threads test
-          cat > worker-threads-test.js << 'EOF'
-          const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+          # Create worker threads test file (cross-platform)
+          echo "const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');" > worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "if (isMainThread) {" >> worker-threads-test.cjs
+          echo "  console.log('✅ Worker Threads supported on Node.js');" >> worker-threads-test.cjs
+          echo "  console.log('Main thread:', process.version);" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  const worker = new Worker(__filename, {" >> worker-threads-test.cjs
+          echo "    workerData: { test: 'data' }" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  worker.on('message', (data) => {" >> worker-threads-test.cjs
+          echo "    console.log('✅ Worker communication successful:', data);" >> worker-threads-test.cjs
+          echo "    process.exit(0);" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  worker.on('error', (error) => {" >> worker-threads-test.cjs
+          echo "    console.error('❌ Worker error:', error);" >> worker-threads-test.cjs
+          echo "    process.exit(1);" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "" >> worker-threads-test.cjs
+          echo "  setTimeout(() => {" >> worker-threads-test.cjs
+          echo "    console.log('⚠️ Worker test timeout');" >> worker-threads-test.cjs
+          echo "    process.exit(1);" >> worker-threads-test.cjs
+          echo "  }, 5000);" >> worker-threads-test.cjs
+          echo "} else {" >> worker-threads-test.cjs
+          echo "  console.log('Worker thread started:', process.version);" >> worker-threads-test.cjs
+          echo "  parentPort.postMessage({" >> worker-threads-test.cjs
+          echo "    received: workerData," >> worker-threads-test.cjs
+          echo "    timestamp: Date.now()" >> worker-threads-test.cjs
+          echo "  });" >> worker-threads-test.cjs
+          echo "}" >> worker-threads-test.cjs
 
-          if (isMainThread) {
-            console.log('✅ Worker Threads supported on Node.js');
-            console.log('Main thread:', process.version);
-
-            // Test worker creation
-            const worker = new Worker(__filename, {
-              workerData: { test: 'data' }
-            });
-
-            worker.on('message', (data) => {
-              console.log('✅ Worker communication successful:', data);
-              process.exit(0);
-            });
-
-            worker.on('error', (error) => {
-              console.error('❌ Worker error:', error);
-              process.exit(1);
-            });
-
-            setTimeout(() => {
-              console.log('⚠️ Worker test timeout');
-              process.exit(1);
-            }, 5000);
-          } else {
-            console.log('Worker thread started:', process.version);
-            parentPort.postMessage({
-              received: workerData,
-              timestamp: Date.now()
-            });
-          }
-          EOF
-
-          node worker-threads-test.js
+          node worker-threads-test.cjs
 
       - name: 📊 Node.js Feature Detection
         run: |
           echo "Detecting Node.js features..."
 
-          cat > feature-detection.js << 'EOF'
-          console.log('🟢 Node.js Feature Report');
-          console.log('========================');
-          console.log('Version:', process.version);
-          console.log('Platform:', process.platform);
-          console.log('Architecture:', process.arch);
-          console.log('');
-
-          // Test ES modules support
-          try {
-            eval('import("fs")');
-            console.log('✅ ES Modules: Supported');
-          } catch (e) {
-            console.log('❌ ES Modules: Not supported');
-          }
-
-          // Test Worker Threads
-          try {
-            require('worker_threads');
-            console.log('✅ Worker Threads: Supported');
-          } catch (e) {
-            console.log('❌ Worker Threads: Not supported');
-          }
-
-          // Test Performance Hooks
-          try {
-            require('perf_hooks');
-            console.log('✅ Performance Hooks: Supported');
-          } catch (e) {
-            console.log('❌ Performance Hooks: Not supported');
-          }
-
-          // Test Async Hooks
-          try {
-            require('async_hooks');
-            console.log('✅ Async Hooks: Supported');
-          } catch (e) {
-            console.log('❌ Async Hooks: Not supported');
-          }
-          EOF
+          # Create feature detection script (cross-platform)
+          echo "console.log('🟢 Node.js Feature Report');" > feature-detection.js
+          echo "console.log('========================');" >> feature-detection.js
+          echo "console.log('Version:', process.version);" >> feature-detection.js
+          echo "console.log('Platform:', process.platform);" >> feature-detection.js
+          echo "console.log('Architecture:', process.arch);" >> feature-detection.js
+          echo "console.log('');" >> feature-detection.js
+          echo "" >> feature-detection.js
+          echo "// Test ES modules support" >> feature-detection.js
+          echo "try {" >> feature-detection.js
+          echo "  eval('import(\"fs\")');" >> feature-detection.js
+          echo "  console.log('✅ ES Modules: Supported');" >> feature-detection.js
+          echo "} catch (e) {" >> feature-detection.js
+          echo "  console.log('❌ ES Modules: Not supported');" >> feature-detection.js
+          echo "}" >> feature-detection.js
+          echo "" >> feature-detection.js
+          echo "// Test Worker Threads" >> feature-detection.js
+          echo "try {" >> feature-detection.js
+          echo "  require('worker_threads');" >> feature-detection.js
+          echo "  console.log('✅ Worker Threads: Supported');" >> feature-detection.js
+          echo "} catch (e) {" >> feature-detection.js
+          echo "  console.log('❌ Worker Threads: Not supported');" >> feature-detection.js
+          echo "}" >> feature-detection.js
+          echo "" >> feature-detection.js
+          echo "// Test Performance Hooks" >> feature-detection.js
+          echo "try {" >> feature-detection.js
+          echo "  require('perf_hooks');" >> feature-detection.js
+          echo "  console.log('✅ Performance Hooks: Supported');" >> feature-detection.js
+          echo "} catch (e) {" >> feature-detection.js
+          echo "  console.log('❌ Performance Hooks: Not supported');" >> feature-detection.js
+          echo "}" >> feature-detection.js
+          echo "" >> feature-detection.js
+          echo "// Test Async Hooks" >> feature-detection.js
+          echo "try {" >> feature-detection.js
+          echo "  require('async_hooks');" >> feature-detection.js
+          echo "  console.log('✅ Async Hooks: Supported');" >> feature-detection.js
+          echo "} catch (e) {" >> feature-detection.js
+          echo "  console.log('❌ Async Hooks: Not supported');" >> feature-detection.js
+          echo "}" >> feature-detection.js
 
           node feature-detection.js
 
@@ -322,34 +351,31 @@ jobs:
         run: |
           echo "Running Deno compatibility tests..."
 
-          # Create Deno test file
-          cat > deno-test.ts << 'EOF'
-          // Deno compatibility test for ThreadJS Universal
-
-          // Test basic module import
-          try {
-            // Note: In a real scenario, you'd import from a URL or local path
-            console.log('🦕 Testing Deno compatibility...');
-            console.log('✅ Deno version:', Deno.version);
-            console.log('✅ TypeScript supported');
-
-            // Test Worker support in Deno
-            if (typeof Worker !== 'undefined') {
-              console.log('✅ Web Workers supported in Deno');
-            } else {
-              console.log('❌ Web Workers not supported');
-            }
-
-            // Test permissions
-            console.log('📋 Checking Deno permissions...');
-            const netPermission = await Deno.permissions.query({ name: 'net' });
-            console.log('Net permission:', netPermission.state);
-
-          } catch (error) {
-            console.error('❌ Deno test failed:', error);
-            Deno.exit(1);
-          }
-          EOF
+          # Create Deno test file (cross-platform)
+          echo "// Deno compatibility test for ThreadTS Universal" > deno-test.ts
+          echo "" >> deno-test.ts
+          echo "// Test basic module import" >> deno-test.ts
+          echo "try {" >> deno-test.ts
+          echo "  console.log('🦕 Testing Deno compatibility...');" >> deno-test.ts
+          echo "  console.log('✅ Deno version:', Deno.version);" >> deno-test.ts
+          echo "  console.log('✅ TypeScript supported');" >> deno-test.ts
+          echo "" >> deno-test.ts
+          echo "  // Test Worker support in Deno" >> deno-test.ts
+          echo "  if (typeof Worker !== 'undefined') {" >> deno-test.ts
+          echo "    console.log('✅ Web Workers supported in Deno');" >> deno-test.ts
+          echo "  } else {" >> deno-test.ts
+          echo "    console.log('❌ Web Workers not supported');" >> deno-test.ts
+          echo "  }" >> deno-test.ts
+          echo "" >> deno-test.ts
+          echo "  // Test permissions" >> deno-test.ts
+          echo "  console.log('📋 Checking Deno permissions...');" >> deno-test.ts
+          echo "  const netPermission = await Deno.permissions.query({ name: 'net' });" >> deno-test.ts
+          echo "  console.log('Net permission:', netPermission.state);" >> deno-test.ts
+          echo "" >> deno-test.ts
+          echo "} catch (error) {" >> deno-test.ts
+          echo "  console.error('❌ Deno test failed:', error);" >> deno-test.ts
+          echo "  Deno.exit(1);" >> deno-test.ts
+          echo "}" >> deno-test.ts
 
           deno run --allow-all deno-test.ts
 
@@ -357,26 +383,25 @@ jobs:
         run: |
           echo "Testing Deno-specific features..."
 
-          cat > deno-features.ts << 'EOF'
-          console.log('🦕 Deno Feature Report');
-          console.log('======================');
-          console.log('Version:', Deno.version.deno);
-          console.log('V8 Version:', Deno.version.v8);
-          console.log('TypeScript Version:', Deno.version.typescript);
-
-          // Test Web APIs
-          console.log('\n🌐 Web API Support:');
-          console.log('- fetch:', typeof fetch !== 'undefined' ? '✅' : '❌');
-          console.log('- WebSocket:', typeof WebSocket !== 'undefined' ? '✅' : '❌');
-          console.log('- Worker:', typeof Worker !== 'undefined' ? '✅' : '❌');
-          console.log('- crypto:', typeof crypto !== 'undefined' ? '✅' : '❌');
-
-          // Test Deno APIs
-          console.log('\n🦕 Deno API Support:');
-          console.log('- Deno.env:', typeof Deno.env !== 'undefined' ? '✅' : '❌');
-          console.log('- Deno.readFile:', typeof Deno.readFile !== 'undefined' ? '✅' : '❌');
-          console.log('- Deno.run:', typeof Deno.run !== 'undefined' ? '✅' : '❌');
-          EOF
+          # Create Deno features test (cross-platform)
+          echo "console.log('🦕 Deno Feature Report');" > deno-features.ts
+          echo "console.log('======================');" >> deno-features.ts
+          echo "console.log('Version:', Deno.version.deno);" >> deno-features.ts
+          echo "console.log('V8 Version:', Deno.version.v8);" >> deno-features.ts
+          echo "console.log('TypeScript Version:', Deno.version.typescript);" >> deno-features.ts
+          echo "" >> deno-features.ts
+          echo "// Test Web APIs" >> deno-features.ts
+          echo "console.log('\\n🌐 Web API Support:');" >> deno-features.ts
+          echo "console.log('- fetch:', typeof fetch !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "console.log('- WebSocket:', typeof WebSocket !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "console.log('- Worker:', typeof Worker !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "console.log('- crypto:', typeof crypto !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "" >> deno-features.ts
+          echo "// Test Deno APIs" >> deno-features.ts
+          echo "console.log('\\n🦕 Deno API Support:');" >> deno-features.ts
+          echo "console.log('- Deno.env:', typeof Deno.env !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "console.log('- Deno.readFile:', typeof Deno.readFile !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
+          echo "console.log('- Deno.run:', typeof Deno.run !== 'undefined' ? '✅' : '❌');" >> deno-features.ts
 
           deno run --allow-env deno-features.ts
 
@@ -400,7 +425,7 @@ jobs:
 
           ## 📋 Compatibility Notes
 
-          - ThreadJS Universal works with Deno's Web Worker implementation
+          - ThreadTS Universal works with Deno's Web Worker implementation
           - No Node.js-specific APIs used in browser/Deno builds
           - Permissions system respected
           - Import maps supported for dependency management
@@ -409,10 +434,10 @@ jobs:
 
           \`\`\`typescript
           // Import from CDN or local build
-          import { ThreadJS } from './dist/esm/index.js';
+          import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadJS();
-          const result = await threadjs.execute(() => {
+          const threadts = new ThreadTS();
+          const result = await threadts.execute(() => {
             return 'Hello from Deno Worker!';
           });
           \`\`\`
@@ -468,36 +493,34 @@ jobs:
         run: |
           echo "Running Bun compatibility tests..."
 
-          # Create Bun test file
-          cat > bun-test.ts << 'EOF'
-          // Bun compatibility test for ThreadJS Universal
-
-          console.log('🥟 Testing Bun compatibility...');
-          console.log('Bun version:', process.versions.bun);
-
-          // Test Worker support in Bun
-          if (typeof Worker !== 'undefined') {
-            console.log('✅ Web Workers supported in Bun');
-          } else {
-            console.log('❌ Web Workers not supported');
-          }
-
-          // Test Bun-specific APIs
-          console.log('🔍 Testing Bun APIs...');
-
-          // Test Bun.file() if available
-          if (typeof Bun !== 'undefined' && Bun.file) {
-            console.log('✅ Bun.file() API available');
-          }
-
-          // Test performance
-          const start = performance.now();
-          await new Promise(resolve => setTimeout(resolve, 1));
-          const end = performance.now();
-          console.log(`✅ Performance API working: ${end - start}ms`);
-
-          console.log('✅ Bun compatibility test completed');
-          EOF
+          # Create Bun test file (cross-platform)
+          echo "// Bun compatibility test for ThreadTS Universal" > bun-test.ts
+          echo "" >> bun-test.ts
+          echo "console.log('🥟 Testing Bun compatibility...');" >> bun-test.ts
+          echo "console.log('Bun version:', process.versions.bun);" >> bun-test.ts
+          echo "" >> bun-test.ts
+          echo "// Test Worker support in Bun" >> bun-test.ts
+          echo "if (typeof Worker !== 'undefined') {" >> bun-test.ts
+          echo "  console.log('✅ Web Workers supported in Bun');" >> bun-test.ts
+          echo "} else {" >> bun-test.ts
+          echo "  console.log('❌ Web Workers not supported');" >> bun-test.ts
+          echo "}" >> bun-test.ts
+          echo "" >> bun-test.ts
+          echo "// Test Bun-specific APIs" >> bun-test.ts
+          echo "console.log('🔍 Testing Bun APIs...');" >> bun-test.ts
+          echo "" >> bun-test.ts
+          echo "// Test Bun.file() if available" >> bun-test.ts
+          echo "if (typeof Bun !== 'undefined' && Bun.file) {" >> bun-test.ts
+          echo "  console.log('✅ Bun.file() API available');" >> bun-test.ts
+          echo "}" >> bun-test.ts
+          echo "" >> bun-test.ts
+          echo "// Test performance" >> bun-test.ts
+          echo "const start = performance.now();" >> bun-test.ts
+          echo "await new Promise(resolve => setTimeout(resolve, 1));" >> bun-test.ts
+          echo "const end = performance.now();" >> bun-test.ts
+          echo "console.log(\`✅ Performance API working: \${end - start}ms\`);" >> bun-test.ts
+          echo "" >> bun-test.ts
+          echo "console.log('✅ Bun compatibility test completed');" >> bun-test.ts
 
           bun run bun-test.ts
 
@@ -505,34 +528,33 @@ jobs:
         run: |
           echo "Testing Bun-specific features..."
 
-          cat > bun-features.ts << 'EOF'
-          console.log('🥟 Bun Feature Report');
-          console.log('=====================');
-          console.log('Bun Version:', process.versions.bun);
-          console.log('Node Compatibility:', process.versions.node);
-
-          // Test Web APIs
-          console.log('\n🌐 Web API Support:');
-          console.log('- fetch:', typeof fetch !== 'undefined' ? '✅' : '❌');
-          console.log('- WebSocket:', typeof WebSocket !== 'undefined' ? '✅' : '❌');
-          console.log('- Worker:', typeof Worker !== 'undefined' ? '✅' : '❌');
-          console.log('- crypto:', typeof crypto !== 'undefined' ? '✅' : '❌');
-
-          // Test Bun APIs
-          console.log('\n🥟 Bun API Support:');
-          console.log('- Bun.file:', typeof Bun?.file !== 'undefined' ? '✅' : '❌');
-          console.log('- Bun.serve:', typeof Bun?.serve !== 'undefined' ? '✅' : '❌');
-          console.log('- Bun.spawn:', typeof Bun?.spawn !== 'undefined' ? '✅' : '❌');
-
-          // Test performance characteristics
-          console.log('\n⚡ Performance:');
-          const start = performance.now();
-          for (let i = 0; i < 1000000; i++) {
-            Math.random();
-          }
-          const end = performance.now();
-          console.log(`- Loop performance: ${(end - start).toFixed(2)}ms`);
-          EOF
+          # Create Bun features test (cross-platform)
+          echo "console.log('🥟 Bun Feature Report');" > bun-features.ts
+          echo "console.log('=====================');" >> bun-features.ts
+          echo "console.log('Bun Version:', process.versions.bun);" >> bun-features.ts
+          echo "console.log('Node Compatibility:', process.versions.node);" >> bun-features.ts
+          echo "" >> bun-features.ts
+          echo "// Test Web APIs" >> bun-features.ts
+          echo "console.log('\\n🌐 Web API Support:');" >> bun-features.ts
+          echo "console.log('- fetch:', typeof fetch !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "console.log('- WebSocket:', typeof WebSocket !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "console.log('- Worker:', typeof Worker !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "console.log('- crypto:', typeof crypto !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "" >> bun-features.ts
+          echo "// Test Bun APIs" >> bun-features.ts
+          echo "console.log('\\n🥟 Bun API Support:');" >> bun-features.ts
+          echo "console.log('- Bun.file:', typeof Bun?.file !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "console.log('- Bun.serve:', typeof Bun?.serve !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "console.log('- Bun.spawn:', typeof Bun?.spawn !== 'undefined' ? '✅' : '❌');" >> bun-features.ts
+          echo "" >> bun-features.ts
+          echo "// Test performance characteristics" >> bun-features.ts
+          echo "console.log('\\n⚡ Performance:');" >> bun-features.ts
+          echo "const start = performance.now();" >> bun-features.ts
+          echo "for (let i = 0; i < 1000000; i++) {" >> bun-features.ts
+          echo "  Math.random();" >> bun-features.ts
+          echo "}" >> bun-features.ts
+          echo "const end = performance.now();" >> bun-features.ts
+          echo "console.log(\`- Loop performance: \${(end - start).toFixed(2)}ms\`);" >> bun-features.ts
 
           bun run bun-features.ts
 
@@ -556,7 +578,7 @@ jobs:
 
           ## 📋 Compatibility Notes
 
-          - ThreadJS Universal works with Bun's Worker implementation
+          - ThreadTS Universal works with Bun's Worker implementation
           - Excellent performance characteristics
           - Node.js API compatibility for server-side usage
           - Fast package installation and bundling
@@ -565,10 +587,10 @@ jobs:
 
           \`\`\`typescript
           // Works with both import and require
-          import { ThreadJS } from './dist/esm/index.js';
+          import { ThreadTS } from './dist/esm/index.js';
 
-          const threadjs = new ThreadJS();
-          const result = await threadjs.execute(() => {
+          const threadts = new ThreadTS();
+          const result = await threadts.execute(() => {
             return 'Hello from Bun Worker!';
           });
           \`\`\`
@@ -623,7 +645,7 @@ jobs:
           echo "Generating comprehensive platform compatibility report..."
 
           cat > platform-compatibility-report.md << EOF
-          # 🌐 ThreadJS Universal - Platform Compatibility Report
+          # 🌐 ThreadTS Universal - Platform Compatibility Report
 
           **Report Date:** $(date -u +%Y-%m-%d)
           **Repository:** ${{ github.repository }}

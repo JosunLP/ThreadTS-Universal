@@ -1,13 +1,14 @@
 /**
- * ThreadJS Universal - Main Entry Point
+ * ThreadTS Universal - Main Entry Point
  * Universal TypeScript library for effortless parallel computing
  */
 
 // Core exports
-export { ThreadJS, default as threadjs } from './core/threadjs';
+export { ThreadTS, default as threadts } from './core/threadts';
 
 // Type exports
 export type {
+  MapOptions,
   ParallelMethodOptions,
   Platform,
   PoolConfig,
@@ -17,6 +18,7 @@ export type {
   ProgressTracker,
   ThreadOptions,
   ThreadResult,
+  ThreadTask,
   WorkerAdapter,
   WorkerInstance,
 } from './types';
@@ -31,14 +33,14 @@ export {
 
 // Decorator exports
 export {
-  highPriority,
-  lowPriority,
+  memoize,
   parallel,
   parallelBatch,
   parallelClass,
   parallelMap,
   parallelMethod,
-  timeout,
+  rateLimit,
+  retry,
 } from './decorators';
 
 // Utility exports
@@ -46,7 +48,7 @@ export {
   detectPlatform,
   getHighResTimestamp,
   getMemoryInfo,
-  getOptimalWorkerCount,
+  getOptimalThreadCount,
   supportsOffscreenCanvas,
   supportsTransferableObjects,
   supportsWebLocks,
@@ -72,8 +74,26 @@ export { DenoWorkerAdapter } from './adapters/deno';
 export { NodeWorkerAdapter } from './adapters/node';
 
 // Pool manager export
-export { WorkerPoolManager } from './pool/manager';
+export { ThreadPoolManager } from './pool/manager';
+
+// Monitoring and diagnostics
+export { ErrorHandler, errorHandler } from './monitoring/error-handler';
+export type {
+  ErrorContext,
+  ErrorMetrics,
+  RecoveryStrategy,
+} from './monitoring/error-handler';
+export { HealthMonitor, healthMonitor } from './monitoring/health';
+export type { HealthCheck, HealthStatus } from './monitoring/health';
+export {
+  PerformanceMonitor,
+  performanceMonitor,
+} from './monitoring/performance';
+export type {
+  PerformanceAlert,
+  PerformanceMetrics,
+} from './monitoring/performance';
 
 // Default export for simple usage
-import threadjs from './core/threadjs';
-export default threadjs;
+import threadts from './core/threadts';
+export default threadts;
