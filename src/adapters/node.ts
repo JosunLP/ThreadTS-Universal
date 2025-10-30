@@ -118,8 +118,10 @@ class NodeWorkerInstance implements WorkerInstance {
         this.workerThreads = nodeRequire('worker_threads') as NodeWorkerThreads;
       }
     } catch (error) {
+      const cause = error instanceof Error ? error : undefined;
       throw new WorkerError(
-        'Worker threads not available in this Node.js environment'
+        'Worker threads not available in this Node.js environment',
+        cause
       );
     }
   }

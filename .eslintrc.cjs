@@ -12,7 +12,21 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-empty-function': 'warn',
-    '@typescript-eslint/ban-types': 'warn',
+    '@typescript-eslint/no-restricted-types': [
+      'warn',
+      {
+        types: {
+          Function: {
+            message:
+              'Use a specific function signature instead of the broad `Function` type.',
+          },
+          '{}': {
+            message:
+              'Use an explicit object shape or `Record<string, unknown>` instead of `{}`.',
+          },
+        },
+      },
+    ],
     'no-useless-catch': 'warn',
     'no-case-declarations': 'warn',
   },
