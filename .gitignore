@@ -47,3 +47,5 @@ playwright/.cache/
 # Temporary
 *.tmp
 *.temp
+
+docs/
