@@ -214,7 +214,7 @@ jobs:
         run: npm run deps:check
 
       - name: 🔍 CodeQL Analysis
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript
           queries: security-extended
@@ -223,7 +223,7 @@ jobs:
         run: npm run build
 
       - name: 📊 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
       - name: 🚨 Snyk Security Scan
         uses: snyk/actions/node@master
