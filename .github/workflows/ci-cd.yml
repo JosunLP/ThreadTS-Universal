@@ -176,7 +176,7 @@ jobs:
         run: npm run test:browser
 
       - name: 📸 Upload Browser Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-report
