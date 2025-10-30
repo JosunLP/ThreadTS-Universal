@@ -1,6 +1,6 @@
 {
   "name": "threadts-universal",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
   "main": "dist/index.cjs",
   "module": "dist/esm/index.mjs",
