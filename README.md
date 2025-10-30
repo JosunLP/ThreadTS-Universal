@@ -3,7 +3,8 @@
 [![npm version](https://badge.fury.io/js/threadts-universal.svg)](https://badge.fury.io/js/threadts-universal)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-blue.svg)](https://www.typescriptlang.org/)
-[![Build Status](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI/badge.svg)](https://github.com/JosunLP/ThreadTS-Universal/actions)
+[![🚀 CI/CD Pipeline](https://github.com/JosunLP/ThreadTS-Universal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/JosunLP/ThreadTS-Universal/actions/workflows/ci-cd.yml)
+[![CodeQL](https://github.com/JosunLP/ThreadTS-Universal/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/JosunLP/ThreadTS-Universal/actions/workflows/github-code-scanning/codeql)
 
 **The definitive universal TypeScript library that makes true parallelism as effortless as async/await across all JavaScript ecosystems.**
 
