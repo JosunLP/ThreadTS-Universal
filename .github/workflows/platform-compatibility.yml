@@ -332,7 +332,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🦕 Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
           deno-version: ${{ env.DENO_VERSION }}
 
