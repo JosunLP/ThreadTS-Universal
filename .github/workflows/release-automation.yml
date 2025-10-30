@@ -184,7 +184,7 @@ jobs:
         run: npm run build
 
       - name: 📥 Download Pre-Release Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pre-release-artifacts
           path: artifacts/
