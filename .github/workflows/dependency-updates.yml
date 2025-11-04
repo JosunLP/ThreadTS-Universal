@@ -290,7 +290,7 @@ jobs:
           echo "Action Required: Review and apply security updates immediately"
 
       - name: 🎫 Create Security Issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
