@@ -83,10 +83,10 @@
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.11.24",
+    "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
-    "eslint": "^8.57.0",
+    "eslint": "^9.39.1",
     "jest": "^30.2.0",
     "playwright": "^1.42.1",
     "prettier": "^3.2.5",
