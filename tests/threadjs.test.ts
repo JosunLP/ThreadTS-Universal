@@ -109,6 +109,91 @@ describe('ThreadTS Universal', () => {
     });
   });
 
+  describe('🔍 Neue Array-Methoden', () => {
+    test('sollte find() korrekt implementieren', async () => {
+      const numbers = [1, 2, 3, 4, 5];
+
+      // Erstes Element größer als 3 finden
+      const found = await threadts.find(numbers, (x: number) => x > 3);
+      expect(found).toBe(4);
+
+      // Nicht existierendes Element
+      const notFound = await threadts.find(numbers, (x: number) => x > 10);
+      expect(notFound).toBeUndefined();
+
+      // Leeres Array
+      const emptyResult = await threadts.find([], (x: number) => x > 0);
+      expect(emptyResult).toBeUndefined();
+    });
+
+    test('sollte findIndex() korrekt implementieren', async () => {
+      const numbers = [1, 2, 3, 4, 5];
+
+      // Index des ersten Elements größer als 3 finden
+      const index = await threadts.findIndex(numbers, (x: number) => x > 3);
+      expect(index).toBe(3);
+
+      // Nicht existierendes Element
+      const notFoundIndex = await threadts.findIndex(
+        numbers,
+        (x: number) => x > 10
+      );
+      expect(notFoundIndex).toBe(-1);
+
+      // Leeres Array
+      const emptyIndex = await threadts.findIndex([], (x: number) => x > 0);
+      expect(emptyIndex).toBe(-1);
+    });
+
+    test('sollte some() korrekt implementieren', async () => {
+      const numbers = [1, 2, 3, 4, 5];
+
+      // Prüfen ob ein Element größer als 3 ist
+      const hasLarge = await threadts.some(numbers, (x: number) => x > 3);
+      expect(hasLarge).toBe(true);
+
+      // Prüfen ob ein Element größer als 10 ist
+      const hasVeryLarge = await threadts.some(numbers, (x: number) => x > 10);
+      expect(hasVeryLarge).toBe(false);
+
+      // Leeres Array sollte false zurückgeben
+      const emptyResult = await threadts.some([], (x: number) => x > 0);
+      expect(emptyResult).toBe(false);
+    });
+
+    test('sollte every() korrekt implementieren', async () => {
+      const positiveNumbers = [1, 2, 3, 4, 5];
+      const mixedNumbers = [1, 2, -3, 4, 5];
+
+      // Alle positiv
+      const allPositive = await threadts.every(
+        positiveNumbers,
+        (x: number) => x > 0
+      );
+      expect(allPositive).toBe(true);
+
+      // Nicht alle positiv
+      const notAllPositive = await threadts.every(
+        mixedNumbers,
+        (x: number) => x > 0
+      );
+      expect(notAllPositive).toBe(false);
+
+      // Leeres Array sollte true zurückgeben (wie Array.prototype.every)
+      const emptyResult = await threadts.every([], (x: number) => x > 0);
+      expect(emptyResult).toBe(true);
+    });
+
+    test('sollte find() mit batchSize unterstützen', async () => {
+      const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      const found = await threadts.find(numbers, (x: number) => x > 5, {
+        batchSize: 3,
+      });
+      expect(found).toBe(6);
+    });
+  });
+
   describe('🎛️ Konfiguration & Optionen', () => {
     test('sollte Pool-Statistiken bereitstellen', () => {
       const stats = threadts.getStats();

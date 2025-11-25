@@ -1,3 +1,27 @@
+/**
+ * ThreadTS Universal - Core ThreadTS Class
+ *
+ * The main entry point for parallel computing in ThreadTS Universal.
+ * Provides a simple, powerful API for executing functions in parallel
+ * across all JavaScript runtimes (Browser, Node.js, Deno, Bun).
+ *
+ * @module core/threadts
+ * @author ThreadTS Universal Team
+ *
+ * @example
+ * ```typescript
+ * import threadts from 'threadts-universal';
+ *
+ * // Simple parallel execution
+ * const result = await threadts.run((x) => x * 2, 21);
+ * console.log(result); // 42
+ *
+ * // Parallel array processing
+ * const squares = await threadts.map([1, 2, 3], (x) => x * x);
+ * console.log(squares); // [1, 4, 9]
+ * ```
+ */
+
 import type {
   MapOptions,
   SerializableData,
@@ -8,35 +32,55 @@ import type {
   ThreadTask,
 } from '../types';
 import {
-  SerializationError,
   ThreadError,
   TimeoutError,
   WorkerError,
 } from '../types';
 import { PlatformUtils } from '../utils/platform';
+import {
+  validateFunction,
+  validateSerializable,
+  toPositiveInt,
+} from '../utils/validation';
 
+/**
+ * Event map for ThreadTS event system.
+ * Defines all events that can be emitted by the ThreadTS instance.
+ */
 interface ThreadEventMap {
+  /** Emitted when a task completes successfully */
   'task-complete': {
     taskId: string;
     result: SerializableData;
     duration: number;
   };
+  /** Emitted when a task fails with an error */
   'task-error': { taskId: string; error: string; duration: number };
+  /** Emitted when the worker pool size changes */
   'pool-resize': { oldSize: number; newSize: number };
+  /** Emitted when a new worker is spawned */
   'worker-spawn': { workerId: string; poolSize: number };
+  /** Emitted when a worker is terminated */
   'worker-terminate': { workerId: string; poolSize: number };
 }
 
+/** Type for event listener functions */
 type ThreadEventListener<K extends keyof ThreadEventMap> = (
   detail: ThreadEventMap[K]
 ) => void;
 
+/** Internal key used to identify args payloads */
 const INTERNAL_ARGS_KEY = '__THREADTS_ARGS__' as const;
 
+/** Internal type for passing multiple arguments to workers */
 type InternalArgsPayload = {
   [INTERNAL_ARGS_KEY]: unknown[];
 };
 
+/**
+ * Legacy task format for backwards compatibility.
+ * Supports both 'fn' and 'func' property names.
+ */
 type LegacyTask = {
   fn?: SerializableFunction;
   func?: SerializableFunction;
@@ -44,11 +88,36 @@ type LegacyTask = {
   options?: ThreadOptions;
 };
 
+/**
+ * Normalized task format with required function.
+ */
 interface NormalizedTask {
   fn: SerializableFunction;
   data?: SerializableData;
   options?: ThreadOptions;
 }
+
+/**
+ * ThreadTS - The main class for parallel computing.
+ *
+ * Implements a singleton pattern for resource sharing while allowing
+ * configuration customization. Provides methods for executing functions
+ * in parallel, including map, filter, reduce, and batch operations.
+ *
+ * @extends EventTarget - Enables event-based communication
+ *
+ * @example
+ * ```typescript
+ * // Get the singleton instance
+ * const instance = ThreadTS.getInstance();
+ *
+ * // Execute a function in parallel
+ * const result = await instance.run((x) => x * 2, 21);
+ *
+ * // Process arrays in parallel
+ * const doubled = await instance.map([1, 2, 3], (x) => x * 2);
+ * ```
+ */
 
 export class ThreadTS extends EventTarget {
   private static _instance: ThreadTS | null = null;
@@ -186,37 +255,6 @@ export class ThreadTS extends EventTarget {
     return [data];
   }
 
-  private ensureSerializable(
-    value: unknown,
-    seen = new WeakSet<object>()
-  ): void {
-    if (value === null || typeof value !== 'object') {
-      if (typeof value === 'function') {
-        throw new SerializationError(
-          'Functions cannot be transferred as task data'
-        );
-      }
-      return;
-    }
-
-    if (seen.has(value)) {
-      throw new SerializationError('Circular reference detected in task data');
-    }
-
-    seen.add(value);
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        this.ensureSerializable(item, seen);
-      }
-      return;
-    }
-
-    for (const item of Object.values(value)) {
-      this.ensureSerializable(item, seen);
-    }
-  }
-
   private async executeWithControls<T>(
     func: SerializableFunction,
     args: unknown[],
@@ -329,16 +367,16 @@ export class ThreadTS extends EventTarget {
       await this.initialize();
     }
 
-    if (typeof func !== 'function') {
-      throw new ThreadError('Task must be a function', 'INVALID_TASK');
-    }
+    // Validate the function using the utility
+    validateFunction(func, 'func');
 
     const taskId = this.generateTaskId();
     const startTime = PlatformUtils.getHighResTimestamp();
     const args = this.prepareArguments(data);
 
+    // Validate each argument for serializability
     for (const arg of args) {
-      this.ensureSerializable(arg);
+      validateSerializable(arg);
     }
 
     const maxRetries = Math.max(
@@ -459,6 +497,22 @@ export class ThreadTS extends EventTarget {
     return accumulator;
   }
 
+  /**
+   * Iterates over an array, executing the function for each element.
+   * Similar to Array.prototype.forEach but runs in parallel.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to iterate over
+   * @param func - Function to execute for each element: (item, index, array) => void
+   * @param options - Execution options including batchSize
+   *
+   * @example
+   * ```typescript
+   * await threadts.forEach([1, 2, 3], (item) => {
+   *   console.log(item);
+   * });
+   * ```
+   */
   async forEach<T>(
     array: T[],
     func: SerializableFunction,
@@ -467,6 +521,235 @@ export class ThreadTS extends EventTarget {
     await this.map<T, void>(array, func, options);
   }
 
+  /**
+   * Finds the first element that satisfies the predicate function.
+   * Similar to Array.prototype.find but processes elements in parallel batches.
+   *
+   * Note: Due to parallel processing, this may check more elements than
+   * a sequential find, but returns the first matching element by index.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to search
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns The first element that satisfies the predicate, or undefined
+   *
+   * @example
+   * ```typescript
+   * const found = await threadts.find(
+   *   [1, 2, 3, 4, 5],
+   *   (x) => x > 3
+   * );
+   * console.log(found); // 4
+   * ```
+   */
+  async find<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<T | undefined> {
+    if (!array.length) {
+      return undefined;
+    }
+
+    // Process in batches to allow early termination
+    const batchSize = toPositiveInt(options.batchSize, array.length);
+    const executionOptions: ThreadOptions = { ...options };
+
+    for (let i = 0; i < array.length; i += batchSize) {
+      const chunk = array.slice(i, i + batchSize);
+      const results = await Promise.all(
+        chunk.map((item, offset) =>
+          this.run<boolean>(
+            predicate,
+            this.createArgsPayload(item, i + offset, array),
+            executionOptions
+          )
+        )
+      );
+
+      // Find the first true result in this batch
+      const foundIndex = results.findIndex((result) => Boolean(result));
+      if (foundIndex !== -1) {
+        return chunk[foundIndex];
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Finds the index of the first element that satisfies the predicate.
+   * Similar to Array.prototype.findIndex but processes in parallel batches.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to search
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns The index of the first matching element, or -1 if not found
+   *
+   * @example
+   * ```typescript
+   * const index = await threadts.findIndex(
+   *   [1, 2, 3, 4, 5],
+   *   (x) => x > 3
+   * );
+   * console.log(index); // 3
+   * ```
+   */
+  async findIndex<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<number> {
+    if (!array.length) {
+      return -1;
+    }
+
+    const batchSize = toPositiveInt(options.batchSize, array.length);
+    const executionOptions: ThreadOptions = { ...options };
+
+    for (let i = 0; i < array.length; i += batchSize) {
+      const chunk = array.slice(i, i + batchSize);
+      const results = await Promise.all(
+        chunk.map((item, offset) =>
+          this.run<boolean>(
+            predicate,
+            this.createArgsPayload(item, i + offset, array),
+            executionOptions
+          )
+        )
+      );
+
+      const foundIndex = results.findIndex((result) => Boolean(result));
+      if (foundIndex !== -1) {
+        return i + foundIndex;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Tests whether at least one element satisfies the predicate.
+   * Similar to Array.prototype.some but processes in parallel batches.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to test
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns true if at least one element passes the test
+   *
+   * @example
+   * ```typescript
+   * const hasEven = await threadts.some(
+   *   [1, 3, 5, 6, 7],
+   *   (x) => x % 2 === 0
+   * );
+   * console.log(hasEven); // true
+   * ```
+   */
+  async some<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<boolean> {
+    if (!array.length) {
+      return false;
+    }
+
+    const batchSize = toPositiveInt(options.batchSize, array.length);
+    const executionOptions: ThreadOptions = { ...options };
+
+    for (let i = 0; i < array.length; i += batchSize) {
+      const chunk = array.slice(i, i + batchSize);
+      const results = await Promise.all(
+        chunk.map((item, offset) =>
+          this.run<boolean>(
+            predicate,
+            this.createArgsPayload(item, i + offset, array),
+            executionOptions
+          )
+        )
+      );
+
+      // If any result is true, return early
+      if (results.some((result) => Boolean(result))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Tests whether all elements satisfy the predicate.
+   * Similar to Array.prototype.every but processes in parallel batches.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to test
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns true if all elements pass the test
+   *
+   * @example
+   * ```typescript
+   * const allPositive = await threadts.every(
+   *   [1, 2, 3, 4, 5],
+   *   (x) => x > 0
+   * );
+   * console.log(allPositive); // true
+   * ```
+   */
+  async every<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<boolean> {
+    if (!array.length) {
+      return true; // Empty arrays return true for every()
+    }
+
+    const batchSize = toPositiveInt(options.batchSize, array.length);
+    const executionOptions: ThreadOptions = { ...options };
+
+    for (let i = 0; i < array.length; i += batchSize) {
+      const chunk = array.slice(i, i + batchSize);
+      const results = await Promise.all(
+        chunk.map((item, offset) =>
+          this.run<boolean>(
+            predicate,
+            this.createArgsPayload(item, i + offset, array),
+            executionOptions
+          )
+        )
+      );
+
+      // If any result is false, return early
+      if (!results.every((result) => Boolean(result))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Executes multiple tasks as a batch with configurable batch size.
+   * Tasks within a batch run in parallel, batches run sequentially.
+   *
+   * @param tasks - Array of tasks to execute
+   * @param batchSize - Number of tasks to run in parallel (default: all)
+   * @returns Array of task results with success/error information
+   *
+   * @example
+   * ```typescript
+   * const results = await threadts.batch([
+   *   { fn: (x) => x * 2, data: 5 },
+   *   { fn: (x) => x + 1, data: 10 }
+   * ], 2);
+   * ```
+   */
   async batch(
     tasks: Array<ThreadTask | LegacyTask>,
     batchSize: number = tasks.length
@@ -660,6 +943,58 @@ export class ThreadTS extends EventTarget {
   ): Promise<void> {
     const instance = ThreadTS.getInstance();
     return instance.forEach(array, func, options);
+  }
+
+  /**
+   * Static method to find the first element satisfying the predicate.
+   * @see {@link ThreadTS.find} for instance method documentation
+   */
+  static async find<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<T | undefined> {
+    const instance = ThreadTS.getInstance();
+    return instance.find(array, predicate, options);
+  }
+
+  /**
+   * Static method to find the index of the first element satisfying the predicate.
+   * @see {@link ThreadTS.findIndex} for instance method documentation
+   */
+  static async findIndex<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.findIndex(array, predicate, options);
+  }
+
+  /**
+   * Static method to test if any element satisfies the predicate.
+   * @see {@link ThreadTS.some} for instance method documentation
+   */
+  static async some<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<boolean> {
+    const instance = ThreadTS.getInstance();
+    return instance.some(array, predicate, options);
+  }
+
+  /**
+   * Static method to test if all elements satisfy the predicate.
+   * @see {@link ThreadTS.every} for instance method documentation
+   */
+  static async every<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<boolean> {
+    const instance = ThreadTS.getInstance();
+    return instance.every(array, predicate, options);
   }
 
   static async batch(
