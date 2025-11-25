@@ -19,7 +19,7 @@ import {
   WorkerError,
   WorkerInstance,
 } from '../types';
-import { getHighResTimestamp } from '../utils/platform';
+import { getHighResTimestamp, getOptimalThreadCount } from '../utils/platform';
 import { createWorkerScript } from '../utils/serialization';
 
 /**
@@ -50,6 +50,23 @@ export interface WorkerExecutionMetrics {
   success: boolean;
   /** Error message if execution failed */
   errorMessage?: string;
+}
+
+/** Counter for unique worker ID generation */
+let workerIdCounter = 0;
+
+/**
+ * Generates a unique worker ID using a counter-based approach.
+ * More reliable than pure random generation for high-concurrency scenarios.
+ *
+ * @param platform - The platform identifier
+ * @returns A unique worker ID string
+ */
+function generateWorkerId(platform: Platform): string {
+  const counter = ++workerIdCounter;
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 6);
+  return `${platform}-worker-${counter}-${timestamp}-${random}`;
 }
 
 /**
@@ -109,8 +126,8 @@ export abstract class AbstractWorkerInstance implements WorkerInstance {
     protected readonly platform: Platform,
     config: BaseWorkerConfig = {}
   ) {
-    // Generate unique worker ID with platform prefix for easy identification
-    this.id = `${platform}-worker-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    // Generate unique worker ID using counter-based approach for reliability
+    this.id = generateWorkerId(platform);
 
     // Apply default configuration with user overrides
     this.config = {
@@ -471,15 +488,14 @@ export abstract class AbstractWorkerAdapter implements WorkerAdapter {
 
   /**
    * Gets the recommended number of workers for this platform.
+   * Uses the optimal thread count from platform utilities for
+   * cross-platform consistency.
    *
    * @returns Recommended worker count based on hardware and platform
    */
   getRecommendedWorkerCount(): number {
-    // Default implementation: use navigator.hardwareConcurrency or 4
-    if (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) {
-      return navigator.hardwareConcurrency;
-    }
-    return 4;
+    // Use platform utilities for consistent cross-platform behavior
+    return getOptimalThreadCount();
   }
 }
 

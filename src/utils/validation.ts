@@ -215,13 +215,21 @@ export function validateEnum<T>(
  * - Symbols and undefined (limited support)
  *
  * @param value - The value to validate
- * @param seen - WeakSet to track circular references (internal use)
+ * @param seen - WeakSet to track circular references. A new WeakSet is created
+ *               for each call by default. For batch validation of many items,
+ *               callers can pass a shared WeakSet for better performance.
  * @throws {SerializationError} If the data cannot be serialized
  *
  * @example
  * ```typescript
+ * // Single value validation
  * validateSerializable({ name: 'test', count: 42 });
- * validateSerializable([1, 2, 3]);
+ *
+ * // Batch validation with shared WeakSet for performance
+ * const seen = new WeakSet<object>();
+ * for (const item of items) {
+ *   validateSerializable(item, seen);
+ * }
  * ```
  */
 export function validateSerializable(
@@ -367,8 +375,12 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
 /**
  * Validates a task definition for batch/parallel execution.
  *
- * @param task - The task to validate
- * @param index - Optional index for error messages
+ * Accepts any value but validates that it:
+ * 1. Is a non-null object
+ * 2. Has either 'fn' or 'func' property that is a function
+ *
+ * @param task - The task to validate (accepts unknown for flexibility)
+ * @param index - Optional index for error messages in batch operations
  * @throws {ThreadError} If the task is invalid
  *
  * @example
@@ -380,9 +392,10 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
 export function validateTask(
   task: unknown,
   index?: number
-): void {
+): asserts task is { fn?: (...args: unknown[]) => unknown; func?: (...args: unknown[]) => unknown } {
   const prefix = index !== undefined ? `Task at index ${index}: ` : '';
 
+  // First check: must be a non-null object
   if (typeof task !== 'object' || task === null) {
     throw new ThreadError(
       `${prefix}Task must be an object with fn property`,
@@ -390,6 +403,7 @@ export function validateTask(
     );
   }
 
+  // Safe to cast after null/object check
   const taskObj = task as Record<string, unknown>;
 
   // Support both 'fn' and 'func' property names

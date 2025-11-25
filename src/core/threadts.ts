@@ -37,6 +37,8 @@ import {
   WorkerError,
 } from '../types';
 import { PlatformUtils } from '../utils/platform';
+// Note: validateSerializable throws SerializationError from types module
+// The error type is re-exported by validation module for consistency
 import {
   validateFunction,
   validateSerializable,
