@@ -52,18 +52,21 @@ export interface WorkerExecutionMetrics {
   errorMessage?: string;
 }
 
-/** Counter for unique worker ID generation */
+/** Counter for unique worker ID generation with overflow protection */
 let workerIdCounter = 0;
 
 /**
  * Generates a unique worker ID using a counter-based approach.
  * More reliable than pure random generation for high-concurrency scenarios.
+ * Includes overflow protection for long-running applications.
  *
  * @param platform - The platform identifier
  * @returns A unique worker ID string
  */
 function generateWorkerId(platform: Platform): string {
-  const counter = ++workerIdCounter;
+  // Increment with overflow protection to prevent reaching Number.MAX_SAFE_INTEGER
+  workerIdCounter = (workerIdCounter + 1) % Number.MAX_SAFE_INTEGER;
+  const counter = workerIdCounter;
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 6);
   return `${platform}-worker-${counter}-${timestamp}-${random}`;
@@ -233,7 +236,7 @@ export abstract class AbstractWorkerInstance implements WorkerInstance {
    * Useful for monitoring and debugging.
    *
    * @param limit - Maximum number of records to return (default: 10)
-   * @returns Array of execution metrics, most recent first
+   * @returns Array of execution metrics in chronological order (oldest first)
    */
   getExecutionHistory(limit = 10): WorkerExecutionMetrics[] {
     return this.executionHistory.slice(-limit);

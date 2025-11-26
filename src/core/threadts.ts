@@ -37,8 +37,7 @@ import {
   WorkerError,
 } from '../types';
 import { PlatformUtils } from '../utils/platform';
-// Note: validateSerializable throws SerializationError from types module
-// The error type is re-exported by validation module for consistency
+// Note: SerializationError must be imported directly from types module (not re-exported by validation)
 import {
   validateFunction,
   validateSerializable,
@@ -555,7 +554,8 @@ export class ThreadTS extends EventTarget {
     }
 
     // Process in batches to allow early termination
-    const batchSize = toPositiveInt(options.batchSize, array.length);
+    // Default to smaller batch size (10) for better early termination behavior
+    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -608,7 +608,8 @@ export class ThreadTS extends EventTarget {
       return -1;
     }
 
-    const batchSize = toPositiveInt(options.batchSize, array.length);
+    // Default to smaller batch size (10) for better early termination behavior
+    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -660,7 +661,8 @@ export class ThreadTS extends EventTarget {
       return false;
     }
 
-    const batchSize = toPositiveInt(options.batchSize, array.length);
+    // Default to smaller batch size (10) for better early termination behavior
+    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -712,7 +714,8 @@ export class ThreadTS extends EventTarget {
       return true; // Empty arrays return true for every()
     }
 
-    const batchSize = toPositiveInt(options.batchSize, array.length);
+    // Default to smaller batch size (10) for better early termination behavior
+    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {

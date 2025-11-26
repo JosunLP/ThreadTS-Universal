@@ -212,12 +212,12 @@ export function validateEnum<T>(
  * Checks for:
  * - Functions (not serializable as data)
  * - Circular references
- * - Symbols and undefined (limited support)
+ * - Symbols (not serializable)
+ * - BigInt (not directly serializable)
  *
  * @param value - The value to validate
  * @param seen - WeakSet to track circular references. A new WeakSet is created
- *               for each call by default. For batch validation of many items,
- *               callers can pass a shared WeakSet for better performance.
+ *               for each call by default.
  * @throws {SerializationError} If the data cannot be serialized
  *
  * @example
@@ -225,11 +225,12 @@ export function validateEnum<T>(
  * // Single value validation
  * validateSerializable({ name: 'test', count: 42 });
  *
- * // Batch validation with shared WeakSet for performance
- * const seen = new WeakSet<object>();
+ * // Batch validation: use a new WeakSet for each item to avoid false positives
  * for (const item of items) {
- *   validateSerializable(item, seen);
+ *   validateSerializable(item, new WeakSet<object>());
  * }
+ * // WARNING: Do NOT share a WeakSet across top-level items, as this can cause
+ * // false positives for circular references if items share references.
  * ```
  */
 export function validateSerializable(
@@ -334,7 +335,7 @@ export function validateSerializable(
  */
 export function validateThreadOptions(options: Record<string, unknown>): void {
   if (options.timeout !== undefined) {
-    if (typeof options.timeout !== 'number' || options.timeout <= 0) {
+    if (typeof options.timeout !== 'number' || isNaN(options.timeout) || options.timeout <= 0) {
       throw new ThreadError(
         `timeout must be a positive number, received ${options.timeout}`,
         'INVALID_OPTION'
@@ -343,7 +344,7 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
   }
 
   if (options.maxRetries !== undefined) {
-    if (typeof options.maxRetries !== 'number' || options.maxRetries < 0) {
+    if (typeof options.maxRetries !== 'number' || isNaN(options.maxRetries) || options.maxRetries < 0) {
       throw new ThreadError(
         `maxRetries must be a non-negative number, received ${options.maxRetries}`,
         'INVALID_OPTION'
@@ -356,7 +357,7 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
   }
 
   if (options.batchSize !== undefined) {
-    if (typeof options.batchSize !== 'number' || options.batchSize < 1) {
+    if (typeof options.batchSize !== 'number' || isNaN(options.batchSize) || options.batchSize < 1) {
       throw new ThreadError(
         `batchSize must be at least 1, received ${options.batchSize}`,
         'INVALID_OPTION'
@@ -499,17 +500,67 @@ export function toNonNegativeInt(value: unknown, defaultValue: number): number {
  * ```
  */
 export class ValidationUtils {
-  static validateFunction = validateFunction;
-  static validateArray = validateArray;
-  static validateNonEmptyArray = validateNonEmptyArray;
-  static validatePositiveNumber = validatePositiveNumber;
-  static validateNonNegativeNumber = validateNonNegativeNumber;
-  static validateRange = validateRange;
-  static validateEnum = validateEnum;
-  static validateSerializable = validateSerializable;
-  static validateThreadOptions = validateThreadOptions;
-  static validateTask = validateTask;
-  static validateTasks = validateTasks;
-  static toPositiveInt = toPositiveInt;
-  static toNonNegativeInt = toNonNegativeInt;
+  static validateFunction(fn: unknown, paramName = 'fn'): void {
+    return validateFunction(fn, paramName);
+  }
+
+  static validateArray(arr: unknown, paramName = 'array'): void {
+    return validateArray(arr, paramName);
+  }
+
+  static validateNonEmptyArray(arr: unknown[], paramName = 'array'): void {
+    return validateNonEmptyArray(arr, paramName);
+  }
+
+  static validatePositiveNumber(value: unknown, paramName = 'value'): void {
+    return validatePositiveNumber(value, paramName);
+  }
+
+  static validateNonNegativeNumber(value: unknown, paramName = 'value'): void {
+    return validateNonNegativeNumber(value, paramName);
+  }
+
+  static validateRange(
+    value: number,
+    min: number,
+    max: number,
+    paramName = 'value'
+  ): void {
+    return validateRange(value, min, max, paramName);
+  }
+
+  static validateEnum<T>(
+    value: T,
+    allowedValues: readonly T[],
+    paramName = 'value'
+  ): void {
+    return validateEnum(value, allowedValues, paramName);
+  }
+
+  static validateSerializable(value: unknown, seen = new WeakSet<object>()): void {
+    return validateSerializable(value, seen);
+  }
+
+  static validateThreadOptions(options: Record<string, unknown>): void {
+    return validateThreadOptions(options);
+  }
+
+  static validateTask(
+    task: unknown,
+    index?: number
+  ): asserts task is { fn?: (...args: unknown[]) => unknown; func?: (...args: unknown[]) => unknown } {
+    return validateTask(task, index);
+  }
+
+  static validateTasks(tasks: unknown[]): void {
+    return validateTasks(tasks);
+  }
+
+  static toPositiveInt(value: unknown, defaultValue: number, minValue = 1): number {
+    return toPositiveInt(value, defaultValue, minValue);
+  }
+
+  static toNonNegativeInt(value: unknown, defaultValue: number): number {
+    return toNonNegativeInt(value, defaultValue);
+  }
 }

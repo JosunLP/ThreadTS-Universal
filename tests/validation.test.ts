@@ -179,6 +179,12 @@ describe('Validation Utilities', () => {
       expect(() => validateThreadOptions({ priority: 'invalid' })).toThrow();
       expect(() => validateThreadOptions({ batchSize: 0 })).toThrow();
     });
+
+    test('sollte NaN Werte ablehnen', () => {
+      expect(() => validateThreadOptions({ timeout: NaN })).toThrow();
+      expect(() => validateThreadOptions({ maxRetries: NaN })).toThrow();
+      expect(() => validateThreadOptions({ batchSize: NaN })).toThrow();
+    });
   });
 
   describe('validateTask', () => {
