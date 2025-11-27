@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v6
@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
@@ -254,7 +254,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v6
@@ -290,7 +290,7 @@ jobs:
           echo "Action Required: Review and apply security updates immediately"
 
       - name: 🎫 Create Security Issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v6
@@ -166,7 +166,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v6
@@ -255,7 +255,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📥 Download All Artifacts
         uses: actions/download-artifact@v4
@@ -381,7 +381,7 @@ jobs:
           EOF
 
       - name: 🎫 Create Performance Issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
