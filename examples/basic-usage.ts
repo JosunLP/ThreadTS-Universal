@@ -2,7 +2,10 @@
  * ThreadTS Universal - Example Usage
  */
 
-import threadts, { parallelMap, parallelMethod } from '../src';
+import { ThreadTS, memoize, parallelMethod, rateLimit, retry } from '../src';
+
+// Get instance for use throughout examples
+const threadts = ThreadTS.getInstance();
 
 // Example 1: Basic parallel execution
 async function basicExample() {
@@ -38,6 +41,26 @@ async function arrayOperationsExample() {
   // Parallel reduce
   const sum = await threadts.reduce(numbers, (a, b) => a + b, 0);
   console.log('Sum:', sum);
+
+  // Parallel find
+  const firstGreaterThan5 = await threadts.find(numbers, (x) => x > 5);
+  console.log('First > 5:', firstGreaterThan5); // 6
+
+  // Parallel findIndex
+  const indexGreaterThan5 = await threadts.findIndex(numbers, (x) => x > 5);
+  console.log('Index of first > 5:', indexGreaterThan5); // 5
+
+  // Parallel some
+  const hasEven = await threadts.some(numbers, (x) => x % 2 === 0);
+  console.log('Has even:', hasEven); // true
+
+  // Parallel every
+  const allPositive = await threadts.every(numbers, (x) => x > 0);
+  console.log('All positive:', allPositive); // true
+
+  // Parallel forEach
+  console.log('forEach output:');
+  await threadts.forEach(numbers.slice(0, 3), (x) => console.log(`  - ${x}`));
 }
 
 // Example 3: Batch processing
@@ -78,9 +101,24 @@ class DataProcessor {
     }, 0);
   }
 
-  @parallelMap({ batchSize: 3 })
-  async processItems(items: string[]): Promise<string[]> {
-    return items.map((item) => item.toUpperCase().split('').reverse().join(''));
+  @memoize(50)
+  async cachedComputation(input: string): Promise<string> {
+    // This result will be cached
+    return input.toUpperCase().split('').reverse().join('');
+  }
+
+  @retry(3, 500)
+  async retryableOperation(): Promise<string> {
+    // Simulate intermittent failure
+    if (Math.random() > 0.7) {
+      throw new Error('Random failure');
+    }
+    return 'Success!';
+  }
+
+  @rateLimit(5)
+  async rateLimitedMethod(id: number): Promise<string> {
+    return `Processed ${id}`;
   }
 }
 
@@ -89,15 +127,30 @@ async function decoratorExample() {
 
   const processor = new DataProcessor();
 
+  // Parallel method
   const heavyResult = await processor.heavyComputation([1, 2, 3, 4, 5]);
   console.log('Heavy computation result:', heavyResult);
 
-  const processedItems = await processor.processItems([
-    'hello',
-    'world',
-    'threadts',
-  ]);
-  console.log('Processed items:', processedItems);
+  // Memoized method (second call uses cache)
+  const cached1 = await processor.cachedComputation('hello');
+  const cached2 = await processor.cachedComputation('hello');
+  console.log('Cached results:', cached1, cached2);
+
+  // Retry method
+  try {
+    const retryResult = await processor.retryableOperation();
+    console.log('Retry result:', retryResult);
+  } catch (error: unknown) {
+    console.log('Retry failed:', (error as Error).message);
+  }
+
+  // Rate limited method
+  console.log('Rate limited calls (max 5/sec):');
+  const promises = Array.from({ length: 10 }, (_, i) =>
+    processor.rateLimitedMethod(i)
+  );
+  const rateResults = await Promise.all(promises);
+  console.log('Rate limited results:', rateResults.slice(0, 3), '...');
 }
 
 // Example 5: Performance comparison
@@ -137,8 +190,8 @@ async function errorHandlingExample() {
     await threadts.run(() => {
       throw new Error('Something went wrong!');
     });
-  } catch (error: any) {
-    console.log('Caught error:', error.message);
+  } catch (error: unknown) {
+    console.log('Caught error:', (error as Error).message);
   }
 
   // Timeout example
@@ -155,9 +208,66 @@ async function errorHandlingExample() {
       null,
       { timeout: 1000 }
     );
-  } catch (error: any) {
-    console.log('Timeout error:', error.message);
+  } catch (error: unknown) {
+    console.log('Timeout error:', (error as Error).message);
   }
+
+  // Abort controller example
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 100);
+
+  try {
+    await threadts.run(
+      () => {
+        const start = Date.now();
+        while (Date.now() - start < 500) {
+          // Busy wait
+        }
+        return 'Should be aborted';
+      },
+      null,
+      { signal: controller.signal }
+    );
+  } catch (error: unknown) {
+    console.log('Abort error:', (error as Error).message);
+  }
+}
+
+// Example 7: Event system
+async function eventSystemExample() {
+  console.log('📡 Event System');
+
+  // Register event listeners
+  const taskCompleteHandler = ({
+    taskId,
+    duration,
+  }: {
+    taskId: string;
+    duration: number;
+  }) => {
+    console.log(`  Task ${taskId} completed in ${duration.toFixed(2)}ms`);
+  };
+
+  const taskErrorHandler = ({
+    taskId,
+    error,
+  }: {
+    taskId: string;
+    error: string;
+  }) => {
+    console.log(`  Task ${taskId} failed: ${error}`);
+  };
+
+  threadts.on('task-complete', taskCompleteHandler);
+  threadts.on('task-error', taskErrorHandler);
+
+  // Run some tasks to trigger events
+  await threadts.run((x: number) => x * 2, 5);
+  await threadts.run((x: number) => x + 10, 3);
+
+  // Cleanup listeners
+  threadts.off('task-complete', taskCompleteHandler);
+  threadts.off('task-error', taskErrorHandler);
 }
 
 // Main execution
@@ -183,11 +293,26 @@ async function main() {
     await errorHandlingExample();
     console.log('');
 
+    await eventSystemExample();
+    console.log('');
+
     // Pool statistics
     const stats = threadts.getStats();
     console.log('📊 Pool Statistics:', stats);
 
-    console.log('✅ All examples completed successfully!');
+    // Configuration
+    const config = threadts.getConfig();
+    console.log('⚙️ Current Config:', {
+      poolSize: config.poolSize,
+      timeout: config.timeout,
+      retries: config.retries,
+    });
+
+    // Platform info
+    console.log('🖥️ Platform:', threadts.getPlatform());
+    console.log('✅ Worker Support:', threadts.isSupported());
+
+    console.log('\n✅ All examples completed successfully!');
   } catch (error) {
     console.error('❌ Error running examples:', error);
   } finally {

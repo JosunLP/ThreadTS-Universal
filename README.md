@@ -14,6 +14,10 @@ import threadts from 'threadts-universal';
 // Transform any function into parallel execution with one line
 const result = await threadts.run((x) => x * 2, 42);
 console.log(result); // 84
+
+// Full Array API support with parallel execution
+const found = await threadts.find([1, 2, 3, 4, 5], (x) => x > 3);
+console.log(found); // 4
 ```
 
 ## ✨ Features
@@ -35,11 +39,13 @@ console.log(result); // 84
 ### ⚡ **Advanced Features**
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
+- **Full Array API**: `map`, `filter`, `reduce`, `find`, `findIndex`, `some`, `every`, `forEach`
 - **Progress Tracking**: Real-time progress monitoring
-- **Intelligent Caching**: Automatic result caching
+- **Intelligent Caching**: Automatic result caching with `@memoize` decorator
 - **Priority Queues**: High/Normal/Low priority execution
 - **Timeout & Cancellation**: AbortController integration
-- **Decorator Magic**: `@parallelMethod()` for automatic parallelization
+- **Decorator Magic**: `@parallelMethod()`, `@retry()`, `@rateLimit()` for automatic parallelization
+- **Monitoring**: Built-in performance monitoring, health checks, and error handling
 
 ## 🚀 Quick Start
 
@@ -71,12 +77,20 @@ const fibonacci = await threadts.run((n) => {
 // Parallel array processing
 const squares = await threadts.map([1, 2, 3, 4, 5], (x) => x * x);
 // Result: [1, 4, 9, 16, 25]
+
+// Find elements in parallel
+const firstMatch = await threadts.find([1, 2, 3, 4, 5], (x) => x > 3);
+// Result: 4
+
+// Check conditions across array
+const hasEven = await threadts.some([1, 3, 5, 6], (x) => x % 2 === 0);
+// Result: true
 ```
 
 ### Method Decorators
 
 ```typescript
-import { parallelMethod } from 'threadts-universal';
+import { parallelMethod, memoize, retry, rateLimit } from 'threadts-universal';
 
 class DataProcessor {
   @parallelMethod()
@@ -88,6 +102,21 @@ class DataProcessor {
   async criticalCalculation(input: ComplexData): Promise<Result> {
     // Heavy computation automatically runs in worker
     return heavyProcessing(input);
+  }
+
+  @memoize(100) // Cache up to 100 results
+  async expensiveComputation(input: string): Promise<Result> {
+    return computeResult(input);
+  }
+
+  @retry(3, 1000) // 3 attempts with exponential backoff
+  async unreliableOperation(): Promise<void> {
+    await callExternalService();
+  }
+
+  @rateLimit(10) // Max 10 calls per second
+  async rateLimitedAPI(): Promise<Data> {
+    return fetchFromAPI();
   }
 }
 ```
@@ -160,6 +189,78 @@ const sum = await threadts.reduce(
 );
 ```
 
+#### `threadts.find<T>(array, predicate, options?): Promise<T | undefined>`
+
+Finds the first element that satisfies the predicate (processes in parallel batches).
+
+```typescript
+const found = await threadts.find(
+  [1, 2, 3, 4, 5],
+  (x) => x > 3
+);
+// Result: 4
+```
+
+#### `threadts.findIndex<T>(array, predicate, options?): Promise<number>`
+
+Finds the index of the first element that satisfies the predicate.
+
+```typescript
+const index = await threadts.findIndex(
+  [1, 2, 3, 4, 5],
+  (x) => x > 3
+);
+// Result: 3
+```
+
+#### `threadts.some<T>(array, predicate, options?): Promise<boolean>`
+
+Tests whether at least one element satisfies the predicate.
+
+```typescript
+const hasEven = await threadts.some(
+  [1, 3, 5, 6, 7],
+  (x) => x % 2 === 0
+);
+// Result: true
+```
+
+#### `threadts.every<T>(array, predicate, options?): Promise<boolean>`
+
+Tests whether all elements satisfy the predicate.
+
+```typescript
+const allPositive = await threadts.every(
+  [1, 2, 3, 4, 5],
+  (x) => x > 0
+);
+// Result: true
+```
+
+#### `threadts.forEach<T>(array, fn, options?): Promise<void>`
+
+Iterates over an array in parallel (like Array.forEach but parallel).
+
+```typescript
+await threadts.forEach([1, 2, 3], (x) => {
+  console.log(x);
+});
+```
+
+#### `threadts.batch(tasks, batchSize?): Promise<TaskResult[]>`
+
+Executes multiple tasks as a batch with configurable batch size.
+
+```typescript
+const results = await threadts.batch(
+  [
+    { fn: (x) => x * 2, data: 5 },
+    { fn: (x) => x + 1, data: 10 },
+  ],
+  2 // Process 2 tasks at a time
+);
+```
+
 ### Advanced Features
 
 #### Progress Tracking
@@ -207,6 +308,18 @@ console.log(stats);
 //   completedTasks: 150,
 //   averageExecutionTime: 45.2
 // }
+
+// Get/Update configuration
+const config = threadts.getConfig();
+threadts.updateConfig({ timeout: 10000, debug: true });
+
+// Check platform and support
+console.log(threadts.getPlatform()); // 'node', 'browser', 'deno', 'bun'
+console.log(threadts.isSupported()); // true if workers are supported
+
+// Cleanup
+await threadts.terminate(); // Terminate instance
+await ThreadTS.terminateAll(); // Terminate all instances
 ```
 
 ### Decorators
@@ -219,11 +332,74 @@ Automatically parallelizes method execution.
 import { parallelMethod } from 'threadts-universal';
 
 class ImageProcessor {
-  @parallelMethod({ cacheResults: true })
+  @parallelMethod({ cacheResults: true, timeout: 5000 })
   async applyFilter(imageData: ImageData, filter: Filter): Promise<ImageData> {
     // Automatically runs in worker thread
     return processImage(imageData, filter);
   }
+}
+```
+
+**Options:**
+
+- `timeout`: Maximum execution time in milliseconds
+- `priority`: Execution priority ('low', 'normal', 'high')
+- `maxRetries`: Number of retry attempts on failure
+- `poolSize`: Custom worker pool size
+- `cacheResults`: Enable result caching
+
+#### `@memoize(maxCacheSize?)`
+
+Caches method results with LRU eviction policy.
+
+```typescript
+@memoize(100) // Cache up to 100 unique results
+async expensiveComputation(input: string): Promise<Result> {
+  return computeResult(input);
+}
+```
+
+#### `@retry(maxAttempts?, baseDelay?)`
+
+Retry logic with exponential backoff.
+
+```typescript
+@retry(3, 1000) // 3 attempts, starting with 1s delay
+async unreliableOperation(): Promise<void> {
+  await callExternalService();
+}
+```
+
+#### `@rateLimit(callsPerSecond?)`
+
+Limits method call frequency.
+
+```typescript
+@rateLimit(10) // Max 10 calls per second
+async apiCall(): Promise<Data> {
+  return fetchFromAPI();
+}
+```
+
+#### `@parallelBatch(batchSize?)`
+
+Processes array data in parallel batches.
+
+```typescript
+@parallelBatch(4)
+async processBatch(items: Item[]): Promise<Result[]> {
+  return items.map(processItem);
+}
+```
+
+#### `@parallelMap()`
+
+Parallel map operation on array input.
+
+```typescript
+@parallelMap()
+async processItems(items: Item[]): Promise<Result[]> {
+  return items.map(transform);
 }
 ```
 
@@ -233,14 +409,68 @@ class ImageProcessor {
 @parallelBatch(4) // Process arrays in batches of 4
 async processBatch(items: Item[]): Promise<Result[]> { ... }
 
-@parallelMap({ batchSize: 2 })
+@parallelMap() // Parallel map over array
 async processMap(items: Item[]): Promise<Result[]> { ... }
 
-@highPriority
-async urgentTask(): Promise<void> { ... }
+@memoize(100) // LRU cache with 100 entries
+async cachedMethod(): Promise<Result> { ... }
 
-@timeout(5000)
-async timedTask(): Promise<Result> { ... }
+@retry(3, 1000) // Retry up to 3 times with exponential backoff
+async retryableMethod(): Promise<Result> { ... }
+
+@rateLimit(10) // Max 10 calls per second
+async rateLimitedMethod(): Promise<Result> { ... }
+```
+
+### Event System
+
+```typescript
+// Listen to task completion events
+threadts.on('task-complete', ({ taskId, result, duration }) => {
+  console.log(`Task ${taskId} completed in ${duration}ms`);
+});
+
+// Listen to task errors
+threadts.on('task-error', ({ taskId, error, duration }) => {
+  console.error(`Task ${taskId} failed: ${error}`);
+});
+
+// Listen to pool resize events
+threadts.on('pool-resize', ({ oldSize, newSize }) => {
+  console.log(`Pool resized from ${oldSize} to ${newSize}`);
+});
+
+// Remove event listener
+threadts.off('task-complete', listener);
+```
+
+### Monitoring & Diagnostics
+
+```typescript
+import {
+  PerformanceMonitor,
+  HealthMonitor,
+  ErrorHandler
+} from 'threadts-universal';
+
+// Performance Monitoring
+const perfMonitor = new PerformanceMonitor();
+perfMonitor.startMonitoring(2000); // Check every 2 seconds
+const metrics = perfMonitor.collectMetrics();
+
+// Health Monitoring
+const healthMonitor = new HealthMonitor();
+healthMonitor.startHealthMonitoring(5000); // Check every 5 seconds
+const health = await healthMonitor.performHealthCheck();
+console.log(health.overall); // 'healthy', 'degraded', or 'unhealthy'
+
+// Error Handling with auto-recovery
+const errorHandler = new ErrorHandler();
+const result = await errorHandler.executeWithRetry(
+  'operation-name',
+  async () => riskyOperation(),
+  { platform: 'node', workerCount: 4 }
+);
 ```
 
 ## 🌟 Platform-Specific Features
@@ -255,9 +485,23 @@ async timedTask(): Promise<Result> { ... }
 ### Node.js
 
 - **Worker Threads**: CPU-intensive task processing
+- **Resource Limits**: Memory control per worker
 - **Cluster Mode**: Multi-core utilization
-- **File System**: Large data processing
 - **Native Addons**: Performance optimization hooks
+
+```typescript
+// Node.js specific resource limits
+const result = await threadts.run(heavyTask, data, {
+  resourceLimits: {
+    maxOldGenerationSizeMb: 128,
+    maxYoungGenerationSizeMb: 64,
+    codeRangeSizeMb: 16,
+    stackSizeMb: 4,
+  },
+  workerName: 'heavy-worker',
+  trackResources: true,
+});
+```
 
 ### Deno
 
@@ -265,10 +509,34 @@ async timedTask(): Promise<Result> { ... }
 - **TypeScript Native**: Zero-config TypeScript support
 - **Web Standards**: Modern web API compatibility
 
+```typescript
+// Deno specific permissions
+const result = await threadts.run(task, data, {
+  denoPermissions: {
+    net: ['api.example.com'],
+    read: ['/data'],
+    env: true,
+    hrtime: true,
+  },
+});
+```
+
 ### Bun
 
 - **Ultra-fast Startup**: Optimized worker creation
 - **Native Performance**: Maximum speed execution
+- **High Precision Timing**: Microsecond accuracy
+
+```typescript
+// Bun specific options
+const result = await threadts.run(task, data, {
+  bunOptions: {
+    name: 'compute-worker',
+    highPrecisionTiming: true,
+    forceGC: true,
+  },
+});
+```
 
 ## 📊 Performance
 
@@ -283,6 +551,15 @@ const iterations = 1000;
 // Overhead: < 5ms per operation
 ```
 
+### Performance Benchmarks
+
+| Operation             | Data Size   | Time   | Throughput      |
+| --------------------- | ----------- | ------ | --------------- |
+| Image Processing      | 1920x1080   | ~50ms  | ~40k pixels/ms  |
+| JSON Transformation   | 10k records | ~30ms  | ~300 records/ms |
+| Cryptographic Hashing | 1k items    | ~15ms  | ~65 hashes/ms   |
+| Array Map             | 100k items  | ~200ms | ~500k items/s   |
+
 ## 🔧 Configuration
 
 ### Pool Configuration
@@ -291,21 +568,31 @@ const iterations = 1000;
 import { ThreadTS } from 'threadts-universal';
 
 const threadts = ThreadTS.getInstance({
-  minWorkers: 2,
-  maxWorkers: 8,
-  idleTimeout: 30000,
-  queueSize: 1000,
-  strategy: 'least-busy',
+  poolSize: 8, // Number of workers
+  timeout: 30000, // Default timeout in ms
+  retries: 2, // Default retry attempts
+  autoResize: true, // Auto-scale pool
+  debug: false, // Enable debug logging
+  maxQueueSize: 1000, // Max queued tasks
+  workerIdleTimeout: 60000, // Worker idle timeout
+  taskPriority: 'normal', // Default priority
 });
 ```
 
 ### Platform Detection
 
 ```typescript
-import { detectPlatform, supportsWorkerThreads } from 'threadts-universal';
+import {
+  detectPlatform,
+  supportsWorkerThreads,
+  getOptimalThreadCount,
+  getMemoryInfo
+} from 'threadts-universal';
 
-console.log('Platform:', detectPlatform());
+console.log('Platform:', detectPlatform()); // 'node', 'browser', 'deno', 'bun'
 console.log('Worker Support:', supportsWorkerThreads());
+console.log('Optimal Threads:', getOptimalThreadCount());
+console.log('Memory:', getMemoryInfo());
 ```
 
 ## 🧪 Testing
@@ -364,15 +651,22 @@ worker.onerror = (error) => {
 ```typescript
 // One line parallel execution
 const result = await threadts.run(fn, data);
+
+// Full Array API
+const found = await threadts.find(array, predicate);
+const all = await threadts.every(array, test);
+const any = await threadts.some(array, test);
 ```
 
 ### The ThreadTS Advantage
 
 - ✅ **Universal**: Same API across all platforms
 - ✅ **Simple**: One-line parallel execution
+- ✅ **Complete**: Full Array API (map, filter, reduce, find, some, every)
 - ✅ **Fast**: Sub-5ms overhead
 - ✅ **Smart**: Auto-scaling, caching, priorities
-- ✅ **Safe**: Built-in error handling and timeouts
+- ✅ **Safe**: Built-in error handling, retries, and timeouts
+- ✅ **Observable**: Monitoring, health checks, and events
 - ✅ **Modern**: TypeScript-first with full type safety
 
 ---

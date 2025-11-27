@@ -38,6 +38,8 @@ async function main() {
     results.push(await testParallelArrayProcessing());
     results.push(await testCPUIntensiveTask());
     results.push(await testBatchProcessing());
+    results.push(await testFindOperations());
+    results.push(await testSomeEveryOperations());
   } else {
     // Fallback-Tests für Plattformen ohne Worker
     results.push(await testSequentialProcessing());
@@ -144,6 +146,58 @@ async function testBatchProcessing(): Promise<BenchmarkResult> {
     time,
     passed: time < 3000, // Max 3s für 2k items
     details: '2k batched',
+  };
+}
+
+// Tests für neue Array-Methoden
+async function testFindOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 10000 }, (_, i) => i);
+  const targetIndex = 7500; // Element near the end
+
+  const { time, result } = await measureTime(async () => {
+    const found = await threadts.find(data, (x: number) => x === targetIndex);
+    const foundIndex = await threadts.findIndex(
+      data,
+      (x: number) => x === targetIndex
+    );
+    return { found, foundIndex };
+  });
+
+  const passed =
+    result.found === targetIndex &&
+    result.foundIndex === targetIndex &&
+    time < 2000;
+
+  return {
+    name: 'Find Operations',
+    time,
+    passed,
+    details: 'find+findIndex',
+  };
+}
+
+async function testSomeEveryOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 5000 }, (_, i) => i + 1); // 1 to 5000, all positive
+
+  const { time, result } = await measureTime(async () => {
+    const someResult = await threadts.some(
+      data,
+      (x: number) => x > 4000 // Should find one quickly
+    );
+    const everyResult = await threadts.every(
+      data,
+      (x: number) => x > 0 // All are positive
+    );
+    return { someResult, everyResult };
+  });
+
+  const passed = result.someResult === true && result.everyResult === true;
+
+  return {
+    name: 'Some/Every Operations',
+    time,
+    passed: passed && time < 2000,
+    details: 'some+every',
   };
 }
 
