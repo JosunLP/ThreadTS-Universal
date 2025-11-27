@@ -64,8 +64,8 @@ let workerIdCounter = 0;
  * @returns A unique worker ID string
  */
 function generateWorkerId(platform: Platform): string {
-  // Increment with overflow protection to prevent reaching Number.MAX_SAFE_INTEGER
-  workerIdCounter = workerIdCounter >= Number.MAX_SAFE_INTEGER - 1 ? 0 : workerIdCounter + 1;
+  // Increment with overflow protection using modulo to prevent reaching Number.MAX_SAFE_INTEGER
+  workerIdCounter = (workerIdCounter + 1) % Number.MAX_SAFE_INTEGER;
   const counter = workerIdCounter;
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 6);

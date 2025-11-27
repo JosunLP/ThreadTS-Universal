@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Validation Utilities Tests
- * Tests für die Validierungs-Hilfsfunktionen
+ * Tests for the validation utility functions
  */
 
 import {
@@ -17,17 +17,18 @@ import {
   validateTasks,
   toPositiveInt,
   toNonNegativeInt,
+  ValidationUtils,
 } from '../src/utils/validation';
 
 describe('Validation Utilities', () => {
   describe('validateFunction', () => {
-    test('sollte gültige Funktionen akzeptieren', () => {
+    test('should accept valid functions', () => {
       expect(() => validateFunction(() => {})).not.toThrow();
       expect(() => validateFunction(function test() {})).not.toThrow();
       expect(() => validateFunction(async () => {})).not.toThrow();
     });
 
-    test('sollte ungültige Werte ablehnen', () => {
+    test('should reject invalid values', () => {
       expect(() => validateFunction(null)).toThrow();
       expect(() => validateFunction(undefined)).toThrow();
       expect(() => validateFunction(42)).toThrow();
@@ -35,19 +36,19 @@ describe('Validation Utilities', () => {
       expect(() => validateFunction({})).toThrow();
     });
 
-    test('sollte benutzerdefinierten Parameter-Namen verwenden', () => {
+    test('should use custom parameter name', () => {
       expect(() => validateFunction(null, 'callback')).toThrow(/callback/);
     });
   });
 
   describe('validateArray', () => {
-    test('sollte gültige Arrays akzeptieren', () => {
+    test('should accept valid arrays', () => {
       expect(() => validateArray([])).not.toThrow();
       expect(() => validateArray([1, 2, 3])).not.toThrow();
       expect(() => validateArray(['a', 'b'])).not.toThrow();
     });
 
-    test('sollte ungültige Werte ablehnen', () => {
+    test('should reject invalid values', () => {
       expect(() => validateArray(null)).toThrow();
       expect(() => validateArray(undefined)).toThrow();
       expect(() => validateArray(42)).toThrow();
@@ -57,24 +58,24 @@ describe('Validation Utilities', () => {
   });
 
   describe('validateNonEmptyArray', () => {
-    test('sollte nicht-leere Arrays akzeptieren', () => {
+    test('should accept non-empty arrays', () => {
       expect(() => validateNonEmptyArray([1])).not.toThrow();
       expect(() => validateNonEmptyArray([1, 2, 3])).not.toThrow();
     });
 
-    test('sollte leere Arrays ablehnen', () => {
+    test('should reject empty arrays', () => {
       expect(() => validateNonEmptyArray([])).toThrow();
     });
   });
 
   describe('validatePositiveNumber', () => {
-    test('sollte positive Zahlen akzeptieren', () => {
+    test('should accept positive numbers', () => {
       expect(() => validatePositiveNumber(1)).not.toThrow();
       expect(() => validatePositiveNumber(0.5)).not.toThrow();
       expect(() => validatePositiveNumber(100)).not.toThrow();
     });
 
-    test('sollte null, negative und Nicht-Zahlen ablehnen', () => {
+    test('should reject zero, negative values and non-numbers', () => {
       expect(() => validatePositiveNumber(0)).toThrow();
       expect(() => validatePositiveNumber(-1)).toThrow();
       expect(() => validatePositiveNumber(NaN)).toThrow();
@@ -83,40 +84,40 @@ describe('Validation Utilities', () => {
   });
 
   describe('validateNonNegativeNumber', () => {
-    test('sollte nicht-negative Zahlen akzeptieren', () => {
+    test('should accept non-negative numbers', () => {
       expect(() => validateNonNegativeNumber(0)).not.toThrow();
       expect(() => validateNonNegativeNumber(1)).not.toThrow();
       expect(() => validateNonNegativeNumber(100)).not.toThrow();
     });
 
-    test('sollte negative Zahlen ablehnen', () => {
+    test('should reject negative numbers', () => {
       expect(() => validateNonNegativeNumber(-1)).toThrow();
       expect(() => validateNonNegativeNumber(-0.1)).toThrow();
     });
   });
 
   describe('validateRange', () => {
-    test('sollte Werte innerhalb des Bereichs akzeptieren', () => {
+    test('should accept values within range', () => {
       expect(() => validateRange(5, 1, 10)).not.toThrow();
       expect(() => validateRange(1, 1, 10)).not.toThrow();
       expect(() => validateRange(10, 1, 10)).not.toThrow();
     });
 
-    test('sollte Werte außerhalb des Bereichs ablehnen', () => {
+    test('should reject values outside range', () => {
       expect(() => validateRange(0, 1, 10)).toThrow();
       expect(() => validateRange(11, 1, 10)).toThrow();
     });
   });
 
   describe('validateEnum', () => {
-    test('sollte gültige Enum-Werte akzeptieren', () => {
+    test('should accept valid enum values', () => {
       const priorities = ['low', 'normal', 'high'] as const;
       expect(() => validateEnum('low', priorities)).not.toThrow();
       expect(() => validateEnum('normal', priorities)).not.toThrow();
       expect(() => validateEnum('high', priorities)).not.toThrow();
     });
 
-    test('sollte ungültige Enum-Werte ablehnen', () => {
+    test('should reject invalid enum values', () => {
       const priorities = ['low', 'normal', 'high'] as const;
       expect(() =>
         validateEnum('invalid' as 'low' | 'normal' | 'high', priorities)
@@ -125,7 +126,7 @@ describe('Validation Utilities', () => {
   });
 
   describe('validateSerializable', () => {
-    test('sollte serialisierbare Daten akzeptieren', () => {
+    test('should accept serializable data', () => {
       expect(() => validateSerializable(null)).not.toThrow();
       expect(() => validateSerializable(undefined)).not.toThrow();
       expect(() => validateSerializable(42)).not.toThrow();
@@ -136,25 +137,25 @@ describe('Validation Utilities', () => {
       expect(() => validateSerializable({ nested: { value: 42 } })).not.toThrow();
     });
 
-    test('sollte Funktionen ablehnen', () => {
+    test('should reject functions', () => {
       expect(() => validateSerializable(() => {})).toThrow(/Functions/);
     });
 
-    test('sollte Symbole ablehnen', () => {
+    test('should reject symbols', () => {
       expect(() => validateSerializable(Symbol('test'))).toThrow(/Symbols/);
     });
 
-    test('sollte BigInt ablehnen', () => {
+    test('should reject BigInt', () => {
       expect(() => validateSerializable(BigInt(42))).toThrow(/BigInt/);
     });
 
-    test('sollte zirkuläre Referenzen erkennen', () => {
+    test('should detect circular references', () => {
       const circular: Record<string, unknown> = { name: 'test' };
       circular.self = circular;
       expect(() => validateSerializable(circular)).toThrow(/Circular/);
     });
 
-    test('sollte verschachtelte Funktionen ablehnen', () => {
+    test('should reject nested functions', () => {
       const withNestedFn = {
         value: 42,
         callback: () => {},
@@ -164,7 +165,7 @@ describe('Validation Utilities', () => {
   });
 
   describe('validateThreadOptions', () => {
-    test('sollte gültige Optionen akzeptieren', () => {
+    test('should accept valid options', () => {
       expect(() => validateThreadOptions({})).not.toThrow();
       expect(() => validateThreadOptions({ timeout: 5000 })).not.toThrow();
       expect(() => validateThreadOptions({ priority: 'high' })).not.toThrow();
@@ -172,7 +173,7 @@ describe('Validation Utilities', () => {
       expect(() => validateThreadOptions({ batchSize: 10 })).not.toThrow();
     });
 
-    test('sollte ungültige Optionen ablehnen', () => {
+    test('should reject invalid options', () => {
       expect(() => validateThreadOptions({ timeout: -1 })).toThrow();
       expect(() => validateThreadOptions({ timeout: 0 })).toThrow();
       expect(() => validateThreadOptions({ maxRetries: -1 })).toThrow();
@@ -180,75 +181,154 @@ describe('Validation Utilities', () => {
       expect(() => validateThreadOptions({ batchSize: 0 })).toThrow();
     });
 
-    test('sollte NaN Werte ablehnen', () => {
+    test('should reject NaN values', () => {
       expect(() => validateThreadOptions({ timeout: NaN })).toThrow();
       expect(() => validateThreadOptions({ maxRetries: NaN })).toThrow();
       expect(() => validateThreadOptions({ batchSize: NaN })).toThrow();
     });
+
+    test('should accept valid AbortSignal', () => {
+      const controller = new AbortController();
+      expect(() => validateThreadOptions({ signal: controller.signal })).not.toThrow();
+    });
+
+    test('should reject invalid signal values', () => {
+      expect(() => validateThreadOptions({ signal: {} })).toThrow(/AbortSignal/);
+      expect(() => validateThreadOptions({ signal: 'invalid' })).toThrow(/AbortSignal/);
+      expect(() => validateThreadOptions({ signal: null })).toThrow(/AbortSignal/);
+      expect(() => validateThreadOptions({ signal: 123 })).toThrow(/AbortSignal/);
+    });
   });
 
   describe('validateTask', () => {
-    test('sollte gültige Tasks akzeptieren', () => {
+    test('should accept valid tasks', () => {
       expect(() => validateTask({ fn: () => {} })).not.toThrow();
       expect(() => validateTask({ func: () => {} })).not.toThrow();
       expect(() => validateTask({ fn: () => {}, data: 42 })).not.toThrow();
     });
 
-    test('sollte ungültige Tasks ablehnen', () => {
+    test('should reject invalid tasks', () => {
       expect(() => validateTask(null)).toThrow();
       expect(() => validateTask({})).toThrow();
       expect(() => validateTask({ fn: 'not a function' })).toThrow();
     });
 
-    test('sollte Index in Fehlermeldung enthalten', () => {
+    test('should include index in error message', () => {
       expect(() => validateTask({}, 5)).toThrow(/index 5/);
     });
   });
 
   describe('validateTasks', () => {
-    test('sollte gültige Task-Arrays akzeptieren', () => {
+    test('should accept valid task arrays', () => {
       expect(() =>
         validateTasks([{ fn: () => {} }, { func: () => {} }])
       ).not.toThrow();
     });
 
-    test('sollte ungültige Tasks ablehnen', () => {
+    test('should reject invalid tasks', () => {
       expect(() => validateTasks([{ fn: () => {} }, {}])).toThrow(/index 1/);
     });
   });
 
   describe('toPositiveInt', () => {
-    test('sollte positive Ganzzahlen zurückgeben', () => {
+    test('should return positive integers', () => {
       expect(toPositiveInt(5, 10)).toBe(5);
       expect(toPositiveInt(5.7, 10)).toBe(5);
     });
 
-    test('sollte Standardwert bei ungültigen Werten zurückgeben', () => {
+    test('should return default value for invalid inputs', () => {
       expect(toPositiveInt(NaN, 10)).toBe(10);
       expect(toPositiveInt('5', 10)).toBe(10);
       expect(toPositiveInt(null, 10)).toBe(10);
     });
 
-    test('sollte Minimalwert respektieren', () => {
+    test('should respect minimum value', () => {
       expect(toPositiveInt(0, 10, 1)).toBe(1);
       expect(toPositiveInt(-5, 10, 1)).toBe(1);
     });
   });
 
   describe('toNonNegativeInt', () => {
-    test('sollte nicht-negative Ganzzahlen zurückgeben', () => {
+    test('should return non-negative integers', () => {
       expect(toNonNegativeInt(5, 10)).toBe(5);
       expect(toNonNegativeInt(0, 10)).toBe(0);
       expect(toNonNegativeInt(5.7, 10)).toBe(5);
     });
 
-    test('sollte Standardwert bei ungültigen Werten zurückgeben', () => {
+    test('should return default value for invalid inputs', () => {
       expect(toNonNegativeInt(NaN, 10)).toBe(10);
       expect(toNonNegativeInt('5', 10)).toBe(10);
     });
 
-    test('sollte negative Werte auf 0 setzen', () => {
+    test('should set negative values to 0', () => {
       expect(toNonNegativeInt(-5, 10)).toBe(0);
+    });
+  });
+
+  describe('ValidationUtils class', () => {
+    test('should provide static wrapper for validateFunction', () => {
+      expect(() => ValidationUtils.validateFunction(() => {})).not.toThrow();
+      expect(() => ValidationUtils.validateFunction(null)).toThrow();
+    });
+
+    test('should provide static wrapper for validateArray', () => {
+      expect(() => ValidationUtils.validateArray([1, 2])).not.toThrow();
+      expect(() => ValidationUtils.validateArray(null)).toThrow();
+    });
+
+    test('should provide static wrapper for validateNonEmptyArray', () => {
+      expect(() => ValidationUtils.validateNonEmptyArray([1])).not.toThrow();
+      expect(() => ValidationUtils.validateNonEmptyArray([])).toThrow();
+    });
+
+    test('should provide static wrapper for validatePositiveNumber', () => {
+      expect(() => ValidationUtils.validatePositiveNumber(5)).not.toThrow();
+      expect(() => ValidationUtils.validatePositiveNumber(-1)).toThrow();
+    });
+
+    test('should provide static wrapper for validateNonNegativeNumber', () => {
+      expect(() => ValidationUtils.validateNonNegativeNumber(0)).not.toThrow();
+      expect(() => ValidationUtils.validateNonNegativeNumber(-1)).toThrow();
+    });
+
+    test('should provide static wrapper for validateRange', () => {
+      expect(() => ValidationUtils.validateRange(5, 1, 10)).not.toThrow();
+      expect(() => ValidationUtils.validateRange(15, 1, 10)).toThrow();
+    });
+
+    test('should provide static wrapper for validateEnum', () => {
+      expect(() => ValidationUtils.validateEnum('a', ['a', 'b'])).not.toThrow();
+      expect(() => ValidationUtils.validateEnum('c', ['a', 'b'])).toThrow();
+    });
+
+    test('should provide static wrapper for validateSerializable', () => {
+      expect(() => ValidationUtils.validateSerializable({ a: 1 })).not.toThrow();
+      expect(() => ValidationUtils.validateSerializable(() => {})).toThrow();
+    });
+
+    test('should provide static wrapper for validateThreadOptions', () => {
+      expect(() => ValidationUtils.validateThreadOptions({ timeout: 1000 })).not.toThrow();
+      expect(() => ValidationUtils.validateThreadOptions({ timeout: -1 })).toThrow();
+    });
+
+    test('should provide static wrapper for validateTask', () => {
+      expect(() => ValidationUtils.validateTask({ fn: () => {} })).not.toThrow();
+      expect(() => ValidationUtils.validateTask({})).toThrow();
+    });
+
+    test('should provide static wrapper for validateTasks', () => {
+      expect(() => ValidationUtils.validateTasks([{ fn: () => {} }])).not.toThrow();
+      expect(() => ValidationUtils.validateTasks([{}])).toThrow();
+    });
+
+    test('should provide static wrapper for toPositiveInt', () => {
+      expect(ValidationUtils.toPositiveInt(5, 10)).toBe(5);
+      expect(ValidationUtils.toPositiveInt(NaN, 10)).toBe(10);
+    });
+
+    test('should provide static wrapper for toNonNegativeInt', () => {
+      expect(ValidationUtils.toNonNegativeInt(5, 10)).toBe(5);
+      expect(ValidationUtils.toNonNegativeInt(NaN, 10)).toBe(10);
     });
   });
 });
