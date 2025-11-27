@@ -40,12 +40,12 @@ console.log(found); // 4
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
 - **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`
-- **Pipeline API**: Fluent chaining with lazy evaluation
+- **Enhanced Pipeline API**: Fluent chaining with lazy evaluation, including `take`, `skip`, `chunk`, `unique`, `reverse`, `sort`, `first`, `last`, `sum`, `average`, `min`, `max`
 - **Progress Tracking**: Real-time progress monitoring
-- **Intelligent Caching**: Automatic result caching with `@memoize` decorator
+- **Intelligent Caching**: Automatic result caching with `@memoize` and `@cache` decorators
 - **Priority Queues**: High/Normal/Low priority execution
 - **Timeout & Cancellation**: AbortController integration
-- **Decorator Suite**: `@parallelMethod()`, `@retry()`, `@rateLimit()`, `@timeout()`, `@debounce()`, `@throttle()`, `@logged()`
+- **Decorator Suite**: `@parallelMethod()`, `@retry()`, `@rateLimit()`, `@timeout()`, `@debounce()`, `@throttle()`, `@logged()`, `@cache()`, `@concurrent()`, `@circuitBreaker()`, `@measure()`, `@validate()`, `@lazy()`
 - **Monitoring**: Built-in performance monitoring, health checks, and error handling
 
 ## 🚀 Quick Start
@@ -361,6 +361,67 @@ const hasLarge = await threadts.pipe([1, 2, 3, 4, 5])
   .some((x) => x > 8)
   .execute();
 // Result: true
+
+// Using take, skip, and chunk
+const paginated = await threadts.pipe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  .skip(2)
+  .take(5)
+  .execute();
+// Result: [3, 4, 5, 6, 7]
+
+const chunks = await threadts.pipe([1, 2, 3, 4, 5])
+  .chunk(2)
+  .execute();
+// Result: [[1, 2], [3, 4], [5]]
+
+// Using unique, reverse, and sort
+const processed = await threadts.pipe([3, 1, 2, 1, 3])
+  .unique()
+  .sort((a, b) => a - b)
+  .execute();
+// Result: [1, 2, 3]
+
+// Aggregation operations
+const sum = await threadts.pipe([1, 2, 3, 4, 5])
+  .sum()
+  .execute();
+// Result: 15
+
+const avg = await threadts.pipe([1, 2, 3, 4, 5])
+  .average()
+  .execute();
+// Result: 3
+
+const max = await threadts.pipe([3, 1, 4, 1, 5])
+  .max()
+  .execute();
+// Result: 5
+
+// First and last elements
+const first = await threadts.pipe([1, 2, 3])
+  .filter((x) => x > 1)
+  .first()
+  .execute();
+// Result: 2
+
+// Collect to different data structures
+const set = await threadts.pipe([1, 2, 2, 3])
+  .toSet();
+// Result: Set { 1, 2, 3 }
+
+const map = await threadts.pipe(users)
+  .toMap((user) => user.id);
+// Result: Map { id1 => user1, id2 => user2, ... }
+
+// GroupBy and Partition in pipeline
+const grouped = await threadts.pipe(users)
+  .groupBy((user) => user.role)
+  .execute();
+// Result: Map { 'admin' => [...], 'user' => [...] }
+
+const [admins, regular] = await threadts.pipe(users)
+  .partition((user) => user.role === 'admin')
+  .execute();
 ```
 
 ### Advanced Features
@@ -554,16 +615,112 @@ async processItems(items: Item[]): Promise<Result[]> {
 #### Decorator Summary
 
 ```typescript
+// Parallelization
 @parallelMethod() // Parallelize method execution
 @parallelBatch(4) // Process arrays in batches of 4
 @parallelMap() // Parallel map over array
+
+// Caching
 @memoize(100) // LRU cache with 100 entries
+@cache(60000, 50) // TTL cache: 60s expiry, max 50 entries
+
+// Reliability
 @retry(3, 1000) // Retry up to 3 times with exponential backoff
-@rateLimit(10) // Max 10 calls per second
 @timeout(5000) // Timeout after 5 seconds
+@circuitBreaker({ failureThreshold: 5, resetTimeout: 30000 }) // Circuit breaker pattern
+
+// Rate Control
+@rateLimit(10) // Max 10 calls per second
 @debounce(300) // Debounce with 300ms delay
 @throttle(1000) // Throttle to once per second
+@concurrent(3) // Limit to 3 concurrent executions
+
+// Observability
 @logged() // Log execution details
+@measure() // Collect timing statistics
+
+// Validation & Initialization
+@validate([...validators]) // Validate arguments
+@lazy() // Lazy initialization (execute only once)
+```
+
+#### `@cache(ttlMs?, maxSize?)`
+
+Caches method results with TTL (Time To Live) support.
+
+```typescript
+@cache(30000, 50) // Cache for 30 seconds, max 50 entries
+async fetchData(id: string): Promise<Data> {
+  return await api.getData(id);
+}
+// Clear cache: this.fetchData.clearCache()
+```
+
+#### `@concurrent(maxConcurrent?)`
+
+Limits concurrent executions of a method.
+
+```typescript
+@concurrent(3) // Max 3 concurrent executions
+async processFile(path: string): Promise<void> {
+  await heavyFileOperation(path);
+}
+```
+
+#### `@circuitBreaker(options?)`
+
+Implements the circuit breaker pattern for fault tolerance.
+
+```typescript
+@circuitBreaker({
+  failureThreshold: 5,  // Open circuit after 5 failures
+  resetTimeout: 30000,  // Try again after 30 seconds
+  halfOpenRequests: 1   // Allow 1 test request in half-open state
+})
+async callExternalApi(): Promise<Data> {
+  return await externalApi.getData();
+}
+// Check state: this.callExternalApi.getState()
+// Reset: this.callExternalApi.reset()
+```
+
+#### `@measure()`
+
+Collects timing statistics across multiple calls.
+
+```typescript
+@measure()
+async compute(data: number[]): Promise<number> {
+  return data.reduce((a, b) => a + b, 0);
+}
+// Get stats: this.compute.getStats()
+// Returns: { count, min, max, avg, median, p95, p99 }
+```
+
+#### `@validate(validators)`
+
+Validates method arguments before execution.
+
+```typescript
+@validate([
+  (id) => typeof id === 'string' && id.length > 0,
+  (data) => data && typeof data.name === 'string'
+])
+async updateUser(id: string, data: UserData): Promise<void> {
+  await api.updateUser(id, data);
+}
+```
+
+#### `@lazy()`
+
+Lazy initialization - method executes only once.
+
+```typescript
+@lazy()
+async loadConfig(): Promise<Config> {
+  return await fetchConfig(); // Only called once, result cached forever
+}
+// Reset: this.loadConfig.reset()
 ```
 
 ### Event System

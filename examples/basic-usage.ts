@@ -2,7 +2,7 @@
  * ThreadTS Universal - Example Usage
  */
 
-import { ThreadTS, logged, memoize, parallelMethod, rateLimit, retry, throttle, timeout } from '../src';
+import { ThreadTS, cache, circuitBreaker, concurrent, lazy, logged, measure, memoize, parallelMethod, rateLimit, retry, throttle, timeout, validate } from '../src';
 
 // Get instance for use throughout examples
 const threadts = ThreadTS.getInstance();
@@ -144,6 +144,96 @@ async function pipelineExample() {
     .every((x) => x > -10)
     .execute();
   console.log('All values > -10:', allPositive);
+
+  // NEW: Pipeline with take, skip, and chunk
+  console.log('\n--- New Pipeline Features ---');
+
+  const paginated = await threadts.pipe(numbers)
+    .skip(5)
+    .take(10)
+    .execute();
+  console.log('Paginated (skip 5, take 10):', paginated);
+
+  const chunks = await threadts.pipe([1, 2, 3, 4, 5, 6, 7])
+    .chunk(3)
+    .execute();
+  console.log('Chunked by 3:', chunks);
+
+  // NEW: Pipeline with unique, reverse, sort
+  const uniqueSorted = await threadts.pipe([3, 1, 4, 1, 5, 9, 2, 6, 5, 3])
+    .unique()
+    .sort((a, b) => a - b)
+    .execute();
+  console.log('Unique & sorted:', uniqueSorted);
+
+  const reversed = await threadts.pipe([1, 2, 3, 4, 5])
+    .reverse()
+    .execute();
+  console.log('Reversed:', reversed);
+
+  // NEW: Aggregation operations
+  const sum = await threadts.pipe([1, 2, 3, 4, 5])
+    .sum()
+    .execute();
+  console.log('Sum:', sum);
+
+  const avg = await threadts.pipe([1, 2, 3, 4, 5])
+    .average()
+    .execute();
+  console.log('Average:', avg);
+
+  const max = await threadts.pipe([3, 1, 4, 1, 5, 9])
+    .max()
+    .execute();
+  console.log('Max:', max);
+
+  const min = await threadts.pipe([3, 1, 4, 1, 5, 9])
+    .min()
+    .execute();
+  console.log('Min:', min);
+
+  // NEW: First and last
+  const first = await threadts.pipe(numbers)
+    .filter((x) => x > 10)
+    .first()
+    .execute();
+  console.log('First > 10:', first);
+
+  const last = await threadts.pipe(numbers)
+    .filter((x) => x < 15)
+    .last()
+    .execute();
+  console.log('Last < 15:', last);
+
+  // NEW: isEmpty
+  const isEmpty = await threadts.pipe(numbers)
+    .filter((x) => x > 100)
+    .isEmpty()
+    .execute();
+  console.log('Is empty (filtered > 100):', isEmpty);
+
+  // NEW: toSet
+  const uniqueSet = await threadts.pipe([1, 2, 2, 3, 3, 3])
+    .toSet();
+  console.log('To Set:', uniqueSet);
+
+  // NEW: groupBy and partition in pipeline
+  const users = [
+    { name: 'Alice', role: 'admin' },
+    { name: 'Bob', role: 'user' },
+    { name: 'Charlie', role: 'admin' },
+  ];
+
+  const grouped = await threadts.pipe(users)
+    .groupBy((user) => user.role)
+    .execute();
+  console.log('Grouped by role:', grouped);
+
+  const [admins, regularUsers] = await threadts.pipe(users)
+    .partition((user) => user.role === 'admin')
+    .execute();
+  console.log('Admins:', admins);
+  console.log('Regular users:', regularUsers);
 }
 
 // Example 4: Batch processing
@@ -225,6 +315,53 @@ class DataProcessor {
     this.lastThrottleCall = now;
     return `Throttled call (interval: ${timeSinceLastCall}ms)`;
   }
+
+  // NEW: @cache decorator with TTL
+  @cache(5000, 10) // 5 second TTL, max 10 entries
+  async fetchDataWithTTL(id: string): Promise<{ id: string; timestamp: number }> {
+    return { id, timestamp: Date.now() };
+  }
+
+  // NEW: @concurrent decorator
+  @concurrent(2) // Max 2 concurrent executions
+  async concurrentOperation(id: number): Promise<string> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return `Concurrent operation ${id} completed`;
+  }
+
+  // NEW: @circuitBreaker decorator
+  private failCount = 0;
+  @circuitBreaker({ failureThreshold: 3, resetTimeout: 5000 })
+  async unstableService(): Promise<string> {
+    this.failCount++;
+    if (this.failCount <= 3) {
+      throw new Error('Service unavailable');
+    }
+    return 'Service recovered!';
+  }
+
+  // NEW: @measure decorator
+  @measure()
+  async measuredOperation(delay: number): Promise<number> {
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return delay;
+  }
+
+  // NEW: @validate decorator
+  @validate([
+    (name: unknown) => typeof name === 'string' && (name as string).length > 0 || 'Name must be non-empty string',
+    (age: unknown) => typeof age === 'number' && (age as number) > 0 || 'Age must be positive number'
+  ])
+  async createUser(name: string, age: number): Promise<{ name: string; age: number }> {
+    return { name, age };
+  }
+
+  // NEW: @lazy decorator
+  @lazy()
+  async loadConfiguration(): Promise<{ loaded: boolean; timestamp: number }> {
+    console.log('  (Configuration loading...)');
+    return { loaded: true, timestamp: Date.now() };
+  }
 }
 
 async function decoratorExample() {
@@ -279,6 +416,62 @@ async function decoratorExample() {
     await new Promise((resolve) => setTimeout(resolve, 300)); // Wait 300ms between calls
   }
   console.log('Throttle results:', throttleResults);
+
+  // NEW DECORATORS DEMO
+  console.log('\n--- New Decorator Features ---');
+
+  // @cache with TTL
+  console.log('\n@cache with TTL:');
+  const data1 = await processor.fetchDataWithTTL('user1');
+  const data2 = await processor.fetchDataWithTTL('user1'); // Should be cached
+  console.log('Same timestamp (cached)?', data1.timestamp === data2.timestamp);
+
+  // @concurrent
+  console.log('\n@concurrent (max 2 at a time):');
+  const concurrentPromises = Array.from({ length: 5 }, (_, i) =>
+    processor.concurrentOperation(i)
+  );
+  const concurrentResults = await Promise.all(concurrentPromises);
+  console.log('Concurrent results:', concurrentResults);
+
+  // @circuitBreaker
+  console.log('\n@circuitBreaker:');
+  for (let i = 0; i < 5; i++) {
+    try {
+      const result = await processor.unstableService();
+      console.log(`  Attempt ${i + 1}:`, result);
+    } catch (error: unknown) {
+      console.log(`  Attempt ${i + 1} failed:`, (error as Error).message);
+    }
+  }
+
+  // @measure
+  console.log('\n@measure:');
+  await processor.measuredOperation(50);
+  await processor.measuredOperation(100);
+  await processor.measuredOperation(75);
+  const stats = (processor.measuredOperation as unknown as { getStats?: () => object }).getStats?.();
+  console.log('Measurement stats:', stats);
+
+  // @validate
+  console.log('\n@validate:');
+  try {
+    const user = await processor.createUser('Alice', 25);
+    console.log('Valid user created:', user);
+  } catch (error: unknown) {
+    console.log('Validation error:', (error as Error).message);
+  }
+  try {
+    await processor.createUser('', -5);
+  } catch (error: unknown) {
+    console.log('Validation error (expected):', (error as Error).message);
+  }
+
+  // @lazy
+  console.log('\n@lazy:');
+  const config1 = await processor.loadConfiguration();
+  const config2 = await processor.loadConfiguration(); // Should NOT log again
+  console.log('Same config instance?', config1.timestamp === config2.timestamp);
 }
 
 // Example 6: Performance comparison

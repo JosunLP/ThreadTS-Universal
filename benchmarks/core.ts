@@ -43,6 +43,11 @@ async function main() {
     results.push(await testFlatMapOperation());
     results.push(await testGroupByPartitionOperations());
     results.push(await testPipelineAPI());
+    // NEW: Pipeline Extension Tests
+    results.push(await testPipelineTakeSkipOperations());
+    results.push(await testPipelineDistinctChunkOperations());
+    results.push(await testPipelineSortReverseOperations());
+    results.push(await testPipelineFirstLastOperations());
   } else {
     // Fallback-Tests für Plattformen ohne Worker
     results.push(await testSequentialProcessing());
@@ -279,6 +284,160 @@ async function testPipelineAPI(): Promise<BenchmarkResult> {
     time,
     passed: passed && time < 3000,
     details: 'map->filter->reduce',
+  };
+}
+
+// NEW: Tests for new Pipeline operations
+async function testPipelineTakeSkipOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 10000 }, (_, i) => i + 1);
+
+  const { time, result } = await measureTime(async () => {
+    // Test take and skip operations
+    const takeResult = await threadts.pipe(data)
+      .take(100)
+      .execute();
+
+    const skipResult = await threadts.pipe(data)
+      .skip(9900)
+      .execute();
+
+    const combinedResult = await threadts.pipe(data)
+      .skip(500)
+      .take(50)
+      .execute();
+
+    return { takeResult, skipResult, combinedResult };
+  });
+
+  const passed =
+    result.takeResult.length === 100 &&
+    result.takeResult[0] === 1 &&
+    result.takeResult[99] === 100 &&
+    result.skipResult.length === 100 &&
+    result.skipResult[0] === 9901 &&
+    result.combinedResult.length === 50 &&
+    result.combinedResult[0] === 501;
+
+  return {
+    name: 'Pipeline Take/Skip',
+    time,
+    passed: passed && time < 1000,
+    details: 'take+skip ops',
+  };
+}
+
+async function testPipelineDistinctChunkOperations(): Promise<BenchmarkResult> {
+  // Create data with duplicates
+  const data = Array.from({ length: 1000 }, (_, i) => i % 100); // 0-99 repeated 10 times
+
+  const { time, result } = await measureTime(async () => {
+    // Test unique operation (distinct)
+    const uniqueResult = await threadts.pipe(data)
+      .unique()
+      .execute();
+
+    // Test chunk operation
+    const chunkResult = await threadts.pipe(data)
+      .chunk(100)
+      .execute();
+
+    return { uniqueResult, chunkResult };
+  });
+
+  const passed =
+    result.uniqueResult.length === 100 &&
+    result.chunkResult.length === 10 &&
+    result.chunkResult[0].length === 100;
+
+  return {
+    name: 'Pipeline Unique/Chunk',
+    time,
+    passed: passed && time < 1000,
+    details: 'unique+chunk',
+  };
+}
+
+async function testPipelineSortReverseOperations(): Promise<BenchmarkResult> {
+  // Create shuffled data
+  const data = Array.from({ length: 1000 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+
+  const { time, result } = await measureTime(async () => {
+    // Test sort operation
+    const sortedResult = await threadts.pipe(data)
+      .sort((a: number, b: number) => a - b)
+      .execute();
+
+    // Test reverse operation
+    const reversedResult = await threadts.pipe([1, 2, 3, 4, 5])
+      .reverse()
+      .execute();
+
+    // Test combined sort + reverse
+    const combinedResult = await threadts.pipe(data)
+      .sort((a: number, b: number) => a - b)
+      .reverse()
+      .take(5)
+      .execute();
+
+    return { sortedResult, reversedResult, combinedResult };
+  });
+
+  const passed =
+    result.sortedResult[0] === 1 &&
+    result.sortedResult[999] === 1000 &&
+    result.reversedResult[0] === 5 &&
+    result.reversedResult[4] === 1 &&
+    result.combinedResult[0] === 1000 &&
+    result.combinedResult.length === 5;
+
+  return {
+    name: 'Pipeline Sort/Reverse',
+    time,
+    passed: passed && time < 2000,
+    details: 'sort+reverse',
+  };
+}
+
+async function testPipelineFirstLastOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 5000 }, (_, i) => i + 1);
+
+  const { time, result } = await measureTime(async () => {
+    // Test first operation
+    const firstResult = await threadts.pipe(data)
+      .first()
+      .execute();
+
+    // Test last operation
+    const lastResult = await threadts.pipe(data)
+      .last()
+      .execute();
+
+    // Test first with condition (via filter + first)
+    const firstEvenOver100 = await threadts.pipe(data)
+      .filter((x: number) => x > 100 && x % 2 === 0)
+      .first()
+      .execute();
+
+    // Test groupBy in pipeline
+    const groupedResult = await threadts.pipe(data)
+      .take(100)
+      .groupBy((x: number) => x % 10)
+      .execute();
+
+    return { firstResult, lastResult, firstEvenOver100, groupedResult };
+  });
+
+  const passed =
+    result.firstResult === 1 &&
+    result.lastResult === 5000 &&
+    result.firstEvenOver100 === 102 &&
+    Object.keys(result.groupedResult).length === 10;
+
+  return {
+    name: 'Pipeline First/Last',
+    time,
+    passed: passed && time < 1500,
+    details: 'first+last+groupBy',
   };
 }
 
