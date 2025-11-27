@@ -15,6 +15,13 @@
  * // Array operations
  * const squares = await threadts.map([1, 2, 3], x => x * x);
  * const found = await threadts.find([1, 2, 3, 4], x => x > 2);
+ *
+ * // Using options (e.g., batchSize) with find
+ * const foundWithOptions = await threadts.find(
+ *   [1, 2, 3, 4],
+ *   x => x > 2,
+ *   { batchSize: 2 }
+ * );
  * ```
  */
 

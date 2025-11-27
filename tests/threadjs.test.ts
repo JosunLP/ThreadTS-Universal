@@ -1,11 +1,11 @@
 /**
  * ThreadTS Universal - Core Functionality Tests
- * Tests für die realen Fähigkeiten des NPM-Pakets
+ * Tests for the real capabilities of the NPM package
  */
 
 import threadts, { ThreadTS } from '../src';
 
-// Mock Worker für Test-Umgebung
+// Mock Worker for test environment
 jest.mock('../src/utils/platform', () => ({
   ...jest.requireActual('../src/utils/platform'),
   supportsWorkerThreads: () => true,
@@ -15,7 +15,7 @@ jest.mock('../src/utils/platform', () => ({
 
 describe('ThreadTS Universal', () => {
   beforeEach(() => {
-    // ThreadTS-Instanz zwischen Tests zurücksetzen
+    // Reset ThreadTS instance between tests
     Reflect.set(ThreadTS, '_instance', null);
   });
 
@@ -26,18 +26,18 @@ describe('ThreadTS Universal', () => {
         await instance.terminate();
       }
     } catch (error) {
-      // Cleanup-Fehler ignorieren
+      // Ignore cleanup errors
     }
     Reflect.set(ThreadTS, '_instance', null);
   });
 
-  describe('🔧 Grundfunktionalität', () => {
-    test('sollte einfache Berechnungen parallel ausführen', async () => {
+  describe('🔧 Core Functionality', () => {
+    test('should execute simple calculations in parallel', async () => {
       const result = await threadts.run((x: number) => x * 2, 21);
       expect(result).toBe(42);
     });
 
-    test('sollte komplexe Datenstrukturen verarbeiten', async () => {
+    test('should process complex data structures', async () => {
       const data = {
         numbers: [1, 2, 3, 4, 5],
         text: 'hello',
@@ -60,7 +60,7 @@ describe('ThreadTS Universal', () => {
       });
     });
 
-    test('sollte asynchrone Funktionen unterstützen', async () => {
+    test('should support async functions', async () => {
       const asyncFn = async (delay: number) => {
         await new Promise((resolve) => setTimeout(resolve, delay));
         return 'completed';
@@ -71,8 +71,8 @@ describe('ThreadTS Universal', () => {
     });
   });
 
-  describe('⚡ Parallele Verarbeitung', () => {
-    test('sollte mehrere Tasks parallel ausführen', async () => {
+  describe('⚡ Parallel Processing', () => {
+    test('should execute multiple tasks in parallel', async () => {
       const tasks = [
         { fn: (x: number) => x * 2, data: 5 },
         { fn: (x: number) => x + 10, data: 3 },
@@ -84,7 +84,7 @@ describe('ThreadTS Universal', () => {
       expect(results).toEqual([10, 13, 'TEST']);
     });
 
-    test('sollte Array-Mapping parallel durchführen', async () => {
+    test('should perform array mapping in parallel', async () => {
       const numbers = [1, 2, 3, 4, 5];
 
       const results = await threadts.map(numbers, (n: number) => n * n, {
@@ -94,7 +94,7 @@ describe('ThreadTS Universal', () => {
       expect(results).toEqual([1, 4, 9, 16, 25]);
     });
 
-    test('sollte Batch-Verarbeitung unterstützen', async () => {
+    test('should support batch processing', async () => {
       const largeTasks = Array.from({ length: 10 }, (_, i) => ({
         fn: (x: number) => x * 2,
         data: i,
@@ -109,82 +109,82 @@ describe('ThreadTS Universal', () => {
     });
   });
 
-  describe('🔍 Neue Array-Methoden', () => {
-    test('sollte find() korrekt implementieren', async () => {
+  describe('🔍 New Array Methods', () => {
+    test('should implement find() correctly', async () => {
       const numbers = [1, 2, 3, 4, 5];
 
-      // Erstes Element größer als 3 finden
+      // Find first element greater than 3
       const found = await threadts.find(numbers, (x: number) => x > 3);
       expect(found).toBe(4);
 
-      // Nicht existierendes Element
+      // Non-existent element
       const notFound = await threadts.find(numbers, (x: number) => x > 10);
       expect(notFound).toBeUndefined();
 
-      // Leeres Array
+      // Empty array
       const emptyResult = await threadts.find([], (x: number) => x > 0);
       expect(emptyResult).toBeUndefined();
     });
 
-    test('sollte findIndex() korrekt implementieren', async () => {
+    test('should implement findIndex() correctly', async () => {
       const numbers = [1, 2, 3, 4, 5];
 
-      // Index des ersten Elements größer als 3 finden
+      // Find index of first element greater than 3
       const index = await threadts.findIndex(numbers, (x: number) => x > 3);
       expect(index).toBe(3);
 
-      // Nicht existierendes Element
+      // Non-existent element
       const notFoundIndex = await threadts.findIndex(
         numbers,
         (x: number) => x > 10
       );
       expect(notFoundIndex).toBe(-1);
 
-      // Leeres Array
+      // Empty array
       const emptyIndex = await threadts.findIndex([], (x: number) => x > 0);
       expect(emptyIndex).toBe(-1);
     });
 
-    test('sollte some() korrekt implementieren', async () => {
+    test('should implement some() correctly', async () => {
       const numbers = [1, 2, 3, 4, 5];
 
-      // Prüfen ob ein Element größer als 3 ist
+      // Check if any element is greater than 3
       const hasLarge = await threadts.some(numbers, (x: number) => x > 3);
       expect(hasLarge).toBe(true);
 
-      // Prüfen ob ein Element größer als 10 ist
+      // Check if any element is greater than 10
       const hasVeryLarge = await threadts.some(numbers, (x: number) => x > 10);
       expect(hasVeryLarge).toBe(false);
 
-      // Leeres Array sollte false zurückgeben
+      // Empty array should return false
       const emptyResult = await threadts.some([], (x: number) => x > 0);
       expect(emptyResult).toBe(false);
     });
 
-    test('sollte every() korrekt implementieren', async () => {
+    test('should implement every() correctly', async () => {
       const positiveNumbers = [1, 2, 3, 4, 5];
       const mixedNumbers = [1, 2, -3, 4, 5];
 
-      // Alle positiv
+      // All positive
       const allPositive = await threadts.every(
         positiveNumbers,
         (x: number) => x > 0
       );
       expect(allPositive).toBe(true);
 
-      // Nicht alle positiv
+      // Not all positive
       const notAllPositive = await threadts.every(
         mixedNumbers,
         (x: number) => x > 0
       );
       expect(notAllPositive).toBe(false);
 
-      // Leeres Array sollte true zurückgeben (wie Array.prototype.every)
+      // Empty array should return true (like Array.prototype.every)
       const emptyResult = await threadts.every([], (x: number) => x > 0);
       expect(emptyResult).toBe(true);
     });
 
-    test('sollte find() mit batchSize unterstützen', async () => {
+    test('should support find() with batchSize', async () => {
       const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
       const found = await threadts.find(numbers, (x: number) => x > 5, {
@@ -194,8 +194,8 @@ describe('ThreadTS Universal', () => {
     });
   });
 
-  describe('🎛️ Konfiguration & Optionen', () => {
-    test('sollte Pool-Statistiken bereitstellen', () => {
+  describe('🎛️ Configuration & Options', () => {
+    test('should provide pool statistics', () => {
       const stats = threadts.getStats();
 
       expect(stats).toHaveProperty('activeWorkers');
@@ -207,13 +207,13 @@ describe('ThreadTS Universal', () => {
       expect(stats.completedTasks).toBeGreaterThanOrEqual(0);
     });
 
-    test('sollte Pool-Größe anpassen können', async () => {
+    test('should allow pool size adjustment', async () => {
       await threadts.resize(6);
-      // Test erfolgreich wenn keine Fehler auftreten
+      // Test succeeds if no errors occur
       expect(true).toBe(true);
     });
 
-    test('sollte Plattform-Informationen liefern', () => {
+    test('should provide platform information', () => {
       const platform = threadts.getPlatform();
       const isSupported = threadts.isSupported();
 
@@ -221,7 +221,7 @@ describe('ThreadTS Universal', () => {
       expect(typeof isSupported).toBe('boolean');
     });
 
-    test('sollte Prioritäten unterstützen', async () => {
+    test('should support priorities', async () => {
       const result = await threadts.run((x: number) => x * 3, 7, {
         priority: 'high',
       });
@@ -230,15 +230,15 @@ describe('ThreadTS Universal', () => {
     });
   });
 
-  describe('🛡️ Fehlerbehandlung', () => {
-    test('sollte ungültige Funktionen abfangen', async () => {
+  describe('🛡️ Error Handling', () => {
+    test('should catch invalid functions', async () => {
       await expect(
         threadts.run(undefined as unknown as (...args: unknown[]) => unknown)
       ).rejects.toThrow();
     });
 
-    test('sollte Timeout-Optionen respektieren', async () => {
-      // Test dass Timeout-Option akzeptiert wird
+    test('should respect timeout options', async () => {
+      // Test that timeout option is accepted
       const result = await threadts.run(() => 'fast-result', null, {
         timeout: 1000,
       });
@@ -246,7 +246,7 @@ describe('ThreadTS Universal', () => {
       expect(result).toBe('fast-result');
     });
 
-    test('sollte Worker-Fehler korrekt behandeln', async () => {
+    test('should handle worker errors correctly', async () => {
       const errorFn = () => {
         throw new Error('Simulated worker error');
       };
@@ -258,23 +258,23 @@ describe('ThreadTS Universal', () => {
   });
 
   describe('🔄 Lifecycle Management', () => {
-    test('sollte graceful shutdown unterstützen', async () => {
+    test('should support graceful shutdown', async () => {
       const instance = ThreadTS.getInstance();
 
-      // Einige Tasks ausführen
+      // Execute some tasks
       await instance.run((x: number) => x, 1);
 
-      // Ordnungsgemäß herunterfahren
+      // Shutdown gracefully
       await instance.terminate();
 
-      expect(true).toBe(true); // Test erfolgreich wenn keine Fehler
+      expect(true).toBe(true); // Test succeeds if no errors
     });
 
-    test('sollte Worker-Pool korrekt initialisieren', () => {
+    test('should initialize worker pool correctly', () => {
       const instance = ThreadTS.getInstance();
       const stats = instance.getStats();
 
-      // Pool sollte initialisiert sein
+      // Pool should be initialized
       expect(stats.activeWorkers + stats.idleWorkers).toBeGreaterThanOrEqual(0);
     });
   });

@@ -216,21 +216,21 @@ export function validateEnum<T>(
  * - BigInt (not directly serializable)
  *
  * @param value - The value to validate
- * @param seen - WeakSet to track circular references. A new WeakSet is created
- *               for each call by default.
+ * @param seen - (For internal recursive use only) WeakSet to track circular references.
+ *               You do not need to provide this for top-level calls; a new WeakSet is created
+ *               automatically for each call.
  * @throws {SerializationError} If the data cannot be serialized
  *
  * @example
  * ```typescript
- * // Single value validation
+ * // Single value validation (default usage)
  * validateSerializable({ name: 'test', count: 42 });
  *
- * // Batch validation: use a new WeakSet for each item to avoid false positives
+ * // Batch validation: just call validateSerializable for each item.
  * for (const item of items) {
- *   validateSerializable(item, new WeakSet<object>());
+ *   validateSerializable(item);
  * }
- * // WARNING: Do NOT share a WeakSet across top-level items, as this can cause
- * // false positives for circular references if items share references.
+ * // The 'seen' parameter is only needed for internal recursive calls.
  * ```
  */
 export function validateSerializable(
@@ -335,18 +335,42 @@ export function validateSerializable(
  */
 export function validateThreadOptions(options: Record<string, unknown>): void {
   if (options.timeout !== undefined) {
-    if (typeof options.timeout !== 'number' || isNaN(options.timeout) || options.timeout <= 0) {
+    if (typeof options.timeout !== 'number') {
       throw new ThreadError(
-        `timeout must be a positive number, received ${options.timeout}`,
+        `timeout must be a number, received ${typeof options.timeout}`,
+        'INVALID_OPTION'
+      );
+    }
+    if (isNaN(options.timeout)) {
+      throw new ThreadError(
+        'timeout must be a valid number, received NaN',
+        'INVALID_OPTION'
+      );
+    }
+    if (options.timeout <= 0) {
+      throw new ThreadError(
+        `timeout must be positive, received ${options.timeout}`,
         'INVALID_OPTION'
       );
     }
   }
 
   if (options.maxRetries !== undefined) {
-    if (typeof options.maxRetries !== 'number' || isNaN(options.maxRetries) || options.maxRetries < 0) {
+    if (typeof options.maxRetries !== 'number') {
       throw new ThreadError(
-        `maxRetries must be a non-negative number, received ${options.maxRetries}`,
+        `maxRetries must be a number, received ${typeof options.maxRetries}`,
+        'INVALID_OPTION'
+      );
+    }
+    if (isNaN(options.maxRetries)) {
+      throw new ThreadError(
+        'maxRetries must be a valid number, received NaN',
+        'INVALID_OPTION'
+      );
+    }
+    if (options.maxRetries < 0) {
+      throw new ThreadError(
+        `maxRetries must be non-negative, received ${options.maxRetries}`,
         'INVALID_OPTION'
       );
     }
@@ -357,7 +381,19 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
   }
 
   if (options.batchSize !== undefined) {
-    if (typeof options.batchSize !== 'number' || isNaN(options.batchSize) || options.batchSize < 1) {
+    if (typeof options.batchSize !== 'number') {
+      throw new ThreadError(
+        `batchSize must be a number, received ${typeof options.batchSize}`,
+        'INVALID_OPTION'
+      );
+    }
+    if (isNaN(options.batchSize)) {
+      throw new ThreadError(
+        'batchSize must be a valid number, received NaN',
+        'INVALID_OPTION'
+      );
+    }
+    if (options.batchSize < 1) {
       throw new ThreadError(
         `batchSize must be at least 1, received ${options.batchSize}`,
         'INVALID_OPTION'
