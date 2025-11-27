@@ -207,35 +207,12 @@ export function validateEnum<T>(
 }
 
 /**
- * Validates that data is serializable (can be passed to a worker).
- *
- * Checks for:
- * - Functions (not serializable as data)
- * - Circular references
- * - Symbols (not serializable)
- * - BigInt (not directly serializable)
- *
- * @param value - The value to validate
- * @param seen - (For internal recursive use only) WeakSet to track circular references.
- *               You do not need to provide this for top-level calls; a new WeakSet is created
- *               automatically for each call.
- * @throws {SerializationError} If the data cannot be serialized
- *
- * @example
- * ```typescript
- * // Single value validation (default usage)
- * validateSerializable({ name: 'test', count: 42 });
- *
- * // Batch validation: just call validateSerializable for each item.
- * for (const item of items) {
- *   validateSerializable(item);
- * }
- * // The 'seen' parameter is only needed for internal recursive calls.
- * ```
+ * Internal recursive implementation of validateSerializable.
+ * @internal
  */
-export function validateSerializable(
+function validateSerializableImpl(
   value: unknown,
-  seen = new WeakSet<object>()
+  seen: WeakSet<object>
 ): void {
   // Primitive types are always serializable
   if (value === null || value === undefined) {
@@ -281,7 +258,7 @@ export function validateSerializable(
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
       try {
-        validateSerializable(value[i], seen);
+      validateSerializableImpl(value[i], seen);
       } catch (error) {
         if (error instanceof SerializationError) {
           throw new SerializationError(
@@ -309,7 +286,7 @@ export function validateSerializable(
   // Handle plain objects
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
     try {
-      validateSerializable(val, seen);
+      validateSerializableImpl(val, seen);
     } catch (error) {
       if (error instanceof SerializationError) {
         throw new SerializationError(
@@ -319,6 +296,33 @@ export function validateSerializable(
       throw error;
     }
   }
+}
+
+/**
+ * Validates that data is serializable (can be passed to a worker).
+ *
+ * Checks for:
+ * - Functions (not serializable as data)
+ * - Circular references
+ * - Symbols (not serializable)
+ * - BigInt (not directly serializable)
+ *
+ * @param value - The value to validate
+ * @throws {SerializationError} If the data cannot be serialized
+ *
+ * @example
+ * ```typescript
+ * // Single value validation
+ * validateSerializable({ name: 'test', count: 42 });
+ *
+ * // Batch validation
+ * for (const item of items) {
+ *   validateSerializable(item);
+ * }
+ * ```
+ */
+export function validateSerializable(value: unknown): void {
+  validateSerializableImpl(value, new WeakSet<object>());
 }
 
 /**
@@ -573,8 +577,8 @@ export class ValidationUtils {
     validateEnum(value, allowedValues, paramName);
   }
 
-  static validateSerializable(value: unknown, seen = new WeakSet<object>()): void {
-    validateSerializable(value, seen);
+  static validateSerializable(value: unknown): void {
+    validateSerializable(value);
   }
 
   static validateThreadOptions(options: Record<string, unknown>): void {

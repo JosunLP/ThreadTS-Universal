@@ -246,6 +246,17 @@ describe('Validation Utilities', () => {
       expect(toPositiveInt(0, 10, 1)).toBe(1);
       expect(toPositiveInt(-5, 10, 1)).toBe(1);
     });
+
+    test('should floor value before clamping to minimum', () => {
+      // 0.5 floors to 0, then clamps to minValue 2 = 2
+      expect(toPositiveInt(0.5, 10, 2)).toBe(2);
+      // 1.9 floors to 1, then clamps to minValue 2 = 2
+      expect(toPositiveInt(1.9, 10, 2)).toBe(2);
+      // 2.1 floors to 2, stays at minValue 2 = 2
+      expect(toPositiveInt(2.1, 10, 2)).toBe(2);
+      // 3.5 floors to 3, above minValue 2 = 3
+      expect(toPositiveInt(3.5, 10, 2)).toBe(3);
+    });
   });
 
   describe('toNonNegativeInt', () => {
