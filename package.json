@@ -103,5 +103,8 @@
   "browser": {
     "./dist/node.js": false,
     "./src/adapters/node.ts": false
+  },
+  "volta": {
+    "node": "25.2.1"
   }
 }

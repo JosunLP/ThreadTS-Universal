@@ -34,9 +34,9 @@ import type {
 import { ThreadError, TimeoutError, WorkerError } from '../types';
 import { PlatformUtils } from '../utils/platform';
 import {
+  toPositiveInt,
   validateFunction,
   validateSerializable,
-  toPositiveInt,
 } from '../utils/validation';
 
 /**
@@ -399,7 +399,6 @@ export class ThreadTS extends EventTarget {
     let attempt = 0;
 
     // Retry loop with configurable attempts
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         const result = await this.executeWithControls<T>(func, args, options);
