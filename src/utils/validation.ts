@@ -501,23 +501,23 @@ export function toNonNegativeInt(value: unknown, defaultValue: number): number {
  */
 export class ValidationUtils {
   static validateFunction(fn: unknown, paramName = 'fn'): void {
-    return validateFunction(fn, paramName);
+    validateFunction(fn, paramName);
   }
 
   static validateArray(arr: unknown, paramName = 'array'): void {
-    return validateArray(arr, paramName);
+    validateArray(arr, paramName);
   }
 
   static validateNonEmptyArray(arr: unknown[], paramName = 'array'): void {
-    return validateNonEmptyArray(arr, paramName);
+    validateNonEmptyArray(arr, paramName);
   }
 
   static validatePositiveNumber(value: unknown, paramName = 'value'): void {
-    return validatePositiveNumber(value, paramName);
+    validatePositiveNumber(value, paramName);
   }
 
   static validateNonNegativeNumber(value: unknown, paramName = 'value'): void {
-    return validateNonNegativeNumber(value, paramName);
+    validateNonNegativeNumber(value, paramName);
   }
 
   static validateRange(
@@ -526,7 +526,7 @@ export class ValidationUtils {
     max: number,
     paramName = 'value'
   ): void {
-    return validateRange(value, min, max, paramName);
+    validateRange(value, min, max, paramName);
   }
 
   static validateEnum<T>(
@@ -534,26 +534,26 @@ export class ValidationUtils {
     allowedValues: readonly T[],
     paramName = 'value'
   ): void {
-    return validateEnum(value, allowedValues, paramName);
+    validateEnum(value, allowedValues, paramName);
   }
 
   static validateSerializable(value: unknown, seen = new WeakSet<object>()): void {
-    return validateSerializable(value, seen);
+    validateSerializable(value, seen);
   }
 
   static validateThreadOptions(options: Record<string, unknown>): void {
-    return validateThreadOptions(options);
+    validateThreadOptions(options);
   }
 
   static validateTask(
     task: unknown,
     index?: number
   ): asserts task is { fn?: (...args: unknown[]) => unknown; func?: (...args: unknown[]) => unknown } {
-    return validateTask(task, index);
+    validateTask(task, index);
   }
 
   static validateTasks(tasks: unknown[]): void {
-    return validateTasks(tasks);
+    validateTasks(tasks);
   }
 
   static toPositiveInt(value: unknown, defaultValue: number, minValue = 1): number {
