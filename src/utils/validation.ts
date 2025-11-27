@@ -9,10 +9,7 @@
  * @author ThreadTS Universal Team
  */
 
-import {
-  SerializationError,
-  ThreadError,
-} from '../types';
+import { SerializationError, ThreadError } from '../types';
 
 /**
  * Validation result containing success status and optional error.
@@ -82,7 +79,10 @@ export function validateArray(arr: unknown, paramName = 'array'): void {
  * validateNonEmptyArray([1, 2, 3], 'items');
  * ```
  */
-export function validateNonEmptyArray(arr: unknown[], paramName = 'array'): void {
+export function validateNonEmptyArray(
+  arr: unknown[],
+  paramName = 'array'
+): void {
   if (arr.length === 0) {
     throw new ThreadError(`${paramName} cannot be empty`, 'INVALID_ARGUMENT');
   }
@@ -101,7 +101,10 @@ export function validateNonEmptyArray(arr: unknown[], paramName = 'array'): void
  * validatePositiveNumber(batchSize, 'batchSize');
  * ```
  */
-export function validatePositiveNumber(value: unknown, paramName = 'value'): void {
+export function validatePositiveNumber(
+  value: unknown,
+  paramName = 'value'
+): void {
   if (typeof value !== 'number' || isNaN(value)) {
     throw new ThreadError(
       `${paramName} must be a number, received ${typeof value}`,
@@ -198,7 +201,7 @@ export function validateEnum<T>(
   paramName = 'value'
 ): void {
   if (!allowedValues.includes(value)) {
-    const allowed = allowedValues.map(v => `"${String(v)}"`).join(', ');
+    const allowed = allowedValues.map((v) => `"${String(v)}"`).join(', ');
     throw new ThreadError(
       `${paramName} must be one of [${allowed}], received "${String(value)}"`,
       'INVALID_ARGUMENT'
@@ -210,10 +213,7 @@ export function validateEnum<T>(
  * Internal recursive implementation of validateSerializable.
  * @internal
  */
-function validateSerializableImpl(
-  value: unknown,
-  seen: WeakSet<object>
-): void {
+function validateSerializableImpl(value: unknown, seen: WeakSet<object>): void {
   // Primitive types are always serializable
   if (value === null || value === undefined) {
     return;
@@ -258,12 +258,10 @@ function validateSerializableImpl(
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
       try {
-      validateSerializableImpl(value[i], seen);
+        validateSerializableImpl(value[i], seen);
       } catch (error) {
         if (error instanceof SerializationError) {
-          throw new SerializationError(
-            `At array index ${i}: ${error.message}`
-          );
+          throw new SerializationError(`At array index ${i}: ${error.message}`);
         }
         throw error;
       }
@@ -289,9 +287,7 @@ function validateSerializableImpl(
       validateSerializableImpl(val, seen);
     } catch (error) {
       if (error instanceof SerializationError) {
-        throw new SerializationError(
-          `At property "${key}": ${error.message}`
-        );
+        throw new SerializationError(`At property "${key}": ${error.message}`);
       }
       throw error;
     }
@@ -381,7 +377,11 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
   }
 
   if (options.priority !== undefined) {
-    validateEnum(options.priority, ['low', 'normal', 'high'] as const, 'priority');
+    validateEnum(
+      options.priority,
+      ['low', 'normal', 'high'] as const,
+      'priority'
+    );
   }
 
   if (options.batchSize !== undefined) {
@@ -405,7 +405,10 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
     }
   }
 
-  if (options.signal !== undefined && !(options.signal instanceof AbortSignal)) {
+  if (
+    options.signal !== undefined &&
+    !(options.signal instanceof AbortSignal)
+  ) {
     throw new ThreadError(
       'signal must be an AbortSignal instance',
       'INVALID_OPTION'
@@ -433,7 +436,10 @@ export function validateThreadOptions(options: Record<string, unknown>): void {
 export function validateTask(
   task: unknown,
   index?: number
-): asserts task is { fn?: (...args: unknown[]) => unknown; func?: (...args: unknown[]) => unknown } {
+): asserts task is {
+  fn?: (...args: unknown[]) => unknown;
+  func?: (...args: unknown[]) => unknown;
+} {
   const prefix = index !== undefined ? `Task at index ${index}: ` : '';
 
   // First check: must be a non-null object
@@ -588,7 +594,10 @@ export class ValidationUtils {
   static validateTask(
     task: unknown,
     index?: number
-  ): asserts task is { fn?: (...args: unknown[]) => unknown; func?: (...args: unknown[]) => unknown } {
+  ): asserts task is {
+    fn?: (...args: unknown[]) => unknown;
+    func?: (...args: unknown[]) => unknown;
+  } {
     validateTask(task, index);
   }
 
@@ -596,7 +605,11 @@ export class ValidationUtils {
     validateTasks(tasks);
   }
 
-  static toPositiveInt(value: unknown, defaultValue: number, minValue = 1): number {
+  static toPositiveInt(
+    value: unknown,
+    defaultValue: number,
+    minValue = 1
+  ): number {
     return toPositiveInt(value, defaultValue, minValue);
   }
 

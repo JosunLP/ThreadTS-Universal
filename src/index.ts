@@ -123,10 +123,7 @@ export {
   isWorkerInstance,
 } from './adapters/base';
 
-export type {
-  BaseWorkerConfig,
-  WorkerExecutionMetrics,
-} from './adapters/base';
+export type { BaseWorkerConfig, WorkerExecutionMetrics } from './adapters/base';
 
 // Pool manager export
 export { ThreadPoolManager } from './pool/manager';

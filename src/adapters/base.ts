@@ -343,7 +343,9 @@ export abstract class AbstractWorkerInstance implements WorkerInstance {
    * @param signal - The abort signal to monitor
    * @returns Promise that rejects on abort
    */
-  protected createAbortPromise<T>(signal: AbortSignal): Promise<ThreadResult<T>> {
+  protected createAbortPromise<T>(
+    signal: AbortSignal
+  ): Promise<ThreadResult<T>> {
     return new Promise<ThreadResult<T>>((_, reject) => {
       if (signal.aborted) {
         reject(new WorkerError('Operation was aborted'));

@@ -31,11 +31,7 @@ import type {
   ThreadOptions,
   ThreadTask,
 } from '../types';
-import {
-  ThreadError,
-  TimeoutError,
-  WorkerError,
-} from '../types';
+import { ThreadError, TimeoutError, WorkerError } from '../types';
 import { PlatformUtils } from '../utils/platform';
 import {
   validateFunction,
@@ -570,7 +566,10 @@ export class ThreadTS extends EventTarget {
     }
 
     // Process in batches to allow early termination
-    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
+    const batchSize = toPositiveInt(
+      options.batchSize,
+      getDefaultSearchBatchSize(array.length)
+    );
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -623,7 +622,10 @@ export class ThreadTS extends EventTarget {
       return -1;
     }
 
-    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
+    const batchSize = toPositiveInt(
+      options.batchSize,
+      getDefaultSearchBatchSize(array.length)
+    );
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -675,7 +677,10 @@ export class ThreadTS extends EventTarget {
       return false;
     }
 
-    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
+    const batchSize = toPositiveInt(
+      options.batchSize,
+      getDefaultSearchBatchSize(array.length)
+    );
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -727,7 +732,10 @@ export class ThreadTS extends EventTarget {
       return true; // Empty arrays return true for every()
     }
 
-    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
+    const batchSize = toPositiveInt(
+      options.batchSize,
+      getDefaultSearchBatchSize(array.length)
+    );
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
