@@ -198,13 +198,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ["16", "18", "20", "21"]
+        node-version: ["22", "24"]
         exclude:
           # Skip some combinations to reduce CI time
           - os: macos-latest
-            node-version: "16"
+            node-version: "22"
           - os: windows-latest
-            node-version: "16"
+            node-version: "22"
 
     steps:
       - name: 📦 Checkout Repository
