@@ -40,6 +40,9 @@ async function main() {
     results.push(await testBatchProcessing());
     results.push(await testFindOperations());
     results.push(await testSomeEveryOperations());
+    results.push(await testFlatMapOperation());
+    results.push(await testGroupByPartitionOperations());
+    results.push(await testPipelineAPI());
   } else {
     // Fallback-Tests für Plattformen ohne Worker
     results.push(await testSequentialProcessing());
@@ -198,6 +201,84 @@ async function testSomeEveryOperations(): Promise<BenchmarkResult> {
     time,
     passed: passed && time < 2000,
     details: 'some+every',
+  };
+}
+
+// Tests für neue Array-Methoden (flatMap, groupBy, partition)
+async function testFlatMapOperation(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 1000 }, (_, i) => i + 1);
+
+  const { time, result } = await measureTime(async () => {
+    return threadts.flatMap(data, (x: number) => [x, x * 2]);
+  });
+
+  const passed = result.length === 2000 && result[0] === 1 && result[1] === 2;
+
+  return {
+    name: 'FlatMap Operation',
+    time,
+    passed: passed && time < 2000,
+    details: '1k -> 2k items',
+  };
+}
+
+async function testGroupByPartitionOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 2000 }, (_, i) => ({
+    id: i,
+    category: i % 5, // 5 different categories
+    value: i * 10,
+  }));
+
+  const { time, result } = await measureTime(async () => {
+    const grouped = await threadts.groupBy(
+      data,
+      (item: { category: number }) => String(item.category)
+    );
+    const [evens, odds] = await threadts.partition(
+      data,
+      (item: { id: number }) => item.id % 2 === 0
+    );
+    return { groupedKeys: Object.keys(grouped).length, evensCount: evens.length, oddsCount: odds.length };
+  });
+
+  const passed =
+    result.groupedKeys === 5 &&
+    result.evensCount === 1000 &&
+    result.oddsCount === 1000;
+
+  return {
+    name: 'GroupBy/Partition',
+    time,
+    passed: passed && time < 3000,
+    details: 'group+partition',
+  };
+}
+
+async function testPipelineAPI(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 5000 }, (_, i) => i + 1);
+
+  const { time, result } = await measureTime(async () => {
+    // Pipeline: map -> filter -> reduce
+    const pipelineResult = await threadts.pipe(data)
+      .map((x: number) => x * 2)
+      .filter((x: number) => x % 4 === 0)
+      .reduce((acc: number, x: number) => acc + x, 0)
+      .execute();
+    return pipelineResult;
+  });
+
+  // Sum of all even numbers doubled: 2+4+6+...+10000 = 2*(1+2+3+...+5000) = 2*12502500 = 25005000
+  // But we filter only those divisible by 4 after doubling (i.e., multiples of 4)
+  // Original evens: 2,4,6,...,5000 -> doubled: 4,8,12,...,10000 (all divisible by 4)
+  // Sum: 4+8+12+...+10000 = 4*(1+2+...+2500) = 4*3126250 = 12505000
+  const expectedSum = 12505000;
+  const passed = result === expectedSum;
+
+  return {
+    name: 'Pipeline API',
+    time,
+    passed: passed && time < 3000,
+    details: 'map->filter->reduce',
   };
 }
 

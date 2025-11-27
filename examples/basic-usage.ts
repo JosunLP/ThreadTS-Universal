@@ -2,7 +2,7 @@
  * ThreadTS Universal - Example Usage
  */
 
-import { ThreadTS, memoize, parallelMethod, rateLimit, retry } from '../src';
+import { ThreadTS, logged, memoize, parallelMethod, rateLimit, retry, throttle, timeout } from '../src';
 
 // Get instance for use throughout examples
 const threadts = ThreadTS.getInstance();
@@ -42,6 +42,14 @@ async function arrayOperationsExample() {
   const sum = await threadts.reduce(numbers, (a, b) => a + b, 0);
   console.log('Sum:', sum);
 
+  // Parallel reduceRight
+  const concatenated = await threadts.reduceRight(
+    ['a', 'b', 'c', 'd'],
+    (acc, x) => acc + x,
+    ''
+  );
+  console.log('ReduceRight concat:', concatenated); // 'dcba'
+
   // Parallel find
   const firstGreaterThan5 = await threadts.find(numbers, (x) => x > 5);
   console.log('First > 5:', firstGreaterThan5); // 6
@@ -61,9 +69,84 @@ async function arrayOperationsExample() {
   // Parallel forEach
   console.log('forEach output:');
   await threadts.forEach(numbers.slice(0, 3), (x) => console.log(`  - ${x}`));
+
+  // Parallel flatMap
+  const flatMapped = await threadts.flatMap([1, 2, 3], (x) => [x, x * 2]);
+  console.log('FlatMap [1,2,3] -> [x, x*2]:', flatMapped); // [1, 2, 2, 4, 3, 6]
+
+  // Parallel groupBy
+  const users = [
+    { name: 'Alice', role: 'admin' },
+    { name: 'Bob', role: 'user' },
+    { name: 'Charlie', role: 'admin' },
+    { name: 'David', role: 'user' },
+  ];
+  const groupedByRole = await threadts.groupBy(users, (user) => user.role);
+  console.log('GroupBy role:', groupedByRole);
+
+  // Parallel partition
+  const [evenNumbers, oddNumbers] = await threadts.partition(numbers, (x) => x % 2 === 0);
+  console.log('Partition evens:', evenNumbers); // [2, 4, 6, 8, 10]
+  console.log('Partition odds:', oddNumbers); // [1, 3, 5, 7, 9]
+
+  // Parallel count
+  const evenCount = await threadts.count(numbers, (x) => x % 2 === 0);
+  console.log('Count evens:', evenCount); // 5
 }
 
-// Example 3: Batch processing
+// Example 3: Pipeline API for fluent chaining
+async function pipelineExample() {
+  console.log('🔗 Pipeline API');
+
+  const numbers = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  // Basic pipeline: map -> filter -> reduce
+  const sumOfDoubledEvens = await threadts.pipe(numbers)
+    .map((x) => x * 2)
+    .filter((x) => x % 4 === 0)
+    .reduce((acc, x) => acc + x, 0)
+    .execute();
+  console.log('Sum of doubled evens:', sumOfDoubledEvens);
+
+  // Pipeline with count (counts all filtered elements)
+  const countGreaterThan10 = await threadts.pipe(numbers)
+    .map((x) => x * 3)
+    .filter((x) => x > 10)
+    .count() // Counts all remaining elements
+    .execute();
+  console.log('Count of items > 10 after tripling:', countGreaterThan10);
+
+  // Pipeline with find
+  const firstMatch = await threadts.pipe(numbers)
+    .filter((x) => x > 15)
+    .map((x) => x * 10)
+    .find((x) => x > 200)
+    .execute();
+  console.log('First match > 200:', firstMatch);
+
+  // Pipeline with flatMap
+  const flatResult = await threadts.pipe([1, 2, 3])
+    .flatMap((x) => [x, x * 10, x * 100])
+    .filter((x) => x > 5)
+    .reduce((acc, x) => acc + x, 0)
+    .execute();
+  console.log('FlatMap pipeline result:', flatResult);
+
+  // Pipeline with some/every
+  const hasLargeValue = await threadts.pipe(numbers)
+    .map((x) => x * 2)
+    .some((x) => x > 30)
+    .execute();
+  console.log('Has value > 30:', hasLargeValue);
+
+  const allPositive = await threadts.pipe(numbers)
+    .map((x) => x - 5)
+    .every((x) => x > -10)
+    .execute();
+  console.log('All values > -10:', allPositive);
+}
+
+// Example 4: Batch processing
 async function batchProcessingExample() {
   console.log('📦 Batch Processing');
 
@@ -87,7 +170,7 @@ async function batchProcessingExample() {
   console.log('Processed', results.length, 'items');
 }
 
-// Example 4: Using decorators
+// Example 5: Using decorators
 class DataProcessor {
   @parallelMethod({ timeout: 5000 })
   async heavyComputation(data: number[]): Promise<number> {
@@ -120,6 +203,28 @@ class DataProcessor {
   async rateLimitedMethod(id: number): Promise<string> {
     return `Processed ${id}`;
   }
+
+  @timeout(1000)
+  async timedOperation(): Promise<string> {
+    // Simulates long operation (will timeout if > 1000ms)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return 'Completed within timeout';
+  }
+
+  @logged({ logArgs: true, logResult: true, logTiming: true })
+  async loggedOperation(a: number, b: number): Promise<number> {
+    return a + b;
+  }
+
+  private lastThrottleCall = 0;
+
+  @throttle(1000)
+  async throttledOperation(): Promise<string> {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastThrottleCall;
+    this.lastThrottleCall = now;
+    return `Throttled call (interval: ${timeSinceLastCall}ms)`;
+  }
 }
 
 async function decoratorExample() {
@@ -151,9 +256,32 @@ async function decoratorExample() {
   );
   const rateResults = await Promise.all(promises);
   console.log('Rate limited results:', rateResults.slice(0, 3), '...');
+
+  // Timeout decorator
+  try {
+    const timedResult = await processor.timedOperation();
+    console.log('Timed operation result:', timedResult);
+  } catch (error: unknown) {
+    console.log('Timeout error:', (error as Error).message);
+  }
+
+  // Logged decorator
+  console.log('Logged operation:');
+  const loggedResult = await processor.loggedOperation(5, 10);
+  console.log('Logged result:', loggedResult);
+
+  // Throttle decorator
+  console.log('Throttle demo (only first call executes immediately):');
+  const throttleResults = [];
+  for (let i = 0; i < 3; i++) {
+    const result = await processor.throttledOperation();
+    throttleResults.push(result);
+    await new Promise((resolve) => setTimeout(resolve, 300)); // Wait 300ms between calls
+  }
+  console.log('Throttle results:', throttleResults);
 }
 
-// Example 5: Performance comparison
+// Example 6: Performance comparison
 async function performanceComparison() {
   console.log('⚡ Performance Comparison');
 
@@ -182,7 +310,7 @@ async function performanceComparison() {
   console.log('Parallel results:', parallelResults);
 }
 
-// Example 6: Error handling
+// Example 7: Error handling
 async function errorHandlingExample() {
   console.log('🚨 Error Handling');
 
@@ -233,7 +361,7 @@ async function errorHandlingExample() {
   }
 }
 
-// Example 7: Event system
+// Example 8: Event system
 async function eventSystemExample() {
   console.log('📡 Event System');
 
@@ -279,6 +407,9 @@ async function main() {
     console.log('');
 
     await arrayOperationsExample();
+    console.log('');
+
+    await pipelineExample();
     console.log('');
 
     await batchProcessingExample();

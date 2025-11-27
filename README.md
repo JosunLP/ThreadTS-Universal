@@ -39,12 +39,13 @@ console.log(found); // 4
 ### ⚡ **Advanced Features**
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
-- **Full Array API**: `map`, `filter`, `reduce`, `find`, `findIndex`, `some`, `every`, `forEach`
+- **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`
+- **Pipeline API**: Fluent chaining with lazy evaluation
 - **Progress Tracking**: Real-time progress monitoring
 - **Intelligent Caching**: Automatic result caching with `@memoize` decorator
 - **Priority Queues**: High/Normal/Low priority execution
 - **Timeout & Cancellation**: AbortController integration
-- **Decorator Magic**: `@parallelMethod()`, `@retry()`, `@rateLimit()` for automatic parallelization
+- **Decorator Suite**: `@parallelMethod()`, `@retry()`, `@rateLimit()`, `@timeout()`, `@debounce()`, `@throttle()`, `@logged()`
 - **Monitoring**: Built-in performance monitoring, health checks, and error handling
 
 ## 🚀 Quick Start
@@ -85,12 +86,24 @@ const firstMatch = await threadts.find([1, 2, 3, 4, 5], (x) => x > 3);
 // Check conditions across array
 const hasEven = await threadts.some([1, 3, 5, 6], (x) => x % 2 === 0);
 // Result: true
+
+// Group and partition data
+const [evens, odds] = await threadts.partition([1, 2, 3, 4, 5], (x) => x % 2 === 0);
+// evens: [2, 4], odds: [1, 3, 5]
+
+// Pipeline API for chained operations
+const result = await threadts.pipe([1, 2, 3, 4, 5])
+  .map((x) => x * 2)
+  .filter((x) => x > 4)
+  .reduce((acc, x) => acc + x, 0)
+  .execute();
+// Result: 24
 ```
 
 ### Method Decorators
 
 ```typescript
-import { parallelMethod, memoize, retry, rateLimit } from 'threadts-universal';
+import { parallelMethod, memoize, retry, rateLimit, timeout, debounce } from 'threadts-universal';
 
 class DataProcessor {
   @parallelMethod()
@@ -189,6 +202,19 @@ const sum = await threadts.reduce(
 );
 ```
 
+#### `threadts.reduceRight<T, R>(array, fn, initialValue, options?): Promise<R>`
+
+Reduces an array from right to left.
+
+```typescript
+const result = await threadts.reduceRight(
+  ['a', 'b', 'c'],
+  (acc, item) => acc + item,
+  ''
+);
+// Result: 'cba'
+```
+
 #### `threadts.find<T>(array, predicate, options?): Promise<T | undefined>`
 
 Finds the first element that satisfies the predicate (processes in parallel batches).
@@ -247,6 +273,54 @@ await threadts.forEach([1, 2, 3], (x) => {
 });
 ```
 
+#### `threadts.flatMap<T, R>(array, fn, options?): Promise<R[]>`
+
+Maps each element to an array and flattens the result.
+
+```typescript
+const result = await threadts.flatMap(
+  [1, 2, 3],
+  (x) => [x, x * 2]
+);
+// Result: [1, 2, 2, 4, 3, 6]
+```
+
+#### `threadts.groupBy<T, K>(array, keyFn, options?): Promise<Map<K, T[]>>`
+
+Groups array elements by a key returned from the function.
+
+```typescript
+const grouped = await threadts.groupBy(
+  [{ type: 'a', value: 1 }, { type: 'b', value: 2 }, { type: 'a', value: 3 }],
+  (item) => item.type
+);
+// Map { 'a' => [{type: 'a', value: 1}, {type: 'a', value: 3}], 'b' => [{type: 'b', value: 2}] }
+```
+
+#### `threadts.partition<T>(array, predicate, options?): Promise<[T[], T[]]>`
+
+Partitions an array into two arrays based on a predicate.
+
+```typescript
+const [evens, odds] = await threadts.partition(
+  [1, 2, 3, 4, 5],
+  (x) => x % 2 === 0
+);
+// evens: [2, 4], odds: [1, 3, 5]
+```
+
+#### `threadts.count<T>(array, predicate, options?): Promise<number>`
+
+Counts elements that satisfy a predicate. More efficient than `filter().length`.
+
+```typescript
+const count = await threadts.count(
+  [1, 2, 3, 4, 5],
+  (x) => x > 2
+);
+// Result: 3
+```
+
 #### `threadts.batch(tasks, batchSize?): Promise<TaskResult[]>`
 
 Executes multiple tasks as a batch with configurable batch size.
@@ -259,6 +333,34 @@ const results = await threadts.batch(
   ],
   2 // Process 2 tasks at a time
 );
+```
+
+### Pipeline API
+
+The Pipeline API provides a fluent interface for chaining parallel operations with lazy evaluation.
+
+```typescript
+// Chain multiple operations
+const result = await threadts.pipe([1, 2, 3, 4, 5])
+  .map((x) => x * 2)
+  .filter((x) => x > 4)
+  .reduce((acc, x) => acc + x, 0)
+  .execute();
+// Result: 24 (6 + 8 + 10)
+
+// Using flatMap in pipeline
+const flattened = await threadts.pipe([1, 2, 3])
+  .flatMap((x) => [x, x * 10])
+  .filter((x) => x > 5)
+  .toArray();
+// Result: [10, 20, 30]
+
+// Terminal operations: reduce, forEach, find, some, every, count
+const hasLarge = await threadts.pipe([1, 2, 3, 4, 5])
+  .map((x) => x * 2)
+  .some((x) => x > 8)
+  .execute();
+// Result: true
 ```
 
 ### Advanced Features
@@ -381,6 +483,52 @@ async apiCall(): Promise<Data> {
 }
 ```
 
+#### `@timeout(ms?)`
+
+Automatically rejects if execution exceeds the specified timeout.
+
+```typescript
+@timeout(5000) // Reject after 5 seconds
+async longRunningTask(): Promise<Result> {
+  return performTask();
+}
+```
+
+#### `@debounce(ms?)`
+
+Delays execution until no calls have been made for the specified duration.
+
+```typescript
+@debounce(300) // Wait 300ms after last call
+async handleInput(value: string): Promise<void> {
+  await saveToServer(value);
+}
+```
+
+#### `@throttle(ms?)`
+
+Ensures the method is called at most once per specified interval.
+
+```typescript
+@throttle(1000) // At most once per second
+async trackEvent(event: Event): Promise<void> {
+  await sendAnalytics(event);
+}
+```
+
+#### `@logged(options?)`
+
+Logs method calls, arguments, results, and execution time.
+
+```typescript
+@logged({ logArgs: true, logResult: true })
+async processData(data: Data): Promise<Result> {
+  return transform(data);
+}
+// Logs: [ClassName.processData] Starting with args: [...]
+// Logs: [ClassName.processData] Completed in 45ms. Result: {...}
+```
+
 #### `@parallelBatch(batchSize?)`
 
 Processes array data in parallel batches.
@@ -403,23 +551,19 @@ async processItems(items: Item[]): Promise<Result[]> {
 }
 ```
 
-#### Other Decorators
+#### Decorator Summary
 
 ```typescript
+@parallelMethod() // Parallelize method execution
 @parallelBatch(4) // Process arrays in batches of 4
-async processBatch(items: Item[]): Promise<Result[]> { ... }
-
 @parallelMap() // Parallel map over array
-async processMap(items: Item[]): Promise<Result[]> { ... }
-
 @memoize(100) // LRU cache with 100 entries
-async cachedMethod(): Promise<Result> { ... }
-
 @retry(3, 1000) // Retry up to 3 times with exponential backoff
-async retryableMethod(): Promise<Result> { ... }
-
 @rateLimit(10) // Max 10 calls per second
-async rateLimitedMethod(): Promise<Result> { ... }
+@timeout(5000) // Timeout after 5 seconds
+@debounce(300) // Debounce with 300ms delay
+@throttle(1000) // Throttle to once per second
+@logged() // Log execution details
 ```
 
 ### Event System

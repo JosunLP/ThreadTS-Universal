@@ -26,7 +26,12 @@
  */
 
 // Core exports
-export { ThreadTS, default as threadts } from './core/threadts';
+export {
+  Pipeline,
+  TerminalPipeline,
+  ThreadTS,
+  default as threadts,
+} from './core/threadts';
 
 // Type exports
 export type {
@@ -55,6 +60,8 @@ export {
 
 // Decorator exports
 export {
+  debounce,
+  logged,
   memoize,
   parallel,
   parallelBatch,
@@ -63,6 +70,8 @@ export {
   parallelMethod,
   rateLimit,
   retry,
+  throttle,
+  timeout,
 } from './decorators';
 
 // Utility exports
@@ -91,20 +100,20 @@ export {
 
 // Validation utilities
 export {
-  validateFunction,
+  ValidationUtils,
+  toNonNegativeInt,
+  toPositiveInt,
   validateArray,
-  validateNonEmptyArray,
-  validatePositiveNumber,
-  validateNonNegativeNumber,
-  validateRange,
   validateEnum,
+  validateFunction,
+  validateNonEmptyArray,
+  validateNonNegativeNumber,
+  validatePositiveNumber,
+  validateRange,
   validateSerializable,
-  validateThreadOptions,
   validateTask,
   validateTasks,
-  toPositiveInt,
-  toNonNegativeInt,
-  ValidationUtils,
+  validateThreadOptions,
 } from './utils/validation';
 
 export type { ValidationResult } from './utils/validation';

@@ -759,6 +759,227 @@ export class ThreadTS extends EventTarget {
   }
 
   /**
+   * Maps each element to an array and flattens the result.
+   * Similar to Array.prototype.flatMap but processes in parallel.
+   *
+   * @template T - The type of array elements
+   * @template R - The type of result array elements
+   * @param array - The array to process
+   * @param func - Function that returns an array for each element: (item, index, array) => R[]
+   * @param options - Execution options including batchSize
+   * @returns Flattened array of results
+   *
+   * @example
+   * ```typescript
+   * const result = await threadts.flatMap(
+   *   [1, 2, 3],
+   *   (x) => [x, x * 2]
+   * );
+   * console.log(result); // [1, 2, 2, 4, 3, 6]
+   * ```
+   */
+  async flatMap<T, R>(
+    array: T[],
+    func: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<R[]> {
+    if (!array.length) {
+      return [];
+    }
+
+    const results = await this.map<T, R[]>(array, func, options);
+    return results.flat() as R[];
+  }
+
+  /**
+   * Reduces an array from right to left.
+   * Similar to Array.prototype.reduceRight but processes in parallel where possible.
+   *
+   * @template T - The type of array elements
+   * @template R - The type of the accumulator
+   * @param array - The array to reduce
+   * @param reducer - Function to execute on each element: (acc, item, index, array) => R
+   * @param initialValue - Initial value for the accumulator
+   * @param options - Execution options
+   * @returns The final accumulated value
+   *
+   * @example
+   * ```typescript
+   * const result = await threadts.reduceRight(
+   *   ['a', 'b', 'c'],
+   *   (acc, item) => acc + item,
+   *   ''
+   * );
+   * console.log(result); // 'cba'
+   * ```
+   */
+  async reduceRight<T, R>(
+    array: T[],
+    reducer: SerializableFunction,
+    initialValue: R,
+    options: ThreadOptions = {}
+  ): Promise<R> {
+    let accumulator = initialValue;
+
+    if (!array.length) {
+      return accumulator;
+    }
+
+    // Process from right to left
+    for (let index = array.length - 1; index >= 0; index--) {
+      accumulator = await this.run<R>(
+        reducer,
+        this.createArgsPayload(accumulator, array[index], index, array),
+        options
+      );
+    }
+
+    return accumulator;
+  }
+
+  /**
+   * Groups array elements by a key returned from the function.
+   * Processes the grouping function in parallel for performance.
+   *
+   * @template T - The type of array elements
+   * @template K - The type of the grouping key
+   * @param array - The array to group
+   * @param keyFn - Function that returns the group key: (item, index, array) => K
+   * @param options - Execution options including batchSize
+   * @returns Map of grouped elements
+   *
+   * @example
+   * ```typescript
+   * const grouped = await threadts.groupBy(
+   *   [{ type: 'a', value: 1 }, { type: 'b', value: 2 }, { type: 'a', value: 3 }],
+   *   (item) => item.type
+   * );
+   * // Map { 'a' => [{type: 'a', value: 1}, {type: 'a', value: 3}], 'b' => [{type: 'b', value: 2}] }
+   * ```
+   */
+  async groupBy<T, K extends string | number | symbol>(
+    array: T[],
+    keyFn: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<Map<K, T[]>> {
+    if (!array.length) {
+      return new Map();
+    }
+
+    const keys = await this.map<T, K>(array, keyFn, options);
+    const result = new Map<K, T[]>();
+
+    for (let i = 0; i < array.length; i++) {
+      const key = keys[i];
+      if (!result.has(key)) {
+        result.set(key, []);
+      }
+      result.get(key)!.push(array[i]);
+    }
+
+    return result;
+  }
+
+  /**
+   * Partitions an array into two arrays based on a predicate.
+   * Elements that satisfy the predicate go to the first array,
+   * elements that don't go to the second array.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to partition
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns Tuple of [matching elements, non-matching elements]
+   *
+   * @example
+   * ```typescript
+   * const [evens, odds] = await threadts.partition(
+   *   [1, 2, 3, 4, 5],
+   *   (x) => x % 2 === 0
+   * );
+   * console.log(evens); // [2, 4]
+   * console.log(odds);  // [1, 3, 5]
+   * ```
+   */
+  async partition<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<[T[], T[]]> {
+    if (!array.length) {
+      return [[], []];
+    }
+
+    const results = await this.map<T, boolean>(array, predicate, options);
+    const truthy: T[] = [];
+    const falsy: T[] = [];
+
+    for (let i = 0; i < array.length; i++) {
+      if (results[i]) {
+        truthy.push(array[i]);
+      } else {
+        falsy.push(array[i]);
+      }
+    }
+
+    return [truthy, falsy];
+  }
+
+  /**
+   * Counts elements that satisfy a predicate.
+   * Like filter().length but more efficient as it doesn't store filtered elements.
+   *
+   * @template T - The type of array elements
+   * @param array - The array to count
+   * @param predicate - Function to test each element: (item, index, array) => boolean
+   * @param options - Execution options including batchSize
+   * @returns The count of matching elements
+   *
+   * @example
+   * ```typescript
+   * const count = await threadts.count(
+   *   [1, 2, 3, 4, 5],
+   *   (x) => x > 2
+   * );
+   * console.log(count); // 3
+   * ```
+   */
+  async count<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<number> {
+    if (!array.length) {
+      return 0;
+    }
+
+    const results = await this.map<T, boolean>(array, predicate, options);
+    return results.filter(Boolean).length;
+  }
+
+  /**
+   * Creates a pipeline for chaining parallel operations.
+   * Returns a fluent interface for building complex data transformations.
+   *
+   * @template T - The type of initial array elements
+   * @param array - The initial array to process
+   * @returns A Pipeline instance for chaining operations
+   *
+   * @example
+   * ```typescript
+   * const result = await threadts.pipe([1, 2, 3, 4, 5])
+   *   .map((x) => x * 2)
+   *   .filter((x) => x > 4)
+   *   .reduce((acc, x) => acc + x, 0)
+   *   .execute();
+   * console.log(result); // 24 (6 + 8 + 10)
+   * ```
+   */
+  pipe<T>(array: T[]): Pipeline<T> {
+    return new Pipeline<T>(array, this);
+  }
+
+  /**
    * Executes multiple tasks as a batch with configurable batch size.
    * Tasks within a batch run in parallel, batches run sequentially.
    *
@@ -1089,6 +1310,378 @@ export class ThreadTS extends EventTarget {
   static isSupported(): boolean {
     return PlatformUtils.supportsWorkerThreads();
   }
+
+  /**
+   * Static method to create a flatMap operation.
+   * @see {@link ThreadTS.flatMap} for instance method documentation
+   */
+  static async flatMap<T, R>(
+    array: T[],
+    func: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<R[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.flatMap<T, R>(array, func, options);
+  }
+
+  /**
+   * Static method to reduce an array from right to left.
+   * @see {@link ThreadTS.reduceRight} for instance method documentation
+   */
+  static async reduceRight<T, R>(
+    array: T[],
+    reducer: SerializableFunction,
+    initialValue: R,
+    options: ThreadOptions = {}
+  ): Promise<R> {
+    const instance = ThreadTS.getInstance();
+    return instance.reduceRight<T, R>(array, reducer, initialValue, options);
+  }
+
+  /**
+   * Static method to group array elements by a key.
+   * @see {@link ThreadTS.groupBy} for instance method documentation
+   */
+  static async groupBy<T, K extends string | number | symbol>(
+    array: T[],
+    keyFn: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<Map<K, T[]>> {
+    const instance = ThreadTS.getInstance();
+    return instance.groupBy<T, K>(array, keyFn, options);
+  }
+
+  /**
+   * Static method to partition an array into two arrays.
+   * @see {@link ThreadTS.partition} for instance method documentation
+   */
+  static async partition<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<[T[], T[]]> {
+    const instance = ThreadTS.getInstance();
+    return instance.partition<T>(array, predicate, options);
+  }
+
+  /**
+   * Static method to count elements matching a predicate.
+   * @see {@link ThreadTS.count} for instance method documentation
+   */
+  static async count<T>(
+    array: T[],
+    predicate: SerializableFunction,
+    options: MapOptions = {}
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.count<T>(array, predicate, options);
+  }
+
+  /**
+   * Static method to create a pipeline for chaining operations.
+   * @see {@link ThreadTS.pipe} for instance method documentation
+   */
+  static pipe<T>(array: T[]): Pipeline<T> {
+    const instance = ThreadTS.getInstance();
+    return instance.pipe<T>(array);
+  }
 }
+
+/**
+ * Pipeline class for fluent chaining of parallel operations.
+ * Supports lazy evaluation - operations are only executed when execute() is called.
+ *
+ * @template T - The current type of array elements
+ *
+ * @example
+ * ```typescript
+ * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
+ *   .map(x => x * 2)
+ *   .filter(x => x > 4)
+ *   .reduce((acc, x) => acc + x, 0)
+ *   .execute();
+ * ```
+ */
+class Pipeline<T> {
+  private operations: Array<{
+    type: string;
+    fn?: SerializableFunction;
+    options?: MapOptions | ThreadOptions;
+    initialValue?: unknown;
+  }> = [];
+
+  constructor(
+    private array: T[],
+    private threadts: ThreadTS
+  ) {}
+
+  /**
+   * Adds a map operation to the pipeline.
+   */
+  map<R>(fn: SerializableFunction, options?: MapOptions): Pipeline<R> {
+    this.operations.push({ type: 'map', fn, options });
+    return this as unknown as Pipeline<R>;
+  }
+
+  /**
+   * Adds a filter operation to the pipeline.
+   */
+  filter(fn: SerializableFunction, options?: MapOptions): Pipeline<T> {
+    this.operations.push({ type: 'filter', fn, options });
+    return this;
+  }
+
+  /**
+   * Adds a flatMap operation to the pipeline.
+   */
+  flatMap<R>(fn: SerializableFunction, options?: MapOptions): Pipeline<R> {
+    this.operations.push({ type: 'flatMap', fn, options });
+    return this as unknown as Pipeline<R>;
+  }
+
+  /**
+   * Adds a reduce operation to the pipeline. This is a terminal operation.
+   */
+  reduce<R>(
+    fn: SerializableFunction,
+    initialValue: R,
+    options?: ThreadOptions
+  ): TerminalPipeline<R> {
+    this.operations.push({ type: 'reduce', fn, initialValue, options });
+    return new TerminalPipeline<R>(this.array, this.operations, this.threadts);
+  }
+
+  /**
+   * Adds a forEach operation to the pipeline. This is a terminal operation.
+   */
+  forEach(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<void> {
+    this.operations.push({ type: 'forEach', fn, options });
+    return new TerminalPipeline<void>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Adds a find operation to the pipeline. This is a terminal operation.
+   */
+  find(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<T | undefined> {
+    this.operations.push({ type: 'find', fn, options });
+    return new TerminalPipeline<T | undefined>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Adds a some operation to the pipeline. This is a terminal operation.
+   */
+  some(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<boolean> {
+    this.operations.push({ type: 'some', fn, options });
+    return new TerminalPipeline<boolean>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Adds an every operation to the pipeline. This is a terminal operation.
+   */
+  every(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<boolean> {
+    this.operations.push({ type: 'every', fn, options });
+    return new TerminalPipeline<boolean>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Adds a count operation to the pipeline. This is a terminal operation.
+   * If no predicate is provided, counts all elements.
+   */
+  count(
+    fn?: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<number> {
+    const countFn = fn ?? (() => true);
+    this.operations.push({ type: 'count', fn: countFn, options });
+    return new TerminalPipeline<number>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Executes all operations in the pipeline and returns the result array.
+   */
+  async execute(): Promise<T[]> {
+    let result: unknown[] = this.array;
+
+    for (const op of this.operations) {
+      switch (op.type) {
+        case 'map':
+          result = await this.threadts.map(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+        case 'filter':
+          result = await this.threadts.filter(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+        case 'flatMap':
+          result = await this.threadts.flatMap(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+      }
+    }
+
+    return result as T[];
+  }
+
+  /**
+   * Collects the pipeline results into an array.
+   * Alias for execute().
+   */
+  async toArray(): Promise<T[]> {
+    return this.execute();
+  }
+}
+
+/**
+ * Terminal pipeline for operations that produce a single value.
+ */
+class TerminalPipeline<R> {
+  constructor(
+    private array: unknown[],
+    private operations: Array<{
+      type: string;
+      fn?: SerializableFunction;
+      options?: MapOptions | ThreadOptions;
+      initialValue?: unknown;
+    }>,
+    private threadts: ThreadTS
+  ) {}
+
+  /**
+   * Executes all operations in the pipeline and returns the final result.
+   */
+  async execute(): Promise<R> {
+    let result: unknown[] = this.array;
+
+    for (let i = 0; i < this.operations.length; i++) {
+      const op = this.operations[i];
+      const isLast = i === this.operations.length - 1;
+
+      switch (op.type) {
+        case 'map':
+          result = await this.threadts.map(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+        case 'filter':
+          result = await this.threadts.filter(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+        case 'flatMap':
+          result = await this.threadts.flatMap(
+            result,
+            op.fn!,
+            op.options as MapOptions
+          );
+          break;
+        case 'reduce':
+          if (isLast) {
+            return this.threadts.reduce(
+              result,
+              op.fn!,
+              op.initialValue as R,
+              op.options as ThreadOptions
+            );
+          }
+          break;
+        case 'forEach':
+          if (isLast) {
+            await this.threadts.forEach(
+              result,
+              op.fn!,
+              op.options as MapOptions
+            );
+            return undefined as R;
+          }
+          break;
+        case 'find':
+          if (isLast) {
+            return this.threadts.find(
+              result,
+              op.fn!,
+              op.options as MapOptions
+            ) as Promise<R>;
+          }
+          break;
+        case 'some':
+          if (isLast) {
+            return this.threadts.some(
+              result,
+              op.fn!,
+              op.options as MapOptions
+            ) as Promise<R>;
+          }
+          break;
+        case 'every':
+          if (isLast) {
+            return this.threadts.every(
+              result,
+              op.fn!,
+              op.options as MapOptions
+            ) as Promise<R>;
+          }
+          break;
+        case 'count':
+          if (isLast) {
+            return this.threadts.count(
+              result,
+              op.fn!,
+              op.options as MapOptions
+            ) as Promise<R>;
+          }
+          break;
+      }
+    }
+
+    return result as R;
+  }
+}
+
+export { Pipeline, TerminalPipeline };
 
 export default ThreadTS;

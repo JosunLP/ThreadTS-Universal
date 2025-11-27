@@ -196,6 +196,147 @@ describe('ThreadTS Universal', () => {
       });
       expect(found).toBe(6);
     });
+
+    test('should implement flatMap() correctly', async () => {
+      const numbers = [1, 2, 3];
+
+      const result = await threadts.flatMap(
+        numbers,
+        (x: number) => [x, x * 2]
+      );
+      expect(result).toEqual([1, 2, 2, 4, 3, 6]);
+
+      // Empty array
+      const emptyResult = await threadts.flatMap([], (x: number) => [x]);
+      expect(emptyResult).toEqual([]);
+    });
+
+    test('should implement reduceRight() correctly', async () => {
+      const letters = ['a', 'b', 'c'];
+
+      const result = await threadts.reduceRight(
+        letters,
+        (acc: string, item: string) => acc + item,
+        ''
+      );
+      expect(result).toBe('cba');
+
+      // Empty array
+      const emptyResult = await threadts.reduceRight(
+        [],
+        (acc: number, x: number) => acc + x,
+        0
+      );
+      expect(emptyResult).toBe(0);
+    });
+
+    test('should implement groupBy() correctly', async () => {
+      const items = [
+        { type: 'a', value: 1 },
+        { type: 'b', value: 2 },
+        { type: 'a', value: 3 },
+      ];
+
+      const result = await threadts.groupBy(
+        items,
+        (item: { type: string }) => item.type
+      );
+
+      expect(result.get('a')).toEqual([
+        { type: 'a', value: 1 },
+        { type: 'a', value: 3 },
+      ]);
+      expect(result.get('b')).toEqual([{ type: 'b', value: 2 }]);
+
+      // Empty array
+      const emptyResult = await threadts.groupBy(
+        [],
+        (x: { type: string }) => x.type
+      );
+      expect(emptyResult.size).toBe(0);
+    });
+
+    test('should implement partition() correctly', async () => {
+      const numbers = [1, 2, 3, 4, 5];
+
+      const [evens, odds] = await threadts.partition(
+        numbers,
+        (x: number) => x % 2 === 0
+      );
+
+      expect(evens).toEqual([2, 4]);
+      expect(odds).toEqual([1, 3, 5]);
+
+      // Empty array
+      const [emptyEvens, emptyOdds] = await threadts.partition(
+        [],
+        (x: number) => x % 2 === 0
+      );
+      expect(emptyEvens).toEqual([]);
+      expect(emptyOdds).toEqual([]);
+    });
+
+    test('should implement count() correctly', async () => {
+      const numbers = [1, 2, 3, 4, 5];
+
+      const count = await threadts.count(numbers, (x: number) => x > 2);
+      expect(count).toBe(3);
+
+      // Empty array
+      const emptyCount = await threadts.count([], (x: number) => x > 0);
+      expect(emptyCount).toBe(0);
+    });
+  });
+
+  describe('🔗 Pipeline API', () => {
+    test('should support basic pipeline operations', async () => {
+      const result = await threadts
+        .pipe([1, 2, 3, 4, 5])
+        .map((x: number) => x * 2)
+        .toArray();
+
+      expect(result).toEqual([2, 4, 6, 8, 10]);
+    });
+
+    test('should support chained map and filter', async () => {
+      const result = await threadts
+        .pipe([1, 2, 3, 4, 5])
+        .map((x: number) => x * 2)
+        .filter((x: number) => x > 4)
+        .execute();
+
+      expect(result).toEqual([6, 8, 10]);
+    });
+
+    test('should support terminal reduce operation', async () => {
+      const result = await threadts
+        .pipe([1, 2, 3, 4, 5])
+        .map((x: number) => x * 2)
+        .filter((x: number) => x > 4)
+        .reduce((acc: number, x: number) => acc + x, 0)
+        .execute();
+
+      expect(result).toBe(24); // 6 + 8 + 10
+    });
+
+    test('should support terminal count operation', async () => {
+      const result = await threadts
+        .pipe([1, 2, 3, 4, 5])
+        .filter((x: number) => x > 2)
+        .count((x: number) => x % 2 === 1)
+        .execute();
+
+      expect(result).toBe(2); // 3 and 5 are odd and > 2
+    });
+
+    test('should support flatMap in pipeline', async () => {
+      const result = await threadts
+        .pipe([1, 2, 3])
+        .flatMap((x: number) => [x, x * 10])
+        .execute();
+
+      expect(result).toEqual([1, 10, 2, 20, 3, 30]);
+    });
   });
 
   describe('🎛️ Configuration & Options', () => {

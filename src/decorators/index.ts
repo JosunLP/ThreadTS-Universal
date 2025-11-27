@@ -309,3 +309,166 @@ export function rateLimit(callsPerSecond: number = 10) {
     return descriptor;
   };
 }
+
+/**
+ * Decorator for timeout handling
+ * Automatically rejects if execution exceeds the specified timeout
+ */
+export function timeout(ms: number = 5000) {
+  return function (
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: unknown[]) {
+      return Promise.race([
+        originalMethod.apply(this, args),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Operation timed out after ${ms}ms`)),
+            ms
+          )
+        ),
+      ]);
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Decorator for debouncing method calls
+ * Delays execution until no calls have been made for the specified duration
+ */
+export function debounce(ms: number = 300) {
+  return function (
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let pendingResolve: ((value: unknown) => void) | null = null;
+    let pendingReject: ((error: Error) => void) | null = null;
+
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: unknown[]) {
+      return new Promise((resolve, reject) => {
+        // Clear previous timeout and reject pending promise
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          if (pendingReject) {
+            pendingReject(new Error('Debounced: superseded by new call'));
+          }
+        }
+
+        pendingResolve = resolve;
+        pendingReject = reject;
+
+        timeoutId = setTimeout(async () => {
+          try {
+            const result = await originalMethod.apply(this, args);
+            if (pendingResolve) {
+              pendingResolve(result);
+            }
+          } catch (error) {
+            if (pendingReject) {
+              pendingReject(
+                error instanceof Error ? error : new Error(String(error))
+              );
+            }
+          } finally {
+            timeoutId = null;
+            pendingResolve = null;
+            pendingReject = null;
+          }
+        }, ms);
+      });
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Decorator for throttling method calls
+ * Ensures the method is called at most once per specified interval
+ */
+export function throttle(ms: number = 300) {
+  return function (
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    let lastCall = 0;
+    let lastResult: unknown = undefined;
+
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: unknown[]) {
+      const now = Date.now();
+
+      if (now - lastCall >= ms) {
+        lastCall = now;
+        lastResult = await originalMethod.apply(this, args);
+      }
+
+      return lastResult;
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Decorator for logging method execution
+ * Logs method calls, arguments, results, and execution time
+ */
+export function logged(
+  options: { logArgs?: boolean; logResult?: boolean; logTiming?: boolean } = {}
+) {
+  const { logArgs = true, logResult = true, logTiming = true } = options;
+
+  return function (
+    target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value;
+    const className =
+      (target as { constructor?: { name?: string } })?.constructor?.name ||
+      'Unknown';
+
+    descriptor.value = async function (...args: unknown[]) {
+      const startTime = Date.now();
+      const argsLog = logArgs ? ` with args: ${JSON.stringify(args)}` : '';
+
+      console.log(`[${className}.${propertyKey}] Starting${argsLog}`);
+
+      try {
+        const result = await originalMethod.apply(this, args);
+        const duration = Date.now() - startTime;
+        const timingLog = logTiming ? ` in ${duration}ms` : '';
+        const resultLog = logResult ? ` Result: ${JSON.stringify(result)}` : '';
+
+        console.log(
+          `[${className}.${propertyKey}] Completed${timingLog}.${resultLog}`
+        );
+
+        return result;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const timingLog = logTiming ? ` after ${duration}ms` : '';
+        console.error(
+          `[${className}.${propertyKey}] Failed${timingLog}:`,
+          error
+        );
+        throw error;
+      }
+    };
+
+    return descriptor;
+  };
+}
