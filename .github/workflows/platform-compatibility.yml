@@ -7,24 +7,24 @@ on:
     branches: [main]
   schedule:
     # Weekly platform compatibility check on Fridays at 12:00 UTC
-    - cron: '0 12 * * 5'
+    - cron: "0 12 * * 5"
   workflow_dispatch:
     inputs:
       platform_filter:
-        description: 'Platform to test (leave empty for all)'
+        description: "Platform to test (leave empty for all)"
         required: false
         type: choice
         options:
-          - ''
+          - ""
           - browser
           - node
           - deno
           - bun
 
 env:
-  NODE_VERSION: '18'
-  DENO_VERSION: 'v1.38.0'
-  BUN_VERSION: '1.0.0'
+  NODE_VERSION: "25"
+  DENO_VERSION: "v2.5.1"
+  BUN_VERSION: "1.3.3"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -198,13 +198,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['16', '18', '20', '21']
+        node-version: ["16", "18", "20", "21"]
         exclude:
           # Skip some combinations to reduce CI time
           - os: macos-latest
-            node-version: '16'
+            node-version: "16"
           - os: windows-latest
-            node-version: '16'
+            node-version: "16"
 
     steps:
       - name: 📦 Checkout Repository
@@ -214,7 +214,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -340,7 +340,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies & Build
         run: |
@@ -477,7 +477,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies & Build
         run: |
