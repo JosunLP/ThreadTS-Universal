@@ -3,14 +3,18 @@
  * Lightweight Performance-Tests für die Kernfunktionalität
  */
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import threadts, { ThreadTS } from '../src';
 
 // Mock für Test-Umgebung
-jest.mock('../src/utils/platform', () => ({
-  ...jest.requireActual('../src/utils/platform'),
-  supportsWorkerThreads: () => true,
-  detectPlatform: () => 'node',
-}));
+vi.mock('../src/utils/platform', async () => {
+  const actual = await vi.importActual('../src/utils/platform');
+  return {
+    ...actual,
+    supportsWorkerThreads: () => true,
+    detectPlatform: () => 'node',
+  };
+});
 
 describe('🚀 Performance Tests', () => {
   beforeEach(() => {

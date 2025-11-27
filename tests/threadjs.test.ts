@@ -3,15 +3,19 @@
  * Tests for the real capabilities of the NPM package
  */
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import threadts, { ThreadTS } from '../src';
 
 // Mock Worker for test environment
-jest.mock('../src/utils/platform', () => ({
-  ...jest.requireActual('../src/utils/platform'),
-  supportsWorkerThreads: () => true,
-  detectPlatform: () => 'node',
-  getOptimalWorkerCount: () => 4,
-}));
+vi.mock('../src/utils/platform', async () => {
+  const actual = await vi.importActual('../src/utils/platform');
+  return {
+    ...actual,
+    supportsWorkerThreads: () => true,
+    detectPlatform: () => 'node',
+    getOptimalWorkerCount: () => 4,
+  };
+});
 
 describe('ThreadTS Universal', () => {
   beforeEach(() => {

@@ -3,6 +3,7 @@
  * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ThreadTS } from '../src/core/threadts';
 
 describe('Memory Leak Detection', () => {

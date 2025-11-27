@@ -3,21 +3,22 @@
  * Tests for the validation utility functions
  */
 
+import { describe, expect, test } from 'vitest';
 import {
-  validateFunction,
-  validateArray,
-  validateNonEmptyArray,
-  validatePositiveNumber,
-  validateNonNegativeNumber,
-  validateRange,
-  validateEnum,
-  validateSerializable,
-  validateThreadOptions,
-  validateTask,
-  validateTasks,
-  toPositiveInt,
-  toNonNegativeInt,
-  ValidationUtils,
+    toNonNegativeInt,
+    toPositiveInt,
+    validateArray,
+    validateEnum,
+    validateFunction,
+    validateNonEmptyArray,
+    validateNonNegativeNumber,
+    validatePositiveNumber,
+    validateRange,
+    validateSerializable,
+    validateTask,
+    validateTasks,
+    validateThreadOptions,
+    ValidationUtils,
 } from '../src/utils/validation';
 
 describe('Validation Utilities', () => {
