@@ -1,6 +1,7 @@
 {
   "name": "threadts-universal",
   "version": "0.0.1",
+  "type": "module",
   "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
   "main": "dist/index.cjs",
   "module": "dist/esm/index.mjs",
@@ -94,13 +95,13 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.0.0"
   },
   "browser": {
     "./dist/node.js": false,
     "./src/adapters/node.ts": false
   },
   "volta": {
-    "node": "25.2.1"
+    "node": "24.11.1"
   }
 }

@@ -22,7 +22,7 @@ on:
           - bun
 
 env:
-  NODE_VERSION: "25"
+  NODE_VERSION: "24"
   DENO_VERSION: "v2.5.1"
   BUN_VERSION: "1.3.3"
 

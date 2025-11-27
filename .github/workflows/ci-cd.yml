@@ -10,7 +10,7 @@ on:
     - cron: "0 2 * * *"
 
 env:
-  NODE_VERSION: "25"
+  NODE_VERSION: "24"
   PNPM_VERSION: "10"
 
 jobs:
@@ -97,11 +97,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ["24", "25"]
+        node-version: ["22", "24"]
         include:
           # Extended testing on Ubuntu
           - os: ubuntu-latest
-            node-version: "25"
+            node-version: "24"
             extended: true
 
     steps:

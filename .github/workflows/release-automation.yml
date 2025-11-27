@@ -33,7 +33,7 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: "25"
+  NODE_VERSION: "24"
   REGISTRY_URL: "https://registry.npmjs.org"
 
 jobs:
