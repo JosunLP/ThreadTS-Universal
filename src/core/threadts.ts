@@ -44,6 +44,23 @@ import {
 } from '../utils/validation';
 
 /**
+ * Default batch size for search operations (find, findIndex, some, every).
+ * A smaller batch size provides better early termination behavior.
+ */
+const DEFAULT_SEARCH_BATCH_SIZE = 10;
+
+/**
+ * Calculates the default batch size for search operations.
+ * Uses a smaller batch size for better early termination behavior.
+ *
+ * @param arrayLength - The length of the array being processed
+ * @returns The calculated batch size
+ */
+function getDefaultSearchBatchSize(arrayLength: number): number {
+  return Math.min(arrayLength, DEFAULT_SEARCH_BATCH_SIZE);
+}
+
+/**
  * Event map for ThreadTS event system.
  * Defines all events that can be emitted by the ThreadTS instance.
  */
@@ -553,8 +570,7 @@ export class ThreadTS extends EventTarget {
     }
 
     // Process in batches to allow early termination
-    // Default to smaller batch size (10) for better early termination behavior
-    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
+    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -607,8 +623,7 @@ export class ThreadTS extends EventTarget {
       return -1;
     }
 
-    // Default to smaller batch size (10) for better early termination behavior
-    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
+    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -660,8 +675,7 @@ export class ThreadTS extends EventTarget {
       return false;
     }
 
-    // Default to smaller batch size (10) for better early termination behavior
-    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
+    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
@@ -713,8 +727,7 @@ export class ThreadTS extends EventTarget {
       return true; // Empty arrays return true for every()
     }
 
-    // Default to smaller batch size (10) for better early termination behavior
-    const batchSize = toPositiveInt(options.batchSize, Math.min(array.length, 10));
+    const batchSize = toPositiveInt(options.batchSize, getDefaultSearchBatchSize(array.length));
     const executionOptions: ThreadOptions = { ...options };
 
     for (let i = 0; i < array.length; i += batchSize) {
