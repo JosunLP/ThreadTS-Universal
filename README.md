@@ -912,6 +912,124 @@ npm run test:node
 npm run test:performance
 ```
 
+## 🏗️ Project Architecture
+
+ThreadTS Universal follows a modular, OOP-first architecture designed for maintainability and extensibility.
+
+### Directory Structure
+
+```text
+src/
+├── index.ts              # Main entry point (auto-detects platform)
+├── browser.ts            # Browser-specific entry
+├── node.ts               # Node.js-specific entry
+├── types.ts              # TypeScript type definitions
+│
+├── core/
+│   ├── threadts.ts       # Main ThreadTS class (singleton pattern)
+│   └── pipeline.ts       # Pipeline & TerminalPipeline classes
+│
+├── adapters/
+│   ├── base.ts           # Abstract WorkerAdapter base class
+│   ├── browser.ts        # Web Worker adapter
+│   ├── node.ts           # Worker Threads adapter
+│   ├── deno.ts           # Deno Worker adapter
+│   └── bun.ts            # Bun Worker adapter
+│
+├── decorators/
+│   ├── index.ts          # Re-exports all decorators
+│   ├── parallel.ts       # @parallelMethod, @parallelClass, @parallelBatch, @parallelMap
+│   ├── caching.ts        # @memoize, @cache, @lazy
+│   ├── flow-control.ts   # @retry, @timeout, @rateLimit, @debounce, @throttle, @concurrent, @circuitBreaker
+│   └── observability.ts  # @logged, @measure, @validate
+│
+├── monitoring/
+│   ├── error-handler.ts  # Centralized error handling
+│   ├── health.ts         # Health checks and diagnostics
+│   └── performance.ts    # Performance monitoring
+│
+├── pool/
+│   └── manager.ts        # Worker pool management
+│
+└── utils/
+    ├── platform.ts       # Platform detection utilities
+    ├── serialization.ts  # Data serialization helpers
+    └── validation.ts     # Input validation utilities
+```
+
+### Decorator Modules
+
+Decorators are organized by category for better maintainability:
+
+| Module             | Decorators                                                                                     | Purpose                       |
+| ------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------- |
+| `parallel.ts`      | `@parallelMethod`, `@parallelClass`, `@parallel`, `@parallelBatch`, `@parallelMap`             | Parallel execution            |
+| `caching.ts`       | `@memoize`, `@cache`, `@lazy`                                                                  | Caching & memoization         |
+| `flow-control.ts`  | `@retry`, `@timeout`, `@rateLimit`, `@debounce`, `@throttle`, `@concurrent`, `@circuitBreaker` | Flow control & resilience     |
+| `observability.ts` | `@logged`, `@measure`, `@validate`                                                             | Logging, metrics & validation |
+
+All decorators are re-exported from `decorators/index.ts` for convenient imports:
+
+```typescript
+// Import individual decorators
+import { parallelMethod, memoize, retry, logged } from 'threadts-universal';
+
+// Or import all from specific category
+import { memoize, cache, lazy } from 'threadts-universal/decorators/caching';
+```
+
+### Core Classes
+
+#### ThreadTS (Singleton)
+
+The main class managing worker pools and task execution:
+
+```typescript
+// Always use getInstance() - ThreadTS is a singleton
+const threadts = ThreadTS.getInstance({ poolSize: 4 });
+
+// Methods are chainable where appropriate
+await threadts.run(fn, data);
+await threadts.map(array, fn);
+await threadts.pipe(array).filter(fn).map(fn).execute();
+```
+
+#### Pipeline & TerminalPipeline
+
+Fluent API for data processing with lazy evaluation:
+
+```typescript
+// Pipeline provides intermediate operations (lazy)
+const pipeline = threadts.pipe(data)
+  .filter(x => x > 0)     // Returns Pipeline
+  .map(x => x * 2)        // Returns Pipeline
+  .sort((a, b) => a - b); // Returns Pipeline
+
+// Terminal operations execute the pipeline
+const result = await pipeline.execute();  // Returns TerminalPipeline
+const array = await pipeline.toArray();   // Executes and returns array
+const sum = await pipeline.sum().execute(); // Aggregation
+```
+
+### Adapter Pattern
+
+Platform-specific worker implementations extend the abstract `WorkerAdapter`:
+
+```typescript
+abstract class WorkerAdapter {
+  abstract createWorker(taskFn: Function, data: unknown): void;
+  abstract terminate(): Promise<void>;
+  abstract postMessage(message: unknown): void;
+  // ... common interface
+}
+
+// Platform adapters
+class BrowserWorkerAdapter extends WorkerAdapter { /* Web Worker */ }
+class NodeWorkerAdapter extends WorkerAdapter { /* Worker Threads */ }
+class DenoWorkerAdapter extends WorkerAdapter { /* Deno Worker */ }
+class BunWorkerAdapter extends WorkerAdapter { /* Bun Worker */ }
+```
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.

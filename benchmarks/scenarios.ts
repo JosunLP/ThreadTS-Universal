@@ -34,9 +34,10 @@ async function main() {
 
 async function imageProcessingScenario() {
   console.log('\n📸 Scenario: Image Processing');
-  console.log('Simulating pixel manipulation on 1000x1000 image...');
+  console.log('Simulating pixel manipulation on 100x100 image...');
 
-  const imageData = Array.from({ length: 1000000 }, () =>
+  // Reduced from 1M to 10K for faster execution without real workers
+  const imageData = Array.from({ length: 10000 }, () =>
     Math.floor(Math.random() * 255)
   );
 
@@ -51,7 +52,7 @@ async function imageProcessingScenario() {
       const adjusted = Math.min(255, pixel * brightness);
       return Math.floor(adjusted);
     },
-    { batchSize: 10000 }
+    { batchSize: 5000 } // Larger batches = fewer tasks
   );
 
   const duration = performance.now() - start;
@@ -116,11 +117,12 @@ async function dataAnalysisScenario() {
 
 async function mathematicalComputationScenario() {
   console.log('\n🧮 Scenario: Mathematical Computation');
-  console.log('Computing prime numbers up to 10,000...');
+  console.log('Computing prime numbers up to 1,000...');
 
   const start = performance.now();
 
-  const numbers = Array.from({ length: 10000 }, (_, i) => i + 2);
+  // Reduced from 10K to 1K for faster execution
+  const numbers = Array.from({ length: 1000 }, (_, i) => i + 2);
   const primes = await threadts.filter(numbers, (num: number) => {
     if (num < 2) return false;
     for (let i = 2; i <= Math.sqrt(num); i++) {
@@ -140,7 +142,7 @@ async function mathematicalComputationScenario() {
 
 async function searchOperationsScenario() {
   console.log('\n🔍 Scenario: Search Operations');
-  console.log('Testing find, findIndex, some, every on large datasets...');
+  console.log('Testing find, findIndex, some, every on datasets...');
 
   interface User {
     id: number;
@@ -149,7 +151,8 @@ async function searchOperationsScenario() {
     score: number;
   }
 
-  const users: User[] = Array.from({ length: 100000 }, (_, i) => ({
+  // Reduced to 100 for fast execution without real workers
+  const users: User[] = Array.from({ length: 100 }, (_, i) => ({
     id: i,
     name: `User ${i}`,
     active: Math.random() > 0.1,
@@ -159,10 +162,7 @@ async function searchOperationsScenario() {
   const start = performance.now();
 
   // Find a specific user
-  const targetUser = await threadts.find(
-    users,
-    (user: User) => user.id === 75000
-  );
+  const targetUser = await threadts.find(users, (user: User) => user.id === 75);
   console.log(`   Found user: ${targetUser?.name}`);
 
   // Find index of high scorer
@@ -192,7 +192,7 @@ async function searchOperationsScenario() {
 
 async function validationScenario() {
   console.log('\n✔️ Scenario: Data Validation');
-  console.log('Validating 50,000 form submissions...');
+  console.log('Validating 100 form submissions...');
 
   interface FormData {
     email: string;
@@ -200,8 +200,9 @@ async function validationScenario() {
     username: string;
   }
 
-  const formSubmissions: FormData[] = Array.from({ length: 50000 }, (_, i) => ({
-    email: i % 100 === 0 ? 'invalid' : `user${i}@example.com`,
+  // Reduced from 50K to 100 for fast execution
+  const formSubmissions: FormData[] = Array.from({ length: 100 }, (_, i) => ({
+    email: i % 10 === 0 ? 'invalid' : `user${i}@example.com`,
     age: Math.floor(Math.random() * 100),
     username: `user_${i}`,
   }));
