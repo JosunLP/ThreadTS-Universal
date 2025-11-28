@@ -36,7 +36,6 @@ export function serializeFunction(fn: SerializableFunction): string {
 /**
  * Deserializes a function string back to a function
  */
-// eslint-disable-next-line @typescript-eslint/no-implied-eval
 export function deserializeFunction(fnString: string): SerializableFunction {
   try {
     // Use Function constructor for safe evaluation

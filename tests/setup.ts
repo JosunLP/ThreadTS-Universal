@@ -2,6 +2,7 @@
  * Test setup for ThreadTS Universal
  */
 
+
 // Mock worker threads for testing environments that don't support them
 (globalThis as any).Worker =
   (globalThis as any).Worker ||
@@ -82,8 +83,8 @@
     throw new Error(`Module not found: ${module}`);
   };
 
-// Setup global test timeout
-jest.setTimeout(30000);
+// Setup global test timeout (configured in vitest.config.ts)
+// vi.setConfig({ testTimeout: 30000 }) - not needed, configured in vitest.config.ts
 
 // Mock performance.now for consistent timing
 (globalThis as any).performance = (globalThis as any).performance || {
@@ -112,6 +113,19 @@ jest.setTimeout(30000);
   };
 
 // Mock navigator for hardware concurrency
-(globalThis as any).navigator = (globalThis as any).navigator || {
-  hardwareConcurrency: 4,
-};
+// In Vitest/Node environment, navigator might be read-only, so we check first
+if (typeof (globalThis as any).navigator === 'undefined') {
+  (globalThis as any).navigator = {
+    hardwareConcurrency: 4,
+  };
+} else if (typeof (globalThis as any).navigator.hardwareConcurrency === 'undefined') {
+  try {
+    Object.defineProperty((globalThis as any).navigator, 'hardwareConcurrency', {
+      value: 4,
+      writable: true,
+      configurable: true,
+    });
+  } catch {
+    // Navigator is read-only in this environment, skip mocking
+  }
+}

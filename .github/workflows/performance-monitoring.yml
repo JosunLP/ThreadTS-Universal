@@ -5,13 +5,13 @@ on:
     branches: [main]
   schedule:
     # Daily performance monitoring at 04:00 UTC
-    - cron: '0 4 * * *'
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
       benchmark_type:
-        description: 'Benchmark type to run'
+        description: "Benchmark type to run"
         required: false
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -21,7 +21,7 @@ on:
           - advanced
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: "24"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -102,7 +102,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci
@@ -172,7 +172,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📋 Install Dependencies
         run: npm ci

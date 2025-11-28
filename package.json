@@ -1,15 +1,16 @@
 {
   "name": "threadts-universal",
   "version": "0.0.1",
+  "type": "module",
   "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
   "main": "dist/index.cjs",
   "module": "dist/esm/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/esm/index.mjs",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
@@ -17,24 +18,20 @@
     "src/**/*"
   ],
   "scripts": {
-    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run fix:esm",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:esm": "tsc -p tsconfig.esm.json",
-    "build:types": "tsc -p tsconfig.types.json",
-    "fix:esm": "node scripts/fix-esm-imports.cjs",
-    "dev": "tsc -w",
-    "test": "jest --forceExit",
-    "test:ci": "jest --forceExit --runInBand",
-    "test:local": "npx --node-options=\"--expose-gc\" jest --forceExit",
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:ci": "vitest run --pool=forks --poolOptions.forks.singleFork",
+    "test:local": "vitest run --expose-gc",
     "test:browser": "playwright test",
     "test:node": "npm run test:node:ci",
-    "test:node:ci": "jest --testPathPattern=node",
-    "test:node:local": "npx --node-options=\"--expose-gc\" jest --testPathPattern=node",
+    "test:node:ci": "vitest run --testNamePattern=node",
+    "test:node:local": "vitest run --expose-gc --testNamePattern=node",
     "test:memory": "npm run test:memory:ci",
-    "test:memory:ci": "jest tests/memory-leaks.test.ts --detectOpenHandles",
-    "test:memory:local": "npx --node-options=\"--expose-gc\" jest tests/memory-leaks.test.ts --detectOpenHandles",
+    "test:memory:ci": "vitest run tests/memory-leaks.test.ts",
+    "test:memory:local": "vitest run --expose-gc tests/memory-leaks.test.ts",
     "test:all": "npm run test && npm run test:browser && npm run test:memory",
-    "test:pack": "jest --testPathIgnorePatterns=memory-leaks.test.ts --testPathIgnorePatterns=browser --forceExit",
+    "test:pack": "vitest run --exclude=**/memory-leaks.test.ts --exclude=**/browser/**",
     "test:package": "node test-package.cjs",
     "benchmark": "npx tsx benchmarks/core.ts",
     "benchmark:memory": "npx tsx benchmarks/advanced.ts",
@@ -48,8 +45,8 @@
     "docs": "typedoc",
     "docs:generate": "npm run docs && npm run docs:api",
     "docs:api": "typedoc src --out docs/api --excludePrivate --excludeProtected",
-    "prepare": "npm run build && node scripts/create-cjs-wrapper.cjs",
-    "prepack": "npm run build && node scripts/create-cjs-wrapper.cjs && npm run test:pack && npm run test:package",
+    "prepare": "npm run build",
+    "prepack": "npm run build && npm run test:pack && npm run test:package",
     "postversion": "git push && git push --tags && npm publish",
     "release:patch": "npm version patch && npm run postversion",
     "release:minor": "npm version minor && npm run postversion",
@@ -81,25 +78,30 @@
   },
   "homepage": "https://threadts.dev",
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.54.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^9.39.1",
-    "jest": "^30.2.0",
     "playwright": "^1.42.1",
     "prettier": "^3.2.5",
-    "ts-jest": "^29.1.2",
     "tsx": "^4.19.2",
     "typedoc": "^0.28.14",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.0.0"
   },
   "browser": {
     "./dist/node.js": false,
     "./src/adapters/node.ts": false
+  },
+  "volta": {
+    "node": "24.11.1"
   }
 }

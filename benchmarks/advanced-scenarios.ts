@@ -239,6 +239,110 @@ class AdvancedBenchmarks {
       details: `${Math.round(iterations / threadtsTime)} ops/ms`,
     };
   }
+
+  /**
+   * Search Operations Benchmark (find, findIndex, some, every)
+   */
+  static async benchmarkSearchOperations(): Promise<AdvancedBenchmarkResult> {
+    const data = Array.from({ length: 100000 }, (_, i) => ({
+      id: i,
+      value: Math.random() * 1000,
+      active: i !== 50000, // One inactive item in the middle
+    }));
+
+    // Native Implementation
+    const nativeProcessing = async () => {
+      const found = data.find((item) => item.id === 75000);
+      const foundIndex = data.findIndex((item) => item.id === 75000);
+      const hasInactive = data.some((item) => !item.active);
+      const allPositive = data.every((item) => item.value >= 0);
+      return { found, foundIndex, hasInactive, allPositive };
+    };
+
+    // ThreadTS Implementation
+    const threadtsProcessing = async () => {
+      const found = await threadts.find(
+        data,
+        (item: { id: number; value: number; active: boolean }) =>
+          item.id === 75000
+      );
+      const foundIndex = await threadts.findIndex(
+        data,
+        (item: { id: number; value: number; active: boolean }) =>
+          item.id === 75000
+      );
+      const hasInactive = await threadts.some(
+        data,
+        (item: { id: number; value: number; active: boolean }) => !item.active
+      );
+      const allPositive = await threadts.every(
+        data,
+        (item: { id: number; value: number; active: boolean }) =>
+          item.value >= 0
+      );
+      return { found, foundIndex, hasInactive, allPositive };
+    };
+
+    const { time: nativeTime } = await measureTime(nativeProcessing);
+    const { time: threadtsTime } = await measureTime(threadtsProcessing);
+
+    const overhead = threadtsTime - nativeTime;
+    const passed = overhead < 100; // Max 100ms overhead for search ops
+
+    return {
+      name: 'Search Operations (100k items)',
+      threadts: threadtsTime,
+      native: nativeTime,
+      overhead,
+      passed,
+      details: 'find/some/every',
+    };
+  }
+
+  /**
+   * Batch Processing with Events
+   */
+  static async benchmarkBatchWithEvents(): Promise<AdvancedBenchmarkResult> {
+    const tasks = Array.from({ length: 100 }, (_, i) => ({
+      fn: (x: number) => {
+        let result = x;
+        for (let j = 0; j < 100; j++) {
+          result = Math.sqrt(result + j);
+        }
+        return result;
+      },
+      data: i,
+    }));
+
+    let eventCount = 0;
+    const handler = () => {
+      eventCount++;
+    };
+
+    threadts.on('task-complete', handler);
+
+    const { time: threadtsTime } = await measureTime(async () => {
+      return threadts.batch(tasks, 10);
+    });
+
+    threadts.off('task-complete', handler);
+
+    // Compare with direct Promise.all
+    const { time: nativeTime } = await measureTime(async () => {
+      return Promise.all(tasks.map((t) => Promise.resolve(t.fn(t.data))));
+    });
+
+    const overhead = threadtsTime - nativeTime;
+
+    return {
+      name: 'Batch with Events (100 tasks)',
+      threadts: threadtsTime,
+      native: nativeTime,
+      overhead,
+      passed: overhead < 50 && eventCount > 0,
+      details: `${eventCount} events`,
+    };
+  }
 }
 
 async function main() {
@@ -258,6 +362,8 @@ async function main() {
     AdvancedBenchmarks.benchmarkJSONProcessing,
     AdvancedBenchmarks.benchmarkCryptography,
     AdvancedBenchmarks.benchmarkMathComputation,
+    AdvancedBenchmarks.benchmarkSearchOperations,
+    AdvancedBenchmarks.benchmarkBatchWithEvents,
   ];
 
   const results: AdvancedBenchmarkResult[] = [];
