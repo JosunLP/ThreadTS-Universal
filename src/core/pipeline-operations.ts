@@ -32,6 +32,8 @@ export const TERMINAL_OPERATIONS = [
   'forEach',
   'find',
   'findIndex',
+  'findLast',
+  'findLastIndex',
   'some',
   'every',
   'count',
@@ -265,6 +267,38 @@ export async function executeIntermediateOperation(
       return result;
     }
 
+    case 'slice': {
+      // Slice from start to end (stored in count and step)
+      const start = op.count ?? 0;
+      const end = op.step;
+      return data.slice(start, end);
+    }
+
+    case 'concat': {
+      // Concatenate with another array
+      const other = op.initialValue as unknown[];
+      if (!Array.isArray(other)) return data;
+      return [...data, ...other];
+    }
+
+    case 'rotate': {
+      // Rotate array by n positions
+      const n = op.count ?? 0;
+      if (data.length === 0 || n === 0) return data;
+      const normalizedN = ((n % data.length) + data.length) % data.length;
+      return [...data.slice(-normalizedN), ...data.slice(0, -normalizedN)];
+    }
+
+    case 'truthy': {
+      // Keep only truthy values
+      return data.filter(Boolean);
+    }
+
+    case 'falsy': {
+      // Keep only falsy values
+      return data.filter((item) => !item);
+    }
+
     default:
       return data;
   }
@@ -310,6 +344,28 @@ export async function executeTerminalOperation<R>(
         op.fn!,
         op.options as MapOptions
       ) as Promise<R>;
+
+    case 'findLast': {
+      // Find last element matching predicate
+      if (!op.fn) return undefined as R;
+      for (let i = data.length - 1; i >= 0; i--) {
+        if (op.fn(data[i], i, data)) {
+          return data[i] as R;
+        }
+      }
+      return undefined as R;
+    }
+
+    case 'findLastIndex': {
+      // Find last index matching predicate
+      if (!op.fn) return -1 as R;
+      for (let i = data.length - 1; i >= 0; i--) {
+        if (op.fn(data[i], i, data)) {
+          return i as R;
+        }
+      }
+      return -1 as R;
+    }
 
     case 'some':
       return threadts.some(

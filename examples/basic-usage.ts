@@ -112,6 +112,76 @@ async function arrayOperationsExample() {
   // Parallel count
   const evenCount = await threadts.count(numbers, (x) => x % 2 === 0);
   console.log('Count evens:', evenCount); // 5
+
+  // === ES2023+ Immutable Array Methods ===
+  console.log('\n--- ES2023+ Immutable Methods ---');
+
+  // findLast - finds the LAST element matching the predicate
+  const lastEven = await threadts.findLast(numbers, (x) => x % 2 === 0);
+  console.log('findLast (even):', lastEven); // 10 (last even number)
+
+  const lastLessThan5 = await threadts.findLast(numbers, (x) => x < 5);
+  console.log('findLast (< 5):', lastLessThan5); // 4
+
+  // findLastIndex - finds the INDEX of the last matching element
+  const lastEvenIndex = await threadts.findLastIndex(
+    numbers,
+    (x) => x % 2 === 0
+  );
+  console.log('findLastIndex (even):', lastEvenIndex); // 9 (index of 10)
+
+  // toSorted - returns a NEW sorted array (original unchanged)
+  const unsorted = [3, 1, 4, 1, 5, 9, 2, 6];
+  const sorted = await threadts.toSorted(unsorted);
+  console.log('toSorted:', sorted); // [1, 1, 2, 3, 4, 5, 6, 9]
+  console.log('Original unchanged:', unsorted); // [3, 1, 4, 1, 5, 9, 2, 6]
+
+  // toSorted with custom comparator (descending)
+  const sortedDesc = await threadts.toSorted(unsorted, (a, b) => b - a);
+  console.log('toSorted (desc):', sortedDesc); // [9, 6, 5, 4, 3, 2, 1, 1]
+
+  // toReversed - returns a NEW reversed array (original unchanged)
+  const original = [1, 2, 3, 4, 5];
+  const reversed = await threadts.toReversed(original);
+  console.log('toReversed:', reversed); // [5, 4, 3, 2, 1]
+  console.log('Original unchanged:', original); // [1, 2, 3, 4, 5]
+
+  // withElement - returns NEW array with element replaced at index
+  const arr = ['a', 'b', 'c', 'd'];
+  const replaced = await threadts.withElement(arr, 1, 'X');
+  console.log('withElement:', replaced); // ['a', 'X', 'c', 'd']
+  console.log('Original unchanged:', arr); // ['a', 'b', 'c', 'd']
+
+  // withElement supports negative indices
+  const replacedLast = await threadts.withElement(arr, -1, 'Z');
+  console.log('withElement (negative index):', replacedLast); // ['a', 'b', 'c', 'Z']
+
+  // toSpliced - returns NEW array with elements removed/inserted
+  const source = [1, 2, 3, 4, 5];
+
+  // Remove 2 elements starting at index 1, insert 10, 20
+  const spliced = await threadts.toSpliced(source, 1, 2, 10, 20);
+  console.log('toSpliced (remove & insert):', spliced); // [1, 10, 20, 4, 5]
+  console.log('Original unchanged:', source); // [1, 2, 3, 4, 5]
+
+  // Delete only
+  const deleted = await threadts.toSpliced([1, 2, 3, 4, 5], 2, 2);
+  console.log('toSpliced (delete only):', deleted); // [1, 2, 5]
+
+  // Insert only
+  const inserted = await threadts.toSpliced([1, 2, 3], 1, 0, 99, 98);
+  console.log('toSpliced (insert only):', inserted); // [1, 99, 98, 2, 3]
+
+  // groupByObject - groups elements into a plain object
+  const products = [
+    { category: 'electronics', name: 'Phone', price: 999 },
+    { category: 'clothing', name: 'Shirt', price: 29 },
+    { category: 'electronics', name: 'Laptop', price: 1499 },
+    { category: 'clothing', name: 'Pants', price: 59 },
+  ];
+  const byCategory = await threadts.groupByObject(products, (p) => p.category);
+  console.log('groupByObject:', byCategory);
+  // { electronics: [...], clothing: [...] }
 }
 
 // Example 3: Pipeline API for fluent chaining

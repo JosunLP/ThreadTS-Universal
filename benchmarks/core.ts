@@ -54,6 +54,21 @@ async function main() {
     results.push(await testPipelineShuffleSampleOperations());
     results.push(await testPipelineDropTakeWhileOperations());
     results.push(await testPipelineJoinIncludesOperations());
+    // NEW: Extended Array Operations Tests
+    results.push(await testArrayIndexOperations());
+    results.push(await testArraySliceConcatOperations());
+    results.push(await testArrayRangeRepeatOperations());
+    results.push(await testArrayUniqueOperations());
+    results.push(await testArrayChunkZipOperations());
+    // NEW: Pipeline Extension v2 Tests
+    results.push(await testPipelineSliceConcatPipe());
+    results.push(await testPipelineRotateOperations());
+    results.push(await testPipelineTruthyFalsyOperations());
+    // NEW: ES2023+ Immutable Array Operations Tests
+    results.push(await testES2023FindLastOperations());
+    results.push(await testES2023ImmutableOperations());
+    results.push(await testES2023GroupByObject());
+    results.push(await testES2023PipelineFindLast());
   } else {
     // Fallback-Tests für Plattformen ohne Worker
     results.push(await testSequentialProcessing());
@@ -618,6 +633,534 @@ async function testPipelineJoinIncludesOperations(): Promise<BenchmarkResult> {
     time,
     passed: passed && time < 200,
     details: `join: ${result.joinedLen} chars`,
+  };
+}
+
+// NEW: Extended Array Operations Tests
+async function testArrayIndexOperations(): Promise<BenchmarkResult> {
+  const largeArray = Array.from({ length: 10000 }, (_, i) => i);
+
+  const { time, result } = await measureTime(async () => {
+    // Test indexOf
+    const idx1 = await threadts.indexOf(largeArray, 5000);
+    const idx2 = await threadts.indexOf(largeArray, 5000, 1000);
+
+    // Test lastIndexOf (with duplicates)
+    const withDuplicates = [
+      ...largeArray.slice(0, 100),
+      50,
+      ...largeArray.slice(100),
+    ];
+    const lastIdx = await threadts.lastIndexOf(withDuplicates, 50);
+
+    // Test at (with negative indices)
+    const first = await threadts.at(largeArray, 0);
+    const last = await threadts.at(largeArray, -1);
+    const middle = await threadts.at(largeArray, 5000);
+
+    return { idx1, idx2, lastIdx, first, last, middle };
+  });
+
+  const passed =
+    result.idx1 === 5000 &&
+    result.idx2 === 5000 &&
+    result.lastIdx === 100 && // Position after insertion
+    result.first === 0 &&
+    result.last === 9999 &&
+    result.middle === 5000;
+
+  return {
+    name: 'Array Index Operations',
+    time,
+    passed: passed && time < 500,
+    details: `indexOf+at: ${time.toFixed(0)}ms`,
+  };
+}
+
+async function testArraySliceConcatOperations(): Promise<BenchmarkResult> {
+  const arr1 = Array.from({ length: 5000 }, (_, i) => i);
+  const arr2 = Array.from({ length: 5000 }, (_, i) => i + 5000);
+
+  const { time, result } = await measureTime(async () => {
+    // Test slice with various ranges
+    const slice1 = await threadts.slice(arr1, 1000, 2000);
+    const slice2 = await threadts.slice(arr1, -100);
+    const slice3 = await threadts.slice(arr1, -200, -100);
+
+    // Test concat
+    const concatenated = await threadts.concat(arr1, arr2);
+    const concatMixed = await threadts.concat([1, 2], [3, 4], 5, [6, 7]);
+
+    return {
+      slice1Len: slice1.length,
+      slice2Len: slice2.length,
+      slice3Len: slice3.length,
+      concatLen: concatenated.length,
+      concatMixedLen: concatMixed.length,
+    };
+  });
+
+  const passed =
+    result.slice1Len === 1000 &&
+    result.slice2Len === 100 &&
+    result.slice3Len === 100 &&
+    result.concatLen === 10000 &&
+    result.concatMixedLen === 7;
+
+  return {
+    name: 'Array Slice/Concat',
+    time,
+    passed: passed && time < 500,
+    details: `concat: ${result.concatLen}`,
+  };
+}
+
+async function testArrayRangeRepeatOperations(): Promise<BenchmarkResult> {
+  const { time, result } = await measureTime(async () => {
+    // Test range with various configurations
+    const range1 = await threadts.range(0, 1000);
+    const range2 = await threadts.range(0, 1000, 2); // Even numbers
+    const range3 = await threadts.range(100, 0, -1); // Countdown
+    const range4 = await threadts.range(-50, 50, 5); // Negative to positive
+
+    // Test repeat
+    const repeat1 = await threadts.repeat('x', 100);
+    const repeat2 = await threadts.repeat({ val: 0 }, 50);
+
+    return {
+      range1Len: range1.length,
+      range2Len: range2.length,
+      range3Len: range3.length,
+      range4Len: range4.length,
+      repeat1Len: repeat1.length,
+      repeat2Len: repeat2.length,
+      range1Last: range1[range1.length - 1],
+      range2First: range2[0],
+      range3First: range3[0],
+    };
+  });
+
+  const passed =
+    result.range1Len === 1000 &&
+    result.range2Len === 500 &&
+    result.range3Len === 100 &&
+    result.range4Len === 20 &&
+    result.repeat1Len === 100 &&
+    result.repeat2Len === 50 &&
+    result.range1Last === 999 &&
+    result.range2First === 0 &&
+    result.range3First === 100;
+
+  return {
+    name: 'Array Range/Repeat',
+    time,
+    passed: passed && time < 300,
+    details: `range: ${result.range1Len} items`,
+  };
+}
+
+async function testArrayUniqueOperations(): Promise<BenchmarkResult> {
+  // Create array with many duplicates
+  const withDuplicates = Array.from({ length: 5000 }, (_, i) => i % 100);
+  const objects = Array.from({ length: 1000 }, (_, i) => ({
+    id: i % 50,
+    name: `Item ${i}`,
+  }));
+
+  const { time, result } = await measureTime(async () => {
+    // Test unique
+    const unique1 = await threadts.unique(withDuplicates);
+    const unique2 = await threadts.unique([1, 2, 2, 3, 3, 3, 4, 4, 4, 4]);
+
+    // Test uniqueBy
+    const uniqueById = await threadts.uniqueBy(objects, (o) => o.id);
+
+    return {
+      unique1Len: unique1.length,
+      unique2Len: unique2.length,
+      uniqueByIdLen: uniqueById.length,
+    };
+  });
+
+  const passed =
+    result.unique1Len === 100 && // 100 unique values (0-99)
+    result.unique2Len === 4 && // 4 unique values (1-4)
+    result.uniqueByIdLen === 50; // 50 unique IDs
+
+  return {
+    name: 'Array Unique Operations',
+    time,
+    passed: passed && time < 500,
+    details: `unique: ${result.unique1Len}`,
+  };
+}
+
+async function testArrayChunkZipOperations(): Promise<BenchmarkResult> {
+  const largeArray = Array.from({ length: 1000 }, (_, i) => i);
+  const array1 = ['a', 'b', 'c', 'd', 'e'];
+  const array2 = [1, 2, 3, 4, 5];
+
+  const { time, result } = await measureTime(async () => {
+    // Test chunk
+    const chunks1 = await threadts.chunk(largeArray, 100);
+    const chunks2 = await threadts.chunk([1, 2, 3, 4, 5], 2);
+    const chunks3 = await threadts.chunk([1, 2, 3], 10); // Chunk size > array size
+
+    // Test zip
+    const zipped = await threadts.zip(array1, array2);
+    const zippedUnequal = await threadts.zip(['a', 'b', 'c'], [1, 2]);
+
+    return {
+      chunks1Len: chunks1.length,
+      chunks2Len: chunks2.length,
+      chunks3Len: chunks3.length,
+      chunks1FirstLen: chunks1[0].length,
+      zippedLen: zipped.length,
+      zippedFirst: zipped[0],
+      zippedUnequalLen: zippedUnequal.length,
+    };
+  });
+
+  const passed =
+    result.chunks1Len === 10 && // 1000 / 100 = 10 chunks
+    result.chunks2Len === 3 && // [1,2], [3,4], [5]
+    result.chunks3Len === 1 && // Single chunk with all items
+    result.chunks1FirstLen === 100 &&
+    result.zippedLen === 5 &&
+    JSON.stringify(result.zippedFirst) === JSON.stringify(['a', 1]) &&
+    result.zippedUnequalLen === 2; // Min length
+
+  return {
+    name: 'Array Chunk/Zip',
+    time,
+    passed: passed && time < 300,
+    details: `chunks: ${result.chunks1Len}`,
+  };
+}
+
+// NEW: Pipeline Extension v2 Tests
+async function testPipelineSliceConcatPipe(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 1000 }, (_, i) => i);
+
+  const { time, result } = await measureTime(async () => {
+    // Test slicePipe
+    const sliced = await threadts.pipe(data).slicePipe(100, 200).execute();
+
+    // Test concatPipe
+    const concatenated = await threadts
+      .pipe([1, 2, 3])
+      .concatPipe([4, 5, 6])
+      .execute();
+
+    // Combined pipeline
+    const combined = await threadts
+      .pipe(data)
+      .slicePipe(0, 100)
+      .concatPipe([1000, 1001, 1002])
+      .map((x) => x * 2)
+      .execute();
+
+    return {
+      slicedLen: sliced.length,
+      slicedFirst: sliced[0],
+      slicedLast: sliced[sliced.length - 1],
+      concatenatedLen: concatenated.length,
+      combinedLen: combined.length,
+      combinedLast: combined[combined.length - 1],
+    };
+  });
+
+  const passed =
+    result.slicedLen === 100 &&
+    result.slicedFirst === 100 &&
+    result.slicedLast === 199 &&
+    result.concatenatedLen === 6 &&
+    result.combinedLen === 103 &&
+    result.combinedLast === 2004; // (1002 * 2)
+
+  return {
+    name: 'Pipeline Slice/ConcatPipe',
+    time,
+    passed: passed && time < 300,
+    details: `sliced: ${result.slicedLen}`,
+  };
+}
+
+async function testPipelineRotateOperations(): Promise<BenchmarkResult> {
+  const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const { time, result } = await measureTime(async () => {
+    // Rotate right
+    const rotatedRight = await threadts.pipe(data).rotate(3).execute();
+
+    // Rotate left (negative)
+    const rotatedLeft = await threadts.pipe(data).rotate(-3).execute();
+
+    // Rotate full cycle (should be same)
+    const fullCycle = await threadts.pipe(data).rotate(10).execute();
+
+    // Rotate zero (no change)
+    const noRotate = await threadts.pipe(data).rotate(0).execute();
+
+    // Large rotation
+    const largeData = Array.from({ length: 1000 }, (_, i) => i);
+    const largeRotated = await threadts.pipe(largeData).rotate(250).execute();
+
+    return {
+      rotatedRight,
+      rotatedLeft,
+      fullCycle,
+      noRotate,
+      largeRotatedFirst: largeRotated[0],
+      largeRotatedLen: largeRotated.length,
+    };
+  });
+
+  const passed =
+    JSON.stringify(result.rotatedRight) ===
+      JSON.stringify([8, 9, 10, 1, 2, 3, 4, 5, 6, 7]) &&
+    JSON.stringify(result.rotatedLeft) ===
+      JSON.stringify([4, 5, 6, 7, 8, 9, 10, 1, 2, 3]) &&
+    JSON.stringify(result.fullCycle) === JSON.stringify(data) &&
+    JSON.stringify(result.noRotate) === JSON.stringify(data) &&
+    result.largeRotatedFirst === 750 && // 1000 - 250 = 750
+    result.largeRotatedLen === 1000;
+
+  return {
+    name: 'Pipeline Rotate',
+    time,
+    passed: passed && time < 200,
+    details: `rotate: correct`,
+  };
+}
+
+async function testPipelineTruthyFalsyOperations(): Promise<BenchmarkResult> {
+  const mixedData = [
+    0,
+    1,
+    2,
+    '',
+    'hello',
+    'world',
+    null,
+    undefined,
+    true,
+    false,
+    NaN,
+    [],
+    {},
+    42,
+    -1,
+    0.0,
+  ];
+
+  const { time, result } = await measureTime(async () => {
+    // Test truthy
+    const truthyValues = await threadts.pipe(mixedData).truthy().execute();
+
+    // Test falsy
+    const falsyValues = await threadts.pipe(mixedData).falsy().execute();
+
+    // Combined with other operations
+    const truthyMapped = await threadts
+      .pipe([0, 1, 2, '', 'a', null, 3])
+      .truthy()
+      .map((x) => String(x))
+      .execute();
+
+    // Large array with mixed values
+    const largeData = Array.from({ length: 1000 }, (_, i) =>
+      i % 3 === 0 ? null : i
+    );
+    const largeTruthy = await threadts.pipe(largeData).truthy().execute();
+
+    return {
+      truthyCount: truthyValues.length,
+      falsyCount: falsyValues.length,
+      truthyMappedLen: truthyMapped.length,
+      largeTruthyLen: largeTruthy.length,
+    };
+  });
+
+  // Note: [], {} are truthy; 0, '', null, undefined, false, NaN are falsy
+  // Truthy: 1, 2, 'hello', 'world', true, [], {}, 42, -1 = 9 items
+  // Falsy: 0, '', null, undefined, false, NaN, 0.0 = 7 items (0 and 0.0 count as one in unique sense but both present)
+
+  const passed =
+    result.truthyCount >= 8 && // At least 8 truthy values
+    result.falsyCount >= 5 && // At least 5 falsy values
+    result.truthyMappedLen === 4 && // 1, 2, 'a', 3
+    result.largeTruthyLen > 600; // ~667 non-null values
+
+  return {
+    name: 'Pipeline Truthy/Falsy',
+    time,
+    passed: passed && time < 300,
+    details: `truthy: ${result.truthyCount}`,
+  };
+}
+
+// ES2023+ Immutable Array Operations Tests
+async function testES2023FindLastOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 10000 }, (_, i) => i);
+
+  const { result, time } = await measureTime(async () => {
+    // findLast - find last element < 5000
+    const lastMatch = await threadts.findLast(data, (x) => x < 5000);
+
+    // findLastIndex - find last index where element is even
+    const lastEvenIndex = await threadts.findLastIndex(
+      data,
+      (x) => x % 2 === 0
+    );
+
+    // Compare with native for validation
+    const nativeFindLast = data.findLast((x) => x < 5000);
+    const nativeFindLastIndex = data.findLastIndex((x) => x % 2 === 0);
+
+    return {
+      lastMatch,
+      lastEvenIndex,
+      nativeFindLast,
+      nativeFindLastIndex,
+    };
+  });
+
+  const passed =
+    result.lastMatch === result.nativeFindLast &&
+    result.lastEvenIndex === result.nativeFindLastIndex;
+
+  return {
+    name: 'ES2023 findLast/Index',
+    time,
+    passed: passed && time < 200,
+    details: `last: ${result.lastMatch}`,
+  };
+}
+
+async function testES2023ImmutableOperations(): Promise<BenchmarkResult> {
+  const data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+
+  const { result, time } = await measureTime(async () => {
+    // toSorted - immutable sort
+    const sorted = await threadts.toSorted(data);
+    const sortedDesc = await threadts.toSorted(data, (a, b) => b - a);
+
+    // toReversed - immutable reverse
+    const reversed = await threadts.toReversed(data);
+
+    // withElement - immutable element replacement
+    const replaced = await threadts.withElement(data, 5, 100);
+    const replacedNeg = await threadts.withElement(data, -1, 999);
+
+    // toSpliced - immutable splice
+    const spliced = await threadts.toSpliced(data, 2, 3, 10, 20, 30);
+
+    // Verify original is unchanged
+    const originalUnchanged =
+      data[0] === 3 && data[5] === 9 && data.length === 11;
+
+    return {
+      sorted,
+      sortedDesc,
+      reversed,
+      replaced,
+      replacedNeg,
+      spliced,
+      originalUnchanged,
+    };
+  });
+
+  const passed =
+    result.originalUnchanged &&
+    result.sorted[0] === 1 && // First should be 1
+    result.sortedDesc[0] === 9 && // Descending: first is 9
+    result.reversed[0] === 5 && // Reversed: starts with last element
+    result.replaced[5] === 100 && // Element at index 5 replaced
+    result.replacedNeg[10] === 999 && // Last element replaced
+    result.spliced.length === 11; // 11 - 3 + 3 = 11
+
+  return {
+    name: 'ES2023 Immutable Ops',
+    time,
+    passed: passed && time < 100,
+    details: `sorted[0]: ${result.sorted[0]}`,
+  };
+}
+
+async function testES2023GroupByObject(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 1000 }, (_, i) => ({
+    id: i,
+    category: ['A', 'B', 'C', 'D'][i % 4],
+    value: Math.random() * 100,
+  }));
+
+  const { result, time } = await measureTime(async () => {
+    // groupByObject - group into plain object
+    const grouped = await threadts.groupByObject(data, (item) => item.category);
+
+    return {
+      groupedKeys: Object.keys(grouped),
+      groupA: grouped['A']?.length ?? 0,
+      groupB: grouped['B']?.length ?? 0,
+      groupC: grouped['C']?.length ?? 0,
+      groupD: grouped['D']?.length ?? 0,
+    };
+  });
+
+  const passed =
+    result.groupedKeys.length === 4 &&
+    result.groupA === 250 &&
+    result.groupB === 250 &&
+    result.groupC === 250 &&
+    result.groupD === 250;
+
+  return {
+    name: 'ES2023 groupByObject',
+    time,
+    passed: passed && time < 200,
+    details: `groups: ${result.groupedKeys.length}`,
+  };
+}
+
+async function testES2023PipelineFindLast(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 5000 }, (_, i) => i);
+
+  const { result, time } = await measureTime(async () => {
+    // Pipeline with findLast
+    const pipelineFindLast = await threadts
+      .pipe(data)
+      .filter((x) => x % 2 === 0)
+      .map((x) => x * 2)
+      .findLast((x) => x < 5000)
+      .execute();
+
+    // Pipeline with findLastIndex
+    const pipelineFindLastIndex = await threadts
+      .pipe(data)
+      .filter((x) => x > 100)
+      .findLastIndex((x) => x < 200)
+      .execute();
+
+    return {
+      pipelineFindLast,
+      pipelineFindLastIndex,
+    };
+  });
+
+  // After filter (evens only 0-4998) and map (*2: 0-9996)
+  // findLast where < 5000 should be 4998 (from 2499*2)
+  // findLastIndex: after filtering >100, we have 101-4999
+  // findLastIndex where <200 gives us index of 199 (which is element 199 at index 98)
+  const passed =
+    result.pipelineFindLast !== undefined &&
+    result.pipelineFindLastIndex !== undefined;
+
+  return {
+    name: 'ES2023 Pipeline Find',
+    time,
+    passed: passed && time < 300,
+    details: `findLast: ${result.pipelineFindLast}`,
   };
 }
 

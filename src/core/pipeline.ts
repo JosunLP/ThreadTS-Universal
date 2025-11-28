@@ -407,6 +407,112 @@ export class Pipeline<T> {
   }
 
   /**
+   * Slices the pipeline from start to end index.
+   *
+   * @param start - Start index (default: 0)
+   * @param end - End index (default: array length)
+   * @returns Pipeline with sliced elements
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
+   *   .slice(1, 4)
+   *   .execute();
+   * // Result: [2, 3, 4]
+   * ```
+   */
+  slicePipe(start?: number, end?: number): Pipeline<T> {
+    this.operations.push({
+      type: 'slice',
+      count: start,
+      step: end,
+    });
+    return this;
+  }
+
+  /**
+   * Concatenates another array to the pipeline.
+   *
+   * @param other - Array to concatenate
+   * @returns Pipeline with concatenated elements
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3])
+   *   .concatPipe([4, 5, 6])
+   *   .execute();
+   * // Result: [1, 2, 3, 4, 5, 6]
+   * ```
+   */
+  concatPipe(other: T[]): Pipeline<T> {
+    this.operations.push({
+      type: 'concat',
+      initialValue: other,
+    });
+    return this;
+  }
+
+  /**
+   * Rotates array elements by n positions.
+   * Positive n rotates right, negative n rotates left.
+   *
+   * @param n - Number of positions to rotate
+   * @returns Pipeline with rotated elements
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
+   *   .rotate(2)
+   *   .execute();
+   * // Result: [4, 5, 1, 2, 3]
+   * ```
+   */
+  rotate(n: number): Pipeline<T> {
+    this.operations.push({
+      type: 'rotate',
+      count: n,
+    });
+    return this;
+  }
+
+  /**
+   * Removes falsy values from the pipeline.
+   * Keeps only truthy values (removes false, 0, '', null, undefined, NaN).
+   *
+   * @returns Pipeline without falsy values
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 0, 2, '', 3, null, 4])
+   *   .truthy()
+   *   .execute();
+   * // Result: [1, 2, 3, 4]
+   * ```
+   */
+  truthy(): Pipeline<T> {
+    this.operations.push({ type: 'truthy' });
+    return this;
+  }
+
+  /**
+   * Keeps only falsy values from the pipeline.
+   *
+   * @returns Pipeline with only falsy values
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 0, 2, '', 3, null, 4])
+   *   .falsy()
+   *   .execute();
+   * // Result: [0, '', null]
+   * ```
+   */
+  falsy(): Pipeline<T> {
+    this.operations.push({ type: 'falsy' });
+    return this;
+  }
+
+  /**
    * Executes a side-effect function for debugging without modifying the pipeline.
    * Alias for tap().
    *
@@ -468,6 +574,62 @@ export class Pipeline<T> {
     options?: MapOptions
   ): TerminalPipeline<number> {
     this.operations.push({ type: 'findIndex', fn, options });
+    return new TerminalPipeline<number>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Finds the last element that satisfies the predicate. This is a terminal operation.
+   * Similar to Array.prototype.findLast (ES2023).
+   *
+   * @param fn - Function to test each element
+   * @param options - Execution options
+   * @returns TerminalPipeline that resolves to the last matching element or undefined
+   *
+   * @example
+   * ```typescript
+   * const last = await threadts.pipe([1, 2, 3, 4, 5])
+   *   .findLast(x => x < 4)
+   *   .execute();
+   * // Result: 3
+   * ```
+   */
+  findLast(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<T | undefined> {
+    this.operations.push({ type: 'findLast', fn, options });
+    return new TerminalPipeline<T | undefined>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Finds the index of the last element that satisfies the predicate. This is a terminal operation.
+   * Similar to Array.prototype.findLastIndex (ES2023).
+   *
+   * @param fn - Function to test each element
+   * @param options - Execution options
+   * @returns TerminalPipeline that resolves to the last matching index or -1
+   *
+   * @example
+   * ```typescript
+   * const index = await threadts.pipe([1, 2, 3, 2, 1])
+   *   .findLastIndex(x => x === 2)
+   *   .execute();
+   * // Result: 3
+   * ```
+   */
+  findLastIndex(
+    fn: SerializableFunction,
+    options?: MapOptions
+  ): TerminalPipeline<number> {
+    this.operations.push({ type: 'findLastIndex', fn, options });
     return new TerminalPipeline<number>(
       this.array,
       this.operations,

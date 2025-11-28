@@ -38,6 +38,10 @@ import {
   validateFunction,
   validateSerializable,
 } from '../utils/validation';
+import {
+  createArrayOperations,
+  type ArrayOperations,
+} from './array-operations';
 import { Pipeline, TerminalPipeline } from './pipeline';
 
 /**
@@ -146,6 +150,9 @@ export class ThreadTS extends EventTarget {
     Set<ThreadEventListener<keyof ThreadEventMap>>
   > = new Map();
 
+  /** Extended array operations */
+  private arrayOps: ArrayOperations | null = null;
+
   constructor(config: Partial<ThreadConfig> = {}) {
     super();
 
@@ -190,6 +197,8 @@ export class ThreadTS extends EventTarget {
   private async initialize(): Promise<void> {
     try {
       this.isReady = true;
+      // Initialize array operations
+      this.arrayOps = createArrayOperations(this);
       this.emitEvent('pool-resize', {
         oldSize: 0,
         newSize: this.config.poolSize,
@@ -198,6 +207,201 @@ export class ThreadTS extends EventTarget {
       console.error('Failed to initialize ThreadTS:', error);
       throw error;
     }
+  }
+
+  /**
+   * Returns the extended array operations module.
+   * Provides additional array methods like indexOf, lastIndexOf, at, slice, etc.
+   *
+   * @returns The ArrayOperations object with extended methods
+   *
+   * @example
+   * ```typescript
+   * const ops = threadts.getArrayOps();
+   * const index = await ops.indexOf([1, 2, 3], 2);
+   * const chunk = await ops.chunk([1, 2, 3, 4, 5], 2);
+   * ```
+   */
+  getArrayOps(): ArrayOperations {
+    if (!this.arrayOps) {
+      this.arrayOps = createArrayOperations(this);
+    }
+    return this.arrayOps;
+  }
+
+  // ==================== Extended Array Methods ====================
+
+  /**
+   * Finds the index of the first occurrence of a value in the array.
+   * @see ArrayOperations.indexOf
+   */
+  async indexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex = 0
+  ): Promise<number> {
+    return this.getArrayOps().indexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Finds the index of the last occurrence of a value in the array.
+   * @see ArrayOperations.lastIndexOf
+   */
+  async lastIndexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex?: number
+  ): Promise<number> {
+    return this.getArrayOps().lastIndexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Returns the element at the specified index.
+   * @see ArrayOperations.at
+   */
+  async at<T>(array: T[], index: number): Promise<T | undefined> {
+    return this.getArrayOps().at(array, index);
+  }
+
+  /**
+   * Creates a new array with elements from startIndex to endIndex.
+   * @see ArrayOperations.slice
+   */
+  async slice<T>(array: T[], start?: number, end?: number): Promise<T[]> {
+    return this.getArrayOps().slice(array, start, end);
+  }
+
+  /**
+   * Concatenates multiple arrays into one.
+   * @see ArrayOperations.concat
+   */
+  async concat<T>(array: T[], ...items: (T | T[])[]): Promise<T[]> {
+    return this.getArrayOps().concat(array, ...items);
+  }
+
+  /**
+   * Creates an array containing a range of numbers.
+   * @see ArrayOperations.range
+   */
+  async range(start: number, end: number, step = 1): Promise<number[]> {
+    return this.getArrayOps().range(start, end, step);
+  }
+
+  /**
+   * Creates an array by repeating a value.
+   * @see ArrayOperations.repeat
+   */
+  async repeat<T>(value: T, count: number): Promise<T[]> {
+    return this.getArrayOps().repeat(value, count);
+  }
+
+  /**
+   * Removes duplicate values from an array.
+   * @see ArrayOperations.unique
+   */
+  async unique<T>(array: T[]): Promise<T[]> {
+    return this.getArrayOps().unique(array);
+  }
+
+  /**
+   * Removes duplicate values using a key function.
+   * @see ArrayOperations.uniqueBy
+   */
+  async uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): Promise<T[]> {
+    return this.getArrayOps().uniqueBy(array, keyFn);
+  }
+
+  /**
+   * Splits an array into chunks of the specified size.
+   * @see ArrayOperations.chunk
+   */
+  async chunk<T>(array: T[], size: number): Promise<T[][]> {
+    return this.getArrayOps().chunk(array, size);
+  }
+
+  /**
+   * Zips multiple arrays together into an array of tuples.
+   * @see ArrayOperations.zip
+   */
+  async zip<T extends unknown[][]>(
+    ...arrays: T
+  ): Promise<{ [K in keyof T]: T[K] extends (infer U)[] ? U : never }[]> {
+    return this.getArrayOps().zip(...arrays);
+  }
+
+  // ==================== ES2023+ Array Methods ====================
+
+  /**
+   * Finds the last element that satisfies the predicate.
+   * @see ArrayOperations.findLast
+   */
+  async findLast<T>(
+    array: T[],
+    predicate: (value: T, index: number, array: T[]) => boolean
+  ): Promise<T | undefined> {
+    return this.getArrayOps().findLast(array, predicate);
+  }
+
+  /**
+   * Finds the index of the last element that satisfies the predicate.
+   * @see ArrayOperations.findLastIndex
+   */
+  async findLastIndex<T>(
+    array: T[],
+    predicate: (value: T, index: number, array: T[]) => boolean
+  ): Promise<number> {
+    return this.getArrayOps().findLastIndex(array, predicate);
+  }
+
+  /**
+   * Returns a new sorted array (immutable).
+   * @see ArrayOperations.toSorted
+   */
+  async toSorted<T>(
+    array: T[],
+    compareFn?: (a: T, b: T) => number
+  ): Promise<T[]> {
+    return this.getArrayOps().toSorted(array, compareFn);
+  }
+
+  /**
+   * Returns a new reversed array (immutable).
+   * @see ArrayOperations.toReversed
+   */
+  async toReversed<T>(array: T[]): Promise<T[]> {
+    return this.getArrayOps().toReversed(array);
+  }
+
+  /**
+   * Returns a new array with the element at the given index replaced.
+   * @see ArrayOperations.withElement
+   */
+  async withElement<T>(array: T[], index: number, value: T): Promise<T[]> {
+    return this.getArrayOps().withElement(array, index, value);
+  }
+
+  /**
+   * Returns a new array with elements removed/replaced/added at a given index.
+   * @see ArrayOperations.toSpliced
+   */
+  async toSpliced<T>(
+    array: T[],
+    start: number,
+    deleteCount?: number,
+    ...items: T[]
+  ): Promise<T[]> {
+    return this.getArrayOps().toSpliced(array, start, deleteCount, ...items);
+  }
+
+  /**
+   * Groups elements of an array based on a callback function.
+   * @see ArrayOperations.groupByObject
+   */
+  async groupByObject<T, K extends PropertyKey>(
+    array: T[],
+    keyFn: (item: T, index: number) => K
+  ): Promise<Partial<Record<K, T[]>>> {
+    return this.getArrayOps().groupByObject(array, keyFn);
   }
 
   private emitEvent<K extends keyof ThreadEventMap>(
@@ -1385,6 +1589,130 @@ export class ThreadTS extends EventTarget {
   static pipe<T>(array: T[]): Pipeline<T> {
     const instance = ThreadTS.getInstance();
     return instance.pipe<T>(array);
+  }
+
+  // ==================== Static Extended Array Methods ====================
+
+  /**
+   * Static method to find the index of an element.
+   * @see {@link ThreadTS.indexOf} for instance method documentation
+   */
+  static async indexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex = 0
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.indexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Static method to find the last index of an element.
+   * @see {@link ThreadTS.lastIndexOf} for instance method documentation
+   */
+  static async lastIndexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex?: number
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.lastIndexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Static method to get an element at a specific index.
+   * @see {@link ThreadTS.at} for instance method documentation
+   */
+  static async at<T>(array: T[], index: number): Promise<T | undefined> {
+    const instance = ThreadTS.getInstance();
+    return instance.at(array, index);
+  }
+
+  /**
+   * Static method to slice an array.
+   * @see {@link ThreadTS.slice} for instance method documentation
+   */
+  static async slice<T>(
+    array: T[],
+    start?: number,
+    end?: number
+  ): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.slice(array, start, end);
+  }
+
+  /**
+   * Static method to concatenate arrays.
+   * @see {@link ThreadTS.concat} for instance method documentation
+   */
+  static async concat<T>(array: T[], ...items: (T | T[])[]): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.concat(array, ...items);
+  }
+
+  /**
+   * Static method to create a range of numbers.
+   * @see {@link ThreadTS.range} for instance method documentation
+   */
+  static async range(start: number, end: number, step = 1): Promise<number[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.range(start, end, step);
+  }
+
+  /**
+   * Static method to repeat a value.
+   * @see {@link ThreadTS.repeat} for instance method documentation
+   */
+  static async repeat<T>(value: T, count: number): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.repeat(value, count);
+  }
+
+  /**
+   * Static method to get unique values.
+   * @see {@link ThreadTS.unique} for instance method documentation
+   */
+  static async unique<T>(array: T[]): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.unique(array);
+  }
+
+  /**
+   * Static method to get unique values by key.
+   * @see {@link ThreadTS.uniqueBy} for instance method documentation
+   */
+  static async uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.uniqueBy(array, keyFn);
+  }
+
+  /**
+   * Static method to chunk an array.
+   * @see {@link ThreadTS.chunk} for instance method documentation
+   */
+  static async chunk<T>(array: T[], size: number): Promise<T[][]> {
+    const instance = ThreadTS.getInstance();
+    return instance.chunk(array, size);
+  }
+
+  /**
+   * Static method to zip arrays.
+   * @see {@link ThreadTS.zip} for instance method documentation
+   */
+  static async zip<T extends unknown[][]>(
+    ...arrays: T
+  ): Promise<{ [K in keyof T]: T[K] extends (infer U)[] ? U : never }[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.zip(...arrays);
+  }
+
+  /**
+   * Static method to get the array operations module.
+   * @see {@link ThreadTS.getArrayOps} for instance method documentation
+   */
+  static getArrayOps(): ArrayOperations {
+    const instance = ThreadTS.getInstance();
+    return instance.getArrayOps();
   }
 }
 

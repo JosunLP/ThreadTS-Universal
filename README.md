@@ -39,10 +39,11 @@ console.log(found); // 4
 ### ⚡ **Advanced Features**
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
-- **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`
+- **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`, `indexOf`, `lastIndexOf`, `at`, `slice`, `concat`, `range`, `repeat`, `unique`, `uniqueBy`, `chunk`, `zip`
+- **ES2023+ Immutable Methods**: `findLast`, `findLastIndex`, `toSorted`, `toReversed`, `withElement`, `toSpliced`, `groupByObject` - all methods that don't mutate the original array
 - **Enhanced Pipeline API**: Fluent chaining with lazy evaluation
-  - Intermediate: `map`, `filter`, `flatMap`, `take`, `skip`, `chunk`, `tap`, `peek`, `window`, `unique`, `distinct`, `reverse`, `sort`, `zip`, `zipWith`, `interleave`, `compact`, `flatten`, `shuffle`, `sample`, `dropWhile`, `takeWhile`
-  - Terminal: `reduce`, `forEach`, `find`, `findIndex`, `some`, `every`, `count`, `groupBy`, `partition`, `first`, `last`, `isEmpty`, `sum`, `average`, `min`, `max`, `join`, `includes`
+  - Intermediate: `map`, `filter`, `flatMap`, `take`, `skip`, `chunk`, `tap`, `peek`, `window`, `unique`, `distinct`, `reverse`, `sort`, `zip`, `zipWith`, `interleave`, `compact`, `flatten`, `shuffle`, `sample`, `dropWhile`, `takeWhile`, `slicePipe`, `concatPipe`, `rotate`, `truthy`, `falsy`
+  - Terminal: `reduce`, `forEach`, `find`, `findIndex`, `findLast`, `findLastIndex`, `some`, `every`, `count`, `groupBy`, `partition`, `first`, `last`, `isEmpty`, `sum`, `average`, `min`, `max`, `join`, `includes`
   - Collectors: `toArray()`, `toSet()`, `toMap()`
 - **Progress Tracking**: Real-time progress monitoring
 - **Intelligent Caching**: Automatic result caching with `@memoize` and `@cache` decorators
@@ -322,6 +323,257 @@ const count = await threadts.count([1, 2, 3, 4, 5], (x) => x > 2);
 // Result: 3
 ```
 
+### Extended Array Operations
+
+ThreadTS Universal provides a comprehensive set of array operations beyond the standard JavaScript Array API. These operations are optimized for parallel execution and can be accessed both as instance methods and through the `getArrayOps()` factory.
+
+#### `threadts.indexOf<T>(array, searchElement, fromIndex?, options?): Promise<number>`
+
+Finds the first index of an element in the array.
+
+```typescript
+const index = await threadts.indexOf([1, 2, 3, 2, 1], 2);
+// Result: 1
+
+const indexFrom = await threadts.indexOf([1, 2, 3, 2, 1], 2, 2);
+// Result: 3
+```
+
+#### `threadts.lastIndexOf<T>(array, searchElement, fromIndex?, options?): Promise<number>`
+
+Finds the last index of an element in the array.
+
+```typescript
+const index = await threadts.lastIndexOf([1, 2, 3, 2, 1], 2);
+// Result: 3
+```
+
+#### `threadts.at<T>(array, index, options?): Promise<T | undefined>`
+
+Returns the element at the specified index, supporting negative indices.
+
+```typescript
+const last = await threadts.at([1, 2, 3, 4, 5], -1);
+// Result: 5
+
+const second = await threadts.at([1, 2, 3, 4, 5], 1);
+// Result: 2
+```
+
+#### `threadts.slice<T>(array, start?, end?, options?): Promise<T[]>`
+
+Extracts a section of the array.
+
+```typescript
+const middle = await threadts.slice([1, 2, 3, 4, 5], 1, 4);
+// Result: [2, 3, 4]
+
+const fromEnd = await threadts.slice([1, 2, 3, 4, 5], -2);
+// Result: [4, 5]
+```
+
+#### `threadts.concat<T>(array, ...items): Promise<T[]>`
+
+Concatenates arrays or values.
+
+```typescript
+const combined = await threadts.concat([1, 2], [3, 4], 5);
+// Result: [1, 2, 3, 4, 5]
+```
+
+#### `threadts.range(start, end, step?, options?): Promise<number[]>`
+
+Generates an array of numbers in a specified range.
+
+```typescript
+const numbers = await threadts.range(0, 10, 2);
+// Result: [0, 2, 4, 6, 8]
+
+const countdown = await threadts.range(5, 0, -1);
+// Result: [5, 4, 3, 2, 1]
+```
+
+#### `threadts.repeat<T>(value, count, options?): Promise<T[]>`
+
+Creates an array with the value repeated n times.
+
+```typescript
+const repeated = await threadts.repeat('x', 5);
+// Result: ['x', 'x', 'x', 'x', 'x']
+```
+
+#### `threadts.unique<T>(array, options?): Promise<T[]>`
+
+Returns an array with duplicate values removed.
+
+```typescript
+const unique = await threadts.unique([1, 2, 2, 3, 3, 3]);
+// Result: [1, 2, 3]
+```
+
+#### `threadts.uniqueBy<T, K>(array, keyFn, options?): Promise<T[]>`
+
+Returns unique elements based on a key function.
+
+```typescript
+const users = [
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' },
+  { id: 1, name: 'Alice Clone' },
+];
+const uniqueById = await threadts.uniqueBy(users, (u) => u.id);
+// Result: [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }]
+```
+
+#### `threadts.chunk<T>(array, size, options?): Promise<T[][]>`
+
+Splits an array into chunks of the specified size.
+
+```typescript
+const chunks = await threadts.chunk([1, 2, 3, 4, 5], 2);
+// Result: [[1, 2], [3, 4], [5]]
+```
+
+#### `threadts.zip<T, U>(array1, array2, options?): Promise<[T, U][]>`
+
+Combines two arrays element-wise into pairs.
+
+```typescript
+const zipped = await threadts.zip(['a', 'b', 'c'], [1, 2, 3]);
+// Result: [['a', 1], ['b', 2], ['c', 3]]
+```
+
+### ES2023+ Immutable Array Methods
+
+ThreadTS Universal provides full support for ES2023+ immutable array methods. These methods return new arrays instead of mutating the original, making them ideal for functional programming patterns.
+
+#### `threadts.findLast<T>(array, predicate, options?): Promise<T | undefined>`
+
+Finds the **last** element that satisfies the predicate (searches from end).
+
+```typescript
+const result = await threadts.findLast([1, 2, 3, 4, 5], (x) => x < 4);
+// Result: 3 (the last number less than 4)
+
+const noMatch = await threadts.findLast([1, 2, 3], (x) => x > 10);
+// Result: undefined
+```
+
+#### `threadts.findLastIndex<T>(array, predicate, options?): Promise<number>`
+
+Finds the index of the **last** element that satisfies the predicate.
+
+```typescript
+const index = await threadts.findLastIndex([1, 2, 3, 2, 1], (x) => x === 2);
+// Result: 3 (the last occurrence of 2)
+
+const notFound = await threadts.findLastIndex([1, 2, 3], (x) => x > 10);
+// Result: -1
+```
+
+#### `threadts.toSorted<T>(array, compareFn?, options?): Promise<T[]>`
+
+Returns a **new sorted array** without mutating the original.
+
+```typescript
+const original = [3, 1, 4, 1, 5];
+const sorted = await threadts.toSorted(original);
+// sorted: [1, 1, 3, 4, 5]
+// original: [3, 1, 4, 1, 5] (unchanged!)
+
+// With custom comparator (descending)
+const descending = await threadts.toSorted([3, 1, 4], (a, b) => b - a);
+// Result: [4, 3, 1]
+```
+
+#### `threadts.toReversed<T>(array, options?): Promise<T[]>`
+
+Returns a **new reversed array** without mutating the original.
+
+```typescript
+const original = [1, 2, 3];
+const reversed = await threadts.toReversed(original);
+// reversed: [3, 2, 1]
+// original: [1, 2, 3] (unchanged!)
+```
+
+#### `threadts.withElement<T>(array, index, value, options?): Promise<T[]>`
+
+Returns a **new array** with the element at the given index replaced.
+
+```typescript
+const original = [1, 2, 3];
+const updated = await threadts.withElement(original, 1, 10);
+// updated: [1, 10, 3]
+// original: [1, 2, 3] (unchanged!)
+
+// Supports negative indices
+const lastReplaced = await threadts.withElement([1, 2, 3], -1, 99);
+// Result: [1, 2, 99]
+```
+
+#### `threadts.toSpliced<T>(array, start, deleteCount?, ...items): Promise<T[]>`
+
+Returns a **new array** with elements removed, replaced, or added at a given index.
+
+```typescript
+const original = [1, 2, 3, 4];
+
+// Remove and insert
+const spliced = await threadts.toSpliced(original, 1, 2, 10, 20);
+// spliced: [1, 10, 20, 4]
+// original: [1, 2, 3, 4] (unchanged!)
+
+// Delete only
+const deleted = await threadts.toSpliced([1, 2, 3, 4], 1, 2);
+// Result: [1, 4]
+
+// Insert only
+const inserted = await threadts.toSpliced([1, 2, 3], 1, 0, 99);
+// Result: [1, 99, 2, 3]
+```
+
+#### `threadts.groupByObject<T, K>(array, keyFn, options?): Promise<Partial<Record<K, T[]>>>`
+
+Groups elements into a plain object based on a key function (similar to `Object.groupBy`).
+
+```typescript
+const items = [
+  { type: 'fruit', name: 'apple' },
+  { type: 'vegetable', name: 'carrot' },
+  { type: 'fruit', name: 'banana' },
+];
+const grouped = await threadts.groupByObject(items, (item) => item.type);
+// Result: {
+//   fruit: [{ type: 'fruit', name: 'apple' }, { type: 'fruit', name: 'banana' }],
+//   vegetable: [{ type: 'vegetable', name: 'carrot' }]
+// }
+```
+
+#### Using the Array Operations Factory
+
+For advanced use cases, you can access all array operations through the factory:
+
+```typescript
+// Get array operations bound to the current ThreadTS instance
+const arrayOps = threadts.getArrayOps();
+
+// Use operations directly
+const index = await arrayOps.indexOf([1, 2, 3], 2);
+const unique = await arrayOps.unique([1, 1, 2, 2, 3]);
+const chunks = await arrayOps.chunk([1, 2, 3, 4, 5, 6], 2);
+
+// ES2023+ operations
+const sorted = await arrayOps.toSorted([3, 1, 2]);
+const reversed = await arrayOps.toReversed([1, 2, 3]);
+const lastMatch = await arrayOps.findLast([1, 2, 3, 2], (x) => x === 2);
+
+// Available operations:
+// indexOf, lastIndexOf, at, slice, concat, fill, includes, join,
+// reverse, sort, range, repeat, zip, unzip, unique, uniqueBy, flat, chunk,
+// findLast, findLastIndex, toSorted, toReversed, withElement, toSpliced, groupByObject
+```
+
 #### `threadts.batch(tasks, batchSize?): Promise<TaskResult[]>`
 
 Executes multiple tasks as a batch with configurable batch size.
@@ -526,6 +778,38 @@ const sentence = await threadts.pipe(['Hello', 'World']).join(' ').execute();
 // Includes - check if element exists (terminal)
 const hasThree = await threadts.pipe([1, 2, 3, 4]).includes(3).execute();
 // Result: true
+
+// SlicePipe - extract a portion of the array
+const sliced = await threadts.pipe([1, 2, 3, 4, 5]).slicePipe(1, 4).execute();
+// Result: [2, 3, 4]
+
+// ConcatPipe - concatenate with another array
+const concatenated = await threadts
+  .pipe([1, 2])
+  .concatPipe([3, 4, 5])
+  .execute();
+// Result: [1, 2, 3, 4, 5]
+
+// Rotate - rotate array elements by n positions
+const rotatedRight = await threadts.pipe([1, 2, 3, 4, 5]).rotate(2).execute();
+// Result: [4, 5, 1, 2, 3]
+
+const rotatedLeft = await threadts.pipe([1, 2, 3, 4, 5]).rotate(-2).execute();
+// Result: [3, 4, 5, 1, 2]
+
+// Truthy - filter to only truthy values
+const truthyOnly = await threadts
+  .pipe([0, 1, '', 'hello', null, true, false])
+  .truthy()
+  .execute();
+// Result: [1, 'hello', true]
+
+// Falsy - filter to only falsy values
+const falsyOnly = await threadts
+  .pipe([0, 1, '', 'hello', null, true, false])
+  .falsy()
+  .execute();
+// Result: [0, '', null, false]
 ```
 
 ### Advanced Features
@@ -1097,7 +1381,9 @@ src/
 │
 ├── core/
 │   ├── threadts.ts       # Main ThreadTS class (singleton pattern)
-│   └── pipeline.ts       # Pipeline & TerminalPipeline classes
+│   ├── pipeline.ts       # Pipeline & TerminalPipeline classes
+│   ├── pipeline-operations.ts  # Pipeline operation handlers
+│   └── array-operations.ts     # Extended array operations factory
 │
 ├── adapters/
 │   ├── base.ts           # Abstract WorkerAdapter base class
