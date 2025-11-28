@@ -48,6 +48,12 @@ async function main() {
     results.push(await testPipelineDistinctChunkOperations());
     results.push(await testPipelineSortReverseOperations());
     results.push(await testPipelineFirstLastOperations());
+    // NEW: Advanced Pipeline Extension Tests
+    results.push(await testPipelineZipOperations());
+    results.push(await testPipelineCompactFlattenOperations());
+    results.push(await testPipelineShuffleSampleOperations());
+    results.push(await testPipelineDropTakeWhileOperations());
+    results.push(await testPipelineJoinIncludesOperations());
   } else {
     // Fallback-Tests für Plattformen ohne Worker
     results.push(await testSequentialProcessing());
@@ -235,15 +241,18 @@ async function testGroupByPartitionOperations(): Promise<BenchmarkResult> {
   }));
 
   const { time, result } = await measureTime(async () => {
-    const grouped = await threadts.groupBy(
-      data,
-      (item: { category: number }) => String(item.category)
+    const grouped = await threadts.groupBy(data, (item: { category: number }) =>
+      String(item.category)
     );
     const [evens, odds] = await threadts.partition(
       data,
       (item: { id: number }) => item.id % 2 === 0
     );
-    return { groupedKeys: Object.keys(grouped).length, evensCount: evens.length, oddsCount: odds.length };
+    return {
+      groupedKeys: Object.keys(grouped).length,
+      evensCount: evens.length,
+      oddsCount: odds.length,
+    };
   });
 
   const passed =
@@ -264,7 +273,8 @@ async function testPipelineAPI(): Promise<BenchmarkResult> {
 
   const { time, result } = await measureTime(async () => {
     // Pipeline: map -> filter -> reduce
-    const pipelineResult = await threadts.pipe(data)
+    const pipelineResult = await threadts
+      .pipe(data)
       .map((x: number) => x * 2)
       .filter((x: number) => x % 4 === 0)
       .reduce((acc: number, x: number) => acc + x, 0)
@@ -293,15 +303,12 @@ async function testPipelineTakeSkipOperations(): Promise<BenchmarkResult> {
 
   const { time, result } = await measureTime(async () => {
     // Test take and skip operations
-    const takeResult = await threadts.pipe(data)
-      .take(100)
-      .execute();
+    const takeResult = await threadts.pipe(data).take(100).execute();
 
-    const skipResult = await threadts.pipe(data)
-      .skip(9900)
-      .execute();
+    const skipResult = await threadts.pipe(data).skip(9900).execute();
 
-    const combinedResult = await threadts.pipe(data)
+    const combinedResult = await threadts
+      .pipe(data)
       .skip(500)
       .take(50)
       .execute();
@@ -332,14 +339,10 @@ async function testPipelineDistinctChunkOperations(): Promise<BenchmarkResult> {
 
   const { time, result } = await measureTime(async () => {
     // Test unique operation (distinct)
-    const uniqueResult = await threadts.pipe(data)
-      .unique()
-      .execute();
+    const uniqueResult = await threadts.pipe(data).unique().execute();
 
     // Test chunk operation
-    const chunkResult = await threadts.pipe(data)
-      .chunk(100)
-      .execute();
+    const chunkResult = await threadts.pipe(data).chunk(100).execute();
 
     return { uniqueResult, chunkResult };
   });
@@ -359,21 +362,26 @@ async function testPipelineDistinctChunkOperations(): Promise<BenchmarkResult> {
 
 async function testPipelineSortReverseOperations(): Promise<BenchmarkResult> {
   // Create shuffled data
-  const data = Array.from({ length: 1000 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+  const data = Array.from({ length: 1000 }, (_, i) => i + 1).sort(
+    () => Math.random() - 0.5
+  );
 
   const { time, result } = await measureTime(async () => {
     // Test sort operation
-    const sortedResult = await threadts.pipe(data)
+    const sortedResult = await threadts
+      .pipe(data)
       .sort((a: number, b: number) => a - b)
       .execute();
 
     // Test reverse operation
-    const reversedResult = await threadts.pipe([1, 2, 3, 4, 5])
+    const reversedResult = await threadts
+      .pipe([1, 2, 3, 4, 5])
       .reverse()
       .execute();
 
     // Test combined sort + reverse
-    const combinedResult = await threadts.pipe(data)
+    const combinedResult = await threadts
+      .pipe(data)
       .sort((a: number, b: number) => a - b)
       .reverse()
       .take(5)
@@ -403,23 +411,21 @@ async function testPipelineFirstLastOperations(): Promise<BenchmarkResult> {
 
   const { time, result } = await measureTime(async () => {
     // Test first operation
-    const firstResult = await threadts.pipe(data)
-      .first()
-      .execute();
+    const firstResult = await threadts.pipe(data).first().execute();
 
     // Test last operation
-    const lastResult = await threadts.pipe(data)
-      .last()
-      .execute();
+    const lastResult = await threadts.pipe(data).last().execute();
 
     // Test first with condition (via filter + first)
-    const firstEvenOver100 = await threadts.pipe(data)
+    const firstEvenOver100 = await threadts
+      .pipe(data)
       .filter((x: number) => x > 100 && x % 2 === 0)
       .first()
       .execute();
 
     // Test groupBy in pipeline
-    const groupedResult = await threadts.pipe(data)
+    const groupedResult = await threadts
+      .pipe(data)
       .take(100)
       .groupBy((x: number) => x % 10)
       .execute();
@@ -438,6 +444,180 @@ async function testPipelineFirstLastOperations(): Promise<BenchmarkResult> {
     time,
     passed: passed && time < 1500,
     details: 'first+last+groupBy',
+  };
+}
+
+// NEW: Advanced Pipeline Operations Tests
+async function testPipelineZipOperations(): Promise<BenchmarkResult> {
+  const names = Array.from({ length: 1000 }, (_, i) => `User${i}`);
+  const ages = Array.from({ length: 1000 }, (_, i) => 20 + (i % 50));
+
+  const { time, result } = await measureTime(async () => {
+    // Test zip
+    const zipped = await threadts.pipe(names).zip(ages).execute();
+
+    // Test zipWith
+    const combined = await threadts
+      .pipe(names)
+      .zipWith(ages, (name, age) => ({ name, age }))
+      .execute();
+
+    // Test interleave
+    const interleaved = await threadts
+      .pipe(['a', 'b', 'c'])
+      .interleave([1, 2, 3])
+      .execute();
+
+    return { zipped: zipped.length, combined: combined.length, interleaved };
+  });
+
+  const passed =
+    result.zipped === 1000 &&
+    result.combined === 1000 &&
+    result.interleaved.length === 6;
+
+  return {
+    name: 'Pipeline Zip/Interleave',
+    time,
+    passed: passed && time < 500,
+    details: `${result.zipped} items`,
+  };
+}
+
+async function testPipelineCompactFlattenOperations(): Promise<BenchmarkResult> {
+  const sparseData = Array.from({ length: 2000 }, (_, i) =>
+    i % 3 === 0 ? null : i % 5 === 0 ? undefined : i
+  );
+  const nestedData = Array.from({ length: 500 }, (_, i) => [i * 2, i * 2 + 1]);
+
+  const { time, result } = await measureTime(async () => {
+    // Test compact
+    const compacted = await threadts.pipe(sparseData).compact().execute();
+
+    // Test flatten
+    const flattened = await threadts.pipe(nestedData).flatten().execute();
+
+    return { compactedLen: compacted.length, flattenedLen: flattened.length };
+  });
+
+  const passed = result.compactedLen > 0 && result.flattenedLen === 1000;
+
+  return {
+    name: 'Pipeline Compact/Flatten',
+    time,
+    passed: passed && time < 500,
+    details: `${result.compactedLen} compact`,
+  };
+}
+
+async function testPipelineShuffleSampleOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 1000 }, (_, i) => i);
+
+  const { time, result } = await measureTime(async () => {
+    // Test shuffle (verify length is preserved)
+    const shuffled = await threadts.pipe(data).shuffle().execute();
+
+    // Test sample
+    const sampled = await threadts.pipe(data).sample(100).execute();
+
+    // Verify shuffle actually shuffles (first 10 elements should differ)
+    let shuffledDiffers = false;
+    for (let i = 0; i < 10; i++) {
+      if (shuffled[i] !== data[i]) {
+        shuffledDiffers = true;
+        break;
+      }
+    }
+
+    return {
+      shuffledLen: shuffled.length,
+      sampledLen: sampled.length,
+      shuffledDiffers,
+    };
+  });
+
+  const passed =
+    result.shuffledLen === 1000 &&
+    result.sampledLen === 100 &&
+    result.shuffledDiffers;
+
+  return {
+    name: 'Pipeline Shuffle/Sample',
+    time,
+    passed: passed && time < 200,
+    details: `${result.sampledLen} sampled`,
+  };
+}
+
+async function testPipelineDropTakeWhileOperations(): Promise<BenchmarkResult> {
+  const data = Array.from({ length: 1000 }, (_, i) => i);
+
+  const { time, result } = await measureTime(async () => {
+    // Test dropWhile
+    const dropped = await threadts
+      .pipe(data)
+      .dropWhile((x: number) => x < 500)
+      .execute();
+
+    // Test takeWhile
+    const taken = await threadts
+      .pipe(data)
+      .takeWhile((x: number) => x < 200)
+      .execute();
+
+    return {
+      droppedLen: dropped.length,
+      takenLen: taken.length,
+      droppedFirst: dropped[0],
+      takenLast: taken[taken.length - 1],
+    };
+  });
+
+  const passed =
+    result.droppedLen === 500 &&
+    result.takenLen === 200 &&
+    result.droppedFirst === 500 &&
+    result.takenLast === 199;
+
+  return {
+    name: 'Pipeline Drop/TakeWhile',
+    time,
+    passed: passed && time < 200,
+    details: `${result.droppedLen} dropped`,
+  };
+}
+
+async function testPipelineJoinIncludesOperations(): Promise<BenchmarkResult> {
+  const words = Array.from({ length: 100 }, (_, i) => `word${i}`);
+  const numbers = Array.from({ length: 1000 }, (_, i) => i);
+
+  const { time, result } = await measureTime(async () => {
+    // Test join
+    const joined = await threadts.pipe(words).join(', ').execute();
+
+    // Test includes (existing element)
+    const hasWord50 = await threadts.pipe(words).includes('word50').execute();
+
+    // Test includes (non-existing element)
+    const hasWord999 = await threadts.pipe(words).includes('word999').execute();
+
+    // Test includes with numbers
+    const has500 = await threadts.pipe(numbers).includes(500).execute();
+
+    return { joinedLen: joined.length, hasWord50, hasWord999, has500 };
+  });
+
+  const passed =
+    result.joinedLen > 0 &&
+    result.hasWord50 === true &&
+    result.hasWord999 === false &&
+    result.has500 === true;
+
+  return {
+    name: 'Pipeline Join/Includes',
+    time,
+    passed: passed && time < 200,
+    details: `join: ${result.joinedLen} chars`,
   };
 }
 

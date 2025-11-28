@@ -8,18 +8,16 @@
  */
 
 import type { MapOptions, SerializableFunction, ThreadOptions } from '../types';
+import {
+  executeIntermediateOperation,
+  executeTerminalOperation,
+  isTerminalOperation,
+  type PipelineOperation,
+} from './pipeline-operations';
 import type { ThreadTS } from './threadts';
 
-/**
- * Pipeline operation definition for lazy evaluation.
- */
-export interface PipelineOperation {
-  type: string;
-  fn?: SerializableFunction;
-  options?: MapOptions | ThreadOptions;
-  initialValue?: unknown;
-  count?: number;
-}
+// Re-export PipelineOperation for backward compatibility
+export type { PipelineOperation };
 
 /**
  * Pipeline class for fluent chaining of parallel operations.
@@ -138,6 +136,53 @@ export class Pipeline<T> {
   }
 
   /**
+   * Executes a side-effect function for each element without modifying the pipeline.
+   * Useful for debugging, logging, or triggering side effects.
+   *
+   * @param fn - Function to execute for each element (return value is ignored)
+   * @returns Pipeline unchanged
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3])
+   *   .tap(x => console.log('Processing:', x))
+   *   .map(x => x * 2)
+   *   .execute();
+   * // Logs: Processing: 1, Processing: 2, Processing: 3
+   * // Result: [2, 4, 6]
+   * ```
+   */
+  tap(fn: SerializableFunction): Pipeline<T> {
+    this.operations.push({ type: 'tap', fn });
+    return this;
+  }
+
+  /**
+   * Creates sliding windows of elements.
+   * Each window contains `size` consecutive elements.
+   *
+   * @param size - Size of each window
+   * @param step - Number of elements to slide (default: 1)
+   * @returns Pipeline with arrays of windowed elements
+   *
+   * @example
+   * ```typescript
+   * const windows = await ThreadTS.pipe([1, 2, 3, 4, 5])
+   *   .window(3)
+   *   .execute();
+   * // Result: [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+   * ```
+   */
+  window(size: number, step: number = 1): Pipeline<T[]> {
+    this.operations.push({
+      type: 'window',
+      count: Math.max(1, Math.floor(size)),
+      step: Math.max(1, Math.floor(step)),
+    });
+    return this as unknown as Pipeline<T[]>;
+  }
+
+  /**
    * Removes duplicate elements from the pipeline.
    * Uses JSON.stringify for comparison by default.
    *
@@ -154,6 +199,18 @@ export class Pipeline<T> {
    */
   unique(keyFn?: SerializableFunction): Pipeline<T> {
     this.operations.push({ type: 'unique', fn: keyFn });
+    return this;
+  }
+
+  /**
+   * Removes duplicate elements using strict equality or a key function.
+   * Similar to unique but uses Set-based comparison for primitives.
+   *
+   * @param keyFn - Optional function to extract comparison key
+   * @returns Pipeline with distinct elements
+   */
+  distinct(keyFn?: SerializableFunction): Pipeline<T> {
+    this.operations.push({ type: 'distinct', fn: keyFn });
     return this;
   }
 
@@ -191,6 +248,173 @@ export class Pipeline<T> {
    */
   sort(compareFn?: SerializableFunction): Pipeline<T> {
     this.operations.push({ type: 'sort', fn: compareFn });
+    return this;
+  }
+
+  /**
+   * Zips this pipeline with another array, creating pairs.
+   *
+   * @param other - Array to zip with
+   * @returns Pipeline of tuples [thisElement, otherElement]
+   *
+   * @example
+   * ```typescript
+   * const zipped = await ThreadTS.pipe([1, 2, 3])
+   *   .zip(['a', 'b', 'c'])
+   *   .execute();
+   * // Result: [[1, 'a'], [2, 'b'], [3, 'c']]
+   * ```
+   */
+  zip<U>(other: U[]): Pipeline<[T, U]> {
+    this.operations.push({ type: 'zip', initialValue: other });
+    return this as unknown as Pipeline<[T, U]>;
+  }
+
+  /**
+   * Zips this pipeline with another array using a combiner function.
+   *
+   * @param other - Array to zip with
+   * @param fn - Function to combine elements: (thisEl, otherEl, index) => result
+   * @returns Pipeline of combined results
+   *
+   * @example
+   * ```typescript
+   * const zipped = await ThreadTS.pipe([1, 2, 3])
+   *   .zipWith([10, 20, 30], (a, b) => a + b)
+   *   .execute();
+   * // Result: [11, 22, 33]
+   * ```
+   */
+  zipWith<U, R>(other: U[], fn: SerializableFunction): Pipeline<R> {
+    this.operations.push({ type: 'zipWith', initialValue: other, fn });
+    return this as unknown as Pipeline<R>;
+  }
+
+  /**
+   * Interleaves this pipeline's elements with another array.
+   *
+   * @param other - Array to interleave with
+   * @returns Pipeline with interleaved elements
+   *
+   * @example
+   * ```typescript
+   * const interleaved = await ThreadTS.pipe([1, 3, 5])
+   *   .interleave([2, 4, 6])
+   *   .execute();
+   * // Result: [1, 2, 3, 4, 5, 6]
+   * ```
+   */
+  interleave(other: T[]): Pipeline<T> {
+    this.operations.push({ type: 'interleave', initialValue: other });
+    return this;
+  }
+
+  /**
+   * Removes null and undefined values from the pipeline.
+   *
+   * @param predicate - Optional custom filter function
+   * @returns Pipeline without null/undefined values
+   *
+   * @example
+   * ```typescript
+   * const compacted = await ThreadTS.pipe([1, null, 2, undefined, 3])
+   *   .compact()
+   *   .execute();
+   * // Result: [1, 2, 3]
+   * ```
+   */
+  compact(predicate?: SerializableFunction): Pipeline<NonNullable<T>> {
+    this.operations.push({ type: 'compact', fn: predicate });
+    return this as unknown as Pipeline<NonNullable<T>>;
+  }
+
+  /**
+   * Flattens nested arrays to the specified depth.
+   *
+   * @param depth - Depth to flatten (default: 1)
+   * @returns Pipeline with flattened arrays
+   *
+   * @example
+   * ```typescript
+   * const flat = await ThreadTS.pipe([[1, 2], [3, [4, 5]]])
+   *   .flatten(2)
+   *   .execute();
+   * // Result: [1, 2, 3, 4, 5]
+   * ```
+   */
+  flatten(depth: number = 1): Pipeline<unknown> {
+    this.operations.push({ type: 'flatten', count: depth });
+    return this as unknown as Pipeline<unknown>;
+  }
+
+  /**
+   * Randomly shuffles elements in the pipeline.
+   *
+   * @returns Pipeline with shuffled elements
+   */
+  shuffle(): Pipeline<T> {
+    this.operations.push({ type: 'shuffle' });
+    return this;
+  }
+
+  /**
+   * Takes a random sample of n elements.
+   *
+   * @param count - Number of elements to sample
+   * @returns Pipeline with sampled elements
+   */
+  sample(count: number): Pipeline<T> {
+    this.operations.push({ type: 'sample', count: Math.max(0, count) });
+    return this;
+  }
+
+  /**
+   * Drops elements from the beginning while predicate returns true.
+   *
+   * @param predicate - Function to test each element
+   * @returns Pipeline without dropped elements
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
+   *   .dropWhile(x => x < 3)
+   *   .execute();
+   * // Result: [3, 4, 5]
+   * ```
+   */
+  dropWhile(predicate: SerializableFunction): Pipeline<T> {
+    this.operations.push({ type: 'dropWhile', fn: predicate });
+    return this;
+  }
+
+  /**
+   * Takes elements from the beginning while predicate returns true.
+   *
+   * @param predicate - Function to test each element
+   * @returns Pipeline with taken elements
+   *
+   * @example
+   * ```typescript
+   * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
+   *   .takeWhile(x => x < 3)
+   *   .execute();
+   * // Result: [1, 2]
+   * ```
+   */
+  takeWhile(predicate: SerializableFunction): Pipeline<T> {
+    this.operations.push({ type: 'takeWhile', fn: predicate });
+    return this;
+  }
+
+  /**
+   * Executes a side-effect function for debugging without modifying the pipeline.
+   * Alias for tap().
+   *
+   * @param fn - Function to execute for each element
+   * @returns Pipeline unchanged
+   */
+  peek(fn: SerializableFunction): Pipeline<T> {
+    this.operations.push({ type: 'peek', fn });
     return this;
   }
 
@@ -451,68 +675,60 @@ export class Pipeline<T> {
   }
 
   /**
+   * Joins all elements into a string with the specified separator. This is a terminal operation.
+   *
+   * @param separator - The separator to use between elements (default: ',')
+   * @returns TerminalPipeline that resolves to the joined string
+   *
+   * @example
+   * ```typescript
+   * const result = await thread.pipe(['a', 'b', 'c'])
+   *   .join('-')
+   *   .execute(); // 'a-b-c'
+   * ```
+   */
+  join(separator = ','): TerminalPipeline<string> {
+    this.operations.push({ type: 'join', initialValue: separator });
+    return new TerminalPipeline<string>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
+   * Checks if the pipeline contains a specific element. This is a terminal operation.
+   *
+   * @param searchElement - The element to search for
+   * @returns TerminalPipeline that resolves to true if found, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const hasThree = await thread.pipe([1, 2, 3, 4])
+   *   .includes(3)
+   *   .execute(); // true
+   * ```
+   */
+  includes(searchElement: T): TerminalPipeline<boolean> {
+    this.operations.push({ type: 'includes', initialValue: searchElement });
+    return new TerminalPipeline<boolean>(
+      this.array,
+      this.operations,
+      this.threadts
+    );
+  }
+
+  /**
    * Executes all operations in the pipeline and returns the result array.
    */
   async execute(): Promise<T[]> {
     let result: unknown[] = this.array;
 
     for (const op of this.operations) {
-      result = await this.executeOperation(result, op);
+      result = await executeIntermediateOperation(result, op, this.threadts);
     }
 
     return result as T[];
-  }
-
-  /**
-   * Execute a single pipeline operation.
-   * @internal
-   */
-  protected async executeOperation(
-    data: unknown[],
-    op: PipelineOperation
-  ): Promise<unknown[]> {
-    switch (op.type) {
-      case 'map':
-        return this.threadts.map(data, op.fn!, op.options as MapOptions);
-      case 'filter':
-        return this.threadts.filter(data, op.fn!, op.options as MapOptions);
-      case 'flatMap':
-        return this.threadts.flatMap(data, op.fn!, op.options as MapOptions);
-      case 'take':
-        return data.slice(0, op.count ?? 0);
-      case 'skip':
-        return data.slice(op.count ?? 0);
-      case 'chunk': {
-        const chunkSize = op.count ?? 1;
-        const chunks: unknown[][] = [];
-        for (let i = 0; i < data.length; i += chunkSize) {
-          chunks.push(data.slice(i, i + chunkSize));
-        }
-        return chunks;
-      }
-      case 'unique': {
-        const seen = new Set<string>();
-        const uniqueResult: unknown[] = [];
-        for (const item of data) {
-          const key = op.fn
-            ? JSON.stringify(op.fn(item))
-            : JSON.stringify(item);
-          if (!seen.has(key)) {
-            seen.add(key);
-            uniqueResult.push(item);
-          }
-        }
-        return uniqueResult;
-      }
-      case 'reverse':
-        return [...data].reverse();
-      case 'sort':
-        return [...data].sort(
-          op.fn as ((a: unknown, b: unknown) => number) | undefined
-        );
-      default:
-        return data;
-    }
   }
 
   /**
@@ -558,169 +774,6 @@ export class TerminalPipeline<R> {
   ) {}
 
   /**
-   * Execute a single pipeline operation.
-   * @internal
-   */
-  private async executeIntermediateOperation(
-    data: unknown[],
-    op: PipelineOperation
-  ): Promise<unknown[]> {
-    switch (op.type) {
-      case 'map':
-        return this.threadts.map(data, op.fn!, op.options as MapOptions);
-      case 'filter':
-        return this.threadts.filter(data, op.fn!, op.options as MapOptions);
-      case 'flatMap':
-        return this.threadts.flatMap(data, op.fn!, op.options as MapOptions);
-      case 'take':
-        return data.slice(0, op.count ?? 0);
-      case 'skip':
-        return data.slice(op.count ?? 0);
-      case 'chunk': {
-        const chunkSize = op.count ?? 1;
-        const chunks: unknown[][] = [];
-        for (let j = 0; j < data.length; j += chunkSize) {
-          chunks.push(data.slice(j, j + chunkSize));
-        }
-        return chunks;
-      }
-      case 'unique': {
-        const seen = new Set<string>();
-        const uniqueResult: unknown[] = [];
-        for (const item of data) {
-          const key = op.fn
-            ? JSON.stringify(op.fn(item))
-            : JSON.stringify(item);
-          if (!seen.has(key)) {
-            seen.add(key);
-            uniqueResult.push(item);
-          }
-        }
-        return uniqueResult;
-      }
-      case 'reverse':
-        return [...data].reverse();
-      case 'sort':
-        return [...data].sort(
-          op.fn as ((a: unknown, b: unknown) => number) | undefined
-        );
-      default:
-        return data;
-    }
-  }
-
-  /**
-   * Execute a terminal operation and return the result.
-   * @internal
-   */
-  private async executeTerminalOperation(
-    data: unknown[],
-    op: PipelineOperation
-  ): Promise<R> {
-    switch (op.type) {
-      case 'reduce':
-        return this.threadts.reduce(
-          data,
-          op.fn!,
-          op.initialValue as R,
-          op.options as ThreadOptions
-        );
-      case 'forEach':
-        await this.threadts.forEach(data, op.fn!, op.options as MapOptions);
-        return undefined as R;
-      case 'find':
-        return this.threadts.find(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'findIndex':
-        return this.threadts.findIndex(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'some':
-        return this.threadts.some(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'every':
-        return this.threadts.every(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'count':
-        return this.threadts.count(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'groupBy':
-        return this.threadts.groupBy(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'partition':
-        return this.threadts.partition(
-          data,
-          op.fn!,
-          op.options as MapOptions
-        ) as Promise<R>;
-      case 'first':
-        return (data.length > 0 ? data[0] : undefined) as R;
-      case 'last':
-        return (data.length > 0 ? data[data.length - 1] : undefined) as R;
-      case 'isEmpty':
-        return (data.length === 0) as R;
-      case 'sum':
-        return data.reduce(
-          (acc: number, val) => acc + (typeof val === 'number' ? val : 0),
-          0
-        ) as R;
-      case 'average': {
-        if (data.length === 0) return NaN as R;
-        const sumValue = data.reduce(
-          (acc: number, val) => acc + (typeof val === 'number' ? val : 0),
-          0
-        );
-        return (sumValue / data.length) as R;
-      }
-      case 'min': {
-        if (data.length === 0) return undefined as R;
-        const minCompareFn = op.fn as
-          | ((a: unknown, b: unknown) => number)
-          | undefined;
-        return [...data].sort(
-          minCompareFn ??
-            ((a, b) => {
-              if (a === b) return 0;
-              return (a as number) < (b as number) ? -1 : 1;
-            })
-        )[0] as R;
-      }
-      case 'max': {
-        if (data.length === 0) return undefined as R;
-        const maxCompareFn = op.fn as
-          | ((a: unknown, b: unknown) => number)
-          | undefined;
-        return [...data].sort(
-          maxCompareFn ??
-            ((a, b) => {
-              if (a === b) return 0;
-              return (a as number) > (b as number) ? -1 : 1;
-            })
-        )[0] as R;
-      }
-      default:
-        return data as R;
-    }
-  }
-
-  /**
    * Executes all operations in the pipeline and returns the final result.
    */
   async execute(): Promise<R> {
@@ -730,37 +783,13 @@ export class TerminalPipeline<R> {
       const op = this.operations[i];
       const isLast = i === this.operations.length - 1;
 
-      if (isLast && this.isTerminalOperation(op.type)) {
-        return this.executeTerminalOperation(result, op);
+      if (isLast && isTerminalOperation(op.type)) {
+        return executeTerminalOperation<R>(result, op, this.threadts);
       }
 
-      result = await this.executeIntermediateOperation(result, op);
+      result = await executeIntermediateOperation(result, op, this.threadts);
     }
 
     return result as R;
-  }
-
-  /**
-   * Check if operation type is a terminal operation.
-   */
-  private isTerminalOperation(type: string): boolean {
-    return [
-      'reduce',
-      'forEach',
-      'find',
-      'findIndex',
-      'some',
-      'every',
-      'count',
-      'groupBy',
-      'partition',
-      'first',
-      'last',
-      'isEmpty',
-      'sum',
-      'average',
-      'min',
-      'max',
-    ].includes(type);
   }
 }

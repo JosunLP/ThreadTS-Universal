@@ -8,9 +8,26 @@
  * - **Caching**: @memoize, @cache, @lazy
  * - **Flow Control**: @retry, @rateLimit, @timeout, @debounce, @throttle, @concurrent, @circuitBreaker
  * - **Observability**: @logged, @measure, @validate
+ * - **Utilities**: createMethodDecorator, createMethodDecoratorWithClass, createClassDecorator
  *
  * @module decorators
  */
+
+// Decorator utilities for creating custom decorators
+export {
+  createClassDecorator,
+  createMethodDecorator,
+  createMethodDecoratorWithClass,
+  ensureAsync,
+  isAsyncFunction,
+} from './utils';
+
+// Export utility types
+export type {
+  AnyFunction,
+  DecoratorContext,
+  DecoratorReturnType,
+} from './utils';
 
 // Parallel decorators
 export {

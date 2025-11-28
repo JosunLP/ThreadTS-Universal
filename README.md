@@ -40,12 +40,16 @@ console.log(found); // 4
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
 - **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`
-- **Enhanced Pipeline API**: Fluent chaining with lazy evaluation, including `take`, `skip`, `chunk`, `unique`, `reverse`, `sort`, `first`, `last`, `sum`, `average`, `min`, `max`
+- **Enhanced Pipeline API**: Fluent chaining with lazy evaluation
+  - Intermediate: `map`, `filter`, `flatMap`, `take`, `skip`, `chunk`, `tap`, `peek`, `window`, `unique`, `distinct`, `reverse`, `sort`, `zip`, `zipWith`, `interleave`, `compact`, `flatten`, `shuffle`, `sample`, `dropWhile`, `takeWhile`
+  - Terminal: `reduce`, `forEach`, `find`, `findIndex`, `some`, `every`, `count`, `groupBy`, `partition`, `first`, `last`, `isEmpty`, `sum`, `average`, `min`, `max`, `join`, `includes`
+  - Collectors: `toArray()`, `toSet()`, `toMap()`
 - **Progress Tracking**: Real-time progress monitoring
 - **Intelligent Caching**: Automatic result caching with `@memoize` and `@cache` decorators
 - **Priority Queues**: High/Normal/Low priority execution
 - **Timeout & Cancellation**: AbortController integration
 - **Decorator Suite**: `@parallelMethod()`, `@retry()`, `@rateLimit()`, `@timeout()`, `@debounce()`, `@throttle()`, `@logged()`, `@cache()`, `@concurrent()`, `@circuitBreaker()`, `@measure()`, `@validate()`, `@lazy()`
+- **Custom Decorators**: Utilities for creating your own decorators (`createMethodDecorator`, `createMethodDecoratorWithClass`, `createClassDecorator`)
 - **Monitoring**: Built-in performance monitoring, health checks, and error handling
 
 ## 🚀 Quick Start
@@ -88,11 +92,15 @@ const hasEven = await threadts.some([1, 3, 5, 6], (x) => x % 2 === 0);
 // Result: true
 
 // Group and partition data
-const [evens, odds] = await threadts.partition([1, 2, 3, 4, 5], (x) => x % 2 === 0);
+const [evens, odds] = await threadts.partition(
+  [1, 2, 3, 4, 5],
+  (x) => x % 2 === 0
+);
 // evens: [2, 4], odds: [1, 3, 5]
 
 // Pipeline API for chained operations
-const result = await threadts.pipe([1, 2, 3, 4, 5])
+const result = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .filter((x) => x > 4)
   .reduce((acc, x) => acc + x, 0)
@@ -103,7 +111,14 @@ const result = await threadts.pipe([1, 2, 3, 4, 5])
 ### Method Decorators
 
 ```typescript
-import { parallelMethod, memoize, retry, rateLimit, timeout, debounce } from 'threadts-universal';
+import {
+  parallelMethod,
+  memoize,
+  retry,
+  rateLimit,
+  timeout,
+  debounce,
+} from 'threadts-universal';
 
 class DataProcessor {
   @parallelMethod()
@@ -220,10 +235,7 @@ const result = await threadts.reduceRight(
 Finds the first element that satisfies the predicate (processes in parallel batches).
 
 ```typescript
-const found = await threadts.find(
-  [1, 2, 3, 4, 5],
-  (x) => x > 3
-);
+const found = await threadts.find([1, 2, 3, 4, 5], (x) => x > 3);
 // Result: 4
 ```
 
@@ -232,10 +244,7 @@ const found = await threadts.find(
 Finds the index of the first element that satisfies the predicate.
 
 ```typescript
-const index = await threadts.findIndex(
-  [1, 2, 3, 4, 5],
-  (x) => x > 3
-);
+const index = await threadts.findIndex([1, 2, 3, 4, 5], (x) => x > 3);
 // Result: 3
 ```
 
@@ -244,10 +253,7 @@ const index = await threadts.findIndex(
 Tests whether at least one element satisfies the predicate.
 
 ```typescript
-const hasEven = await threadts.some(
-  [1, 3, 5, 6, 7],
-  (x) => x % 2 === 0
-);
+const hasEven = await threadts.some([1, 3, 5, 6, 7], (x) => x % 2 === 0);
 // Result: true
 ```
 
@@ -256,10 +262,7 @@ const hasEven = await threadts.some(
 Tests whether all elements satisfy the predicate.
 
 ```typescript
-const allPositive = await threadts.every(
-  [1, 2, 3, 4, 5],
-  (x) => x > 0
-);
+const allPositive = await threadts.every([1, 2, 3, 4, 5], (x) => x > 0);
 // Result: true
 ```
 
@@ -278,10 +281,7 @@ await threadts.forEach([1, 2, 3], (x) => {
 Maps each element to an array and flattens the result.
 
 ```typescript
-const result = await threadts.flatMap(
-  [1, 2, 3],
-  (x) => [x, x * 2]
-);
+const result = await threadts.flatMap([1, 2, 3], (x) => [x, x * 2]);
 // Result: [1, 2, 2, 4, 3, 6]
 ```
 
@@ -291,7 +291,11 @@ Groups array elements by a key returned from the function.
 
 ```typescript
 const grouped = await threadts.groupBy(
-  [{ type: 'a', value: 1 }, { type: 'b', value: 2 }, { type: 'a', value: 3 }],
+  [
+    { type: 'a', value: 1 },
+    { type: 'b', value: 2 },
+    { type: 'a', value: 3 },
+  ],
   (item) => item.type
 );
 // Map { 'a' => [{type: 'a', value: 1}, {type: 'a', value: 3}], 'b' => [{type: 'b', value: 2}] }
@@ -314,10 +318,7 @@ const [evens, odds] = await threadts.partition(
 Counts elements that satisfy a predicate. More efficient than `filter().length`.
 
 ```typescript
-const count = await threadts.count(
-  [1, 2, 3, 4, 5],
-  (x) => x > 2
-);
+const count = await threadts.count([1, 2, 3, 4, 5], (x) => x > 2);
 // Result: 3
 ```
 
@@ -341,7 +342,8 @@ The Pipeline API provides a fluent interface for chaining parallel operations wi
 
 ```typescript
 // Chain multiple operations
-const result = await threadts.pipe([1, 2, 3, 4, 5])
+const result = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .filter((x) => x > 4)
   .reduce((acc, x) => acc + x, 0)
@@ -349,79 +351,181 @@ const result = await threadts.pipe([1, 2, 3, 4, 5])
 // Result: 24 (6 + 8 + 10)
 
 // Using flatMap in pipeline
-const flattened = await threadts.pipe([1, 2, 3])
+const flattened = await threadts
+  .pipe([1, 2, 3])
   .flatMap((x) => [x, x * 10])
   .filter((x) => x > 5)
   .toArray();
 // Result: [10, 20, 30]
 
 // Terminal operations: reduce, forEach, find, some, every, count
-const hasLarge = await threadts.pipe([1, 2, 3, 4, 5])
+const hasLarge = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .some((x) => x > 8)
   .execute();
 // Result: true
 
 // Using take, skip, and chunk
-const paginated = await threadts.pipe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+const paginated = await threadts
+  .pipe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   .skip(2)
   .take(5)
   .execute();
 // Result: [3, 4, 5, 6, 7]
 
-const chunks = await threadts.pipe([1, 2, 3, 4, 5])
-  .chunk(2)
-  .execute();
+const chunks = await threadts.pipe([1, 2, 3, 4, 5]).chunk(2).execute();
 // Result: [[1, 2], [3, 4], [5]]
 
+// Using tap for debugging/side-effects
+const result = await threadts
+  .pipe([1, 2, 3])
+  .tap((x) => console.log('Processing:', x))
+  .map((x) => x * 2)
+  .execute();
+// Logs: Processing: 1, Processing: 2, Processing: 3
+// Result: [2, 4, 6]
+
+// Using window for sliding windows
+const windows = await threadts.pipe([1, 2, 3, 4, 5]).window(3).execute();
+// Result: [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+
+const windowsWithStep = await threadts
+  .pipe([1, 2, 3, 4, 5, 6])
+  .window(2, 2) // size=2, step=2
+  .execute();
+// Result: [[1, 2], [3, 4], [5, 6]]
+
 // Using unique, reverse, and sort
-const processed = await threadts.pipe([3, 1, 2, 1, 3])
+const processed = await threadts
+  .pipe([3, 1, 2, 1, 3])
   .unique()
   .sort((a, b) => a - b)
   .execute();
 // Result: [1, 2, 3]
 
 // Aggregation operations
-const sum = await threadts.pipe([1, 2, 3, 4, 5])
-  .sum()
-  .execute();
+const sum = await threadts.pipe([1, 2, 3, 4, 5]).sum().execute();
 // Result: 15
 
-const avg = await threadts.pipe([1, 2, 3, 4, 5])
-  .average()
-  .execute();
+const avg = await threadts.pipe([1, 2, 3, 4, 5]).average().execute();
 // Result: 3
 
-const max = await threadts.pipe([3, 1, 4, 1, 5])
-  .max()
-  .execute();
+const max = await threadts.pipe([3, 1, 4, 1, 5]).max().execute();
 // Result: 5
 
 // First and last elements
-const first = await threadts.pipe([1, 2, 3])
+const first = await threadts
+  .pipe([1, 2, 3])
   .filter((x) => x > 1)
   .first()
   .execute();
 // Result: 2
 
 // Collect to different data structures
-const set = await threadts.pipe([1, 2, 2, 3])
-  .toSet();
+const set = await threadts.pipe([1, 2, 2, 3]).toSet();
 // Result: Set { 1, 2, 3 }
 
-const map = await threadts.pipe(users)
-  .toMap((user) => user.id);
+const map = await threadts.pipe(users).toMap((user) => user.id);
 // Result: Map { id1 => user1, id2 => user2, ... }
 
 // GroupBy and Partition in pipeline
-const grouped = await threadts.pipe(users)
+const grouped = await threadts
+  .pipe(users)
   .groupBy((user) => user.role)
   .execute();
 // Result: Map { 'admin' => [...], 'user' => [...] }
 
-const [admins, regular] = await threadts.pipe(users)
+const [admins, regular] = await threadts
+  .pipe(users)
   .partition((user) => user.role === 'admin')
   .execute();
+```
+
+#### New Pipeline Operations (v2.1.0+)
+
+```typescript
+// Distinct - remove duplicates by key
+const items = [{ id: 1 }, { id: 2 }, { id: 1 }, { id: 3 }];
+const uniqueById = await threadts
+  .pipe(items)
+  .distinct((item) => item.id)
+  .execute();
+// Result: [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+// Zip - combine two arrays element-wise
+const names = ['Alice', 'Bob', 'Charlie'];
+const ages = [25, 30, 35];
+const zipped = await threadts.pipe(names).zip(ages).execute();
+// Result: [['Alice', 25], ['Bob', 30], ['Charlie', 35]]
+
+// ZipWith - combine with a custom function
+const combined = await threadts
+  .pipe(names)
+  .zipWith(ages, (name, age) => `${name} is ${age}`)
+  .execute();
+// Result: ['Alice is 25', 'Bob is 30', 'Charlie is 35']
+
+// Interleave - alternate elements from two arrays
+const letters = ['a', 'b', 'c'];
+const numbers = [1, 2, 3];
+const interleaved = await threadts.pipe(letters).interleave(numbers).execute();
+// Result: ['a', 1, 'b', 2, 'c', 3]
+
+// Compact - remove null and undefined values
+const sparse = [1, null, 2, undefined, 3];
+const compacted = await threadts.pipe(sparse).compact().execute();
+// Result: [1, 2, 3]
+
+// Flatten - flatten nested arrays
+const nested = [[1, 2], [3, 4], [5]];
+const flattened = await threadts.pipe(nested).flatten().execute();
+// Result: [1, 2, 3, 4, 5]
+
+const deepNested = [[[1]], [[2]], [[3]]];
+const deepFlattened = await threadts.pipe(deepNested).flatten(2).execute();
+// Result: [1, 2, 3]
+
+// Shuffle - randomly shuffle elements
+const ordered = [1, 2, 3, 4, 5];
+const shuffled = await threadts.pipe(ordered).shuffle().execute();
+// Result: [3, 1, 5, 2, 4] (random order)
+
+// Sample - get random sample of n elements
+const sampled = await threadts.pipe(ordered).sample(3).execute();
+// Result: [2, 4, 1] (3 random elements)
+
+// DropWhile - drop elements while predicate is true
+const sequence = [1, 2, 3, 10, 4, 5];
+const dropped = await threadts
+  .pipe(sequence)
+  .dropWhile((x) => x < 5)
+  .execute();
+// Result: [10, 4, 5]
+
+// TakeWhile - take elements while predicate is true
+const taken = await threadts
+  .pipe(sequence)
+  .takeWhile((x) => x < 5)
+  .execute();
+// Result: [1, 2, 3]
+
+// Peek - debug helper (alias for tap)
+const peeked = await threadts
+  .pipe([1, 2, 3])
+  .peek((x) => console.log('Value:', x))
+  .map((x) => x * 2)
+  .execute();
+// Logs: Value: 1, Value: 2, Value: 3
+// Result: [2, 4, 6]
+
+// Join - join elements into string (terminal)
+const sentence = await threadts.pipe(['Hello', 'World']).join(' ').execute();
+// Result: 'Hello World'
+
+// Includes - check if element exists (terminal)
+const hasThree = await threadts.pipe([1, 2, 3, 4]).includes(3).execute();
+// Result: true
 ```
 
 ### Advanced Features
@@ -723,6 +827,72 @@ async loadConfig(): Promise<Config> {
 // Reset: this.loadConfig.reset()
 ```
 
+### Creating Custom Decorators
+
+ThreadTS provides utility functions for creating your own decorators that work with both legacy (`experimentalDecorators`) and Stage-3 decorator syntax:
+
+```typescript
+import {
+  createMethodDecorator,
+  createMethodDecoratorWithClass,
+  createClassDecorator,
+  isAsyncFunction,
+  ensureAsync,
+} from 'threadts-universal';
+
+// Simple method decorator
+function logExecution() {
+  return createMethodDecorator((originalMethod, methodName) => {
+    return async function (...args: unknown[]) {
+      console.log(`Calling ${methodName}`);
+      const result = await originalMethod.apply(this, args);
+      console.log(`${methodName} returned:`, result);
+      return result;
+    } as typeof originalMethod;
+  });
+}
+
+// Decorator with class name for observability
+function auditLog() {
+  return createMethodDecoratorWithClass((method, methodName, className) => {
+    return async function (...args: unknown[]) {
+      console.log(`[${className}.${methodName}] called with:`, args);
+      return method.apply(this, args);
+    } as typeof method;
+  });
+}
+
+// Class decorator
+function singleton() {
+  const instances = new Map();
+  return createClassDecorator((OriginalClass, className) => {
+    return class extends OriginalClass {
+      constructor(...args: unknown[]) {
+        if (instances.has(className)) {
+          return instances.get(className);
+        }
+        super(...args);
+        instances.set(className, this);
+      }
+    } as typeof OriginalClass;
+  });
+}
+
+// Usage
+class MyService {
+  @logExecution()
+  async process(data: string): Promise<string> {
+    return data.toUpperCase();
+  }
+
+  @auditLog()
+  async save(item: Item): Promise<void> {
+    // Logs: [MyService.save] called with: [...]
+    await db.save(item);
+  }
+}
+```
+
 ### Event System
 
 ```typescript
@@ -751,7 +921,7 @@ threadts.off('task-complete', listener);
 import {
   PerformanceMonitor,
   HealthMonitor,
-  ErrorHandler
+  ErrorHandler,
 } from 'threadts-universal';
 
 // Performance Monitoring
@@ -887,7 +1057,7 @@ import {
   detectPlatform,
   supportsWorkerThreads,
   getOptimalThreadCount,
-  getMemoryInfo
+  getMemoryInfo,
 } from 'threadts-universal';
 
 console.log('Platform:', detectPlatform()); // 'node', 'browser', 'deno', 'bun'
@@ -1000,14 +1170,15 @@ Fluent API for data processing with lazy evaluation:
 
 ```typescript
 // Pipeline provides intermediate operations (lazy)
-const pipeline = threadts.pipe(data)
-  .filter(x => x > 0)     // Returns Pipeline
-  .map(x => x * 2)        // Returns Pipeline
+const pipeline = threadts
+  .pipe(data)
+  .filter((x) => x > 0) // Returns Pipeline
+  .map((x) => x * 2) // Returns Pipeline
   .sort((a, b) => a - b); // Returns Pipeline
 
 // Terminal operations execute the pipeline
-const result = await pipeline.execute();  // Returns TerminalPipeline
-const array = await pipeline.toArray();   // Executes and returns array
+const result = await pipeline.execute(); // Returns TerminalPipeline
+const array = await pipeline.toArray(); // Executes and returns array
 const sum = await pipeline.sum().execute(); // Aggregation
 ```
 
@@ -1024,10 +1195,18 @@ abstract class WorkerAdapter {
 }
 
 // Platform adapters
-class BrowserWorkerAdapter extends WorkerAdapter { /* Web Worker */ }
-class NodeWorkerAdapter extends WorkerAdapter { /* Worker Threads */ }
-class DenoWorkerAdapter extends WorkerAdapter { /* Deno Worker */ }
-class BunWorkerAdapter extends WorkerAdapter { /* Bun Worker */ }
+class BrowserWorkerAdapter extends WorkerAdapter {
+  /* Web Worker */
+}
+class NodeWorkerAdapter extends WorkerAdapter {
+  /* Worker Threads */
+}
+class DenoWorkerAdapter extends WorkerAdapter {
+  /* Deno Worker */
+}
+class BunWorkerAdapter extends WorkerAdapter {
+  /* Bun Worker */
+}
 ```
 
 ## 🤝 Contributing
