@@ -64,8 +64,17 @@ jobs:
       - name: 🏗️ Build Project
         run: npm run build
 
-      - name: 🎭 Install Playwright
+      - name: 🎭 Install Playwright Browsers
         run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: 🎭 Install System Dependencies
+        run: npx playwright install-deps
+
+      - name: 🔍 Verify Playwright Installation
+        run: |
+          echo "Verifying Playwright browsers are installed..."
+          npx playwright --version
+          ls -la ~/.cache/ms-playwright/ || echo "Playwright cache directory not found"
 
       - name: 🧪 Run Browser Tests
         run: npx playwright test --project=${{ matrix.browser }}
