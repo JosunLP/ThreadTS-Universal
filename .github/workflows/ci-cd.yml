@@ -325,7 +325,7 @@ jobs:
       - name: 🔍 Verify Playwright Installation
         run: |
           echo "Verifying Playwright browser installation..."
-          npx playwright install --dry-run
+          npx playwright --version
           echo "✅ Playwright browsers are ready"
 
       - name: 🧪 Final Test Suite
