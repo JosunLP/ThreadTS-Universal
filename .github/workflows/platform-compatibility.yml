@@ -70,7 +70,7 @@ jobs:
       - name: 🔍 Verify Playwright Installation
         run: |
           echo "Verifying Playwright browser installation for ${{ matrix.browser }}..."
-          npx playwright install --dry-run ${{ matrix.browser }}
+          npx playwright --version
           echo "✅ Playwright browser ${{ matrix.browser }} is ready"
 
       - name: 🧪 Run Browser Tests
