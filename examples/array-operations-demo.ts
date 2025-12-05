@@ -175,7 +175,6 @@ async function zipOperations() {
 
   const names = ['Alice', 'Bob', 'Charlie', 'David'];
   const ages = [25, 30, 35, 40];
-  const cities = ['NYC', 'LA', 'Chicago', 'Miami'];
 
   // Basic zip
   const zipped = await threadts.zip(names, ages);
