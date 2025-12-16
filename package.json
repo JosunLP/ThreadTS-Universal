@@ -1,6 +1,6 @@
 {
   "name": "threadts-universal",
-  "version": "rc_1",
+  "version": "1.0.0",
   "type": "module",
   "description": "Universal TypeScript library for effortless parallel computing across all JavaScript ecosystems",
   "main": "dist/index.cjs",
