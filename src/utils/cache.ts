@@ -267,7 +267,7 @@ export class LazyInitializer<T> {
   /** Whether initialization has completed */
   private initialized = false;
 
-  /** Promise for an in-flight initialization (prevents race conditions) */
+  /** Promise for ongoing initialization (prevents race conditions) */
   private initializing: Promise<T> | null = null;
 
   /**
