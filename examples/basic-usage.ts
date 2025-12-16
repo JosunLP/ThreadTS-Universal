@@ -2,7 +2,24 @@
  * ThreadTS Universal - Example Usage
  */
 
-import { ThreadTS, cache, circuitBreaker, concurrent, lazy, logged, measure, memoize, parallelMethod, rateLimit, retry, throttle, timeout, validate } from '../src';
+import {
+  ThreadTS,
+  cache,
+  circuitBreaker,
+  concurrent,
+  createMethodDecorator,
+  createMethodDecoratorWithClass,
+  lazy,
+  logged,
+  measure,
+  memoize,
+  parallelMethod,
+  rateLimit,
+  retry,
+  throttle,
+  timeout,
+  validate,
+} from '../src';
 
 // Get instance for use throughout examples
 const threadts = ThreadTS.getInstance();
@@ -85,13 +102,86 @@ async function arrayOperationsExample() {
   console.log('GroupBy role:', groupedByRole);
 
   // Parallel partition
-  const [evenNumbers, oddNumbers] = await threadts.partition(numbers, (x) => x % 2 === 0);
+  const [evenNumbers, oddNumbers] = await threadts.partition(
+    numbers,
+    (x) => x % 2 === 0
+  );
   console.log('Partition evens:', evenNumbers); // [2, 4, 6, 8, 10]
   console.log('Partition odds:', oddNumbers); // [1, 3, 5, 7, 9]
 
   // Parallel count
   const evenCount = await threadts.count(numbers, (x) => x % 2 === 0);
   console.log('Count evens:', evenCount); // 5
+
+  // === ES2023+ Immutable Array Methods ===
+  console.log('\n--- ES2023+ Immutable Methods ---');
+
+  // findLast - finds the LAST element matching the predicate
+  const lastEven = await threadts.findLast(numbers, (x) => x % 2 === 0);
+  console.log('findLast (even):', lastEven); // 10 (last even number)
+
+  const lastLessThan5 = await threadts.findLast(numbers, (x) => x < 5);
+  console.log('findLast (< 5):', lastLessThan5); // 4
+
+  // findLastIndex - finds the INDEX of the last matching element
+  const lastEvenIndex = await threadts.findLastIndex(
+    numbers,
+    (x) => x % 2 === 0
+  );
+  console.log('findLastIndex (even):', lastEvenIndex); // 9 (index of 10)
+
+  // toSorted - returns a NEW sorted array (original unchanged)
+  const unsorted = [3, 1, 4, 1, 5, 9, 2, 6];
+  const sorted = await threadts.toSorted(unsorted);
+  console.log('toSorted:', sorted); // [1, 1, 2, 3, 4, 5, 6, 9]
+  console.log('Original unchanged:', unsorted); // [3, 1, 4, 1, 5, 9, 2, 6]
+
+  // toSorted with custom comparator (descending)
+  const sortedDesc = await threadts.toSorted(unsorted, (a, b) => b - a);
+  console.log('toSorted (desc):', sortedDesc); // [9, 6, 5, 4, 3, 2, 1, 1]
+
+  // toReversed - returns a NEW reversed array (original unchanged)
+  const original = [1, 2, 3, 4, 5];
+  const reversed = await threadts.toReversed(original);
+  console.log('toReversed:', reversed); // [5, 4, 3, 2, 1]
+  console.log('Original unchanged:', original); // [1, 2, 3, 4, 5]
+
+  // withElement - returns NEW array with element replaced at index
+  const arr = ['a', 'b', 'c', 'd'];
+  const replaced = await threadts.withElement(arr, 1, 'X');
+  console.log('withElement:', replaced); // ['a', 'X', 'c', 'd']
+  console.log('Original unchanged:', arr); // ['a', 'b', 'c', 'd']
+
+  // withElement supports negative indices
+  const replacedLast = await threadts.withElement(arr, -1, 'Z');
+  console.log('withElement (negative index):', replacedLast); // ['a', 'b', 'c', 'Z']
+
+  // toSpliced - returns NEW array with elements removed/inserted
+  const source = [1, 2, 3, 4, 5];
+
+  // Remove 2 elements starting at index 1, insert 10, 20
+  const spliced = await threadts.toSpliced(source, 1, 2, 10, 20);
+  console.log('toSpliced (remove & insert):', spliced); // [1, 10, 20, 4, 5]
+  console.log('Original unchanged:', source); // [1, 2, 3, 4, 5]
+
+  // Delete only
+  const deleted = await threadts.toSpliced([1, 2, 3, 4, 5], 2, 2);
+  console.log('toSpliced (delete only):', deleted); // [1, 2, 5]
+
+  // Insert only
+  const inserted = await threadts.toSpliced([1, 2, 3], 1, 0, 99, 98);
+  console.log('toSpliced (insert only):', inserted); // [1, 99, 98, 2, 3]
+
+  // groupByObject - groups elements into a plain object
+  const products = [
+    { category: 'electronics', name: 'Phone', price: 999 },
+    { category: 'clothing', name: 'Shirt', price: 29 },
+    { category: 'electronics', name: 'Laptop', price: 1499 },
+    { category: 'clothing', name: 'Pants', price: 59 },
+  ];
+  const byCategory = await threadts.groupByObject(products, (p) => p.category);
+  console.log('groupByObject:', byCategory);
+  // { electronics: [...], clothing: [...] }
 }
 
 // Example 3: Pipeline API for fluent chaining
@@ -101,7 +191,8 @@ async function pipelineExample() {
   const numbers = Array.from({ length: 20 }, (_, i) => i + 1);
 
   // Basic pipeline: map -> filter -> reduce
-  const sumOfDoubledEvens = await threadts.pipe(numbers)
+  const sumOfDoubledEvens = await threadts
+    .pipe(numbers)
     .map((x) => x * 2)
     .filter((x) => x % 4 === 0)
     .reduce((acc, x) => acc + x, 0)
@@ -109,7 +200,8 @@ async function pipelineExample() {
   console.log('Sum of doubled evens:', sumOfDoubledEvens);
 
   // Pipeline with count (counts all filtered elements)
-  const countGreaterThan10 = await threadts.pipe(numbers)
+  const countGreaterThan10 = await threadts
+    .pipe(numbers)
     .map((x) => x * 3)
     .filter((x) => x > 10)
     .count() // Counts all remaining elements
@@ -117,7 +209,8 @@ async function pipelineExample() {
   console.log('Count of items > 10 after tripling:', countGreaterThan10);
 
   // Pipeline with find
-  const firstMatch = await threadts.pipe(numbers)
+  const firstMatch = await threadts
+    .pipe(numbers)
     .filter((x) => x > 15)
     .map((x) => x * 10)
     .find((x) => x > 200)
@@ -125,7 +218,8 @@ async function pipelineExample() {
   console.log('First match > 200:', firstMatch);
 
   // Pipeline with flatMap
-  const flatResult = await threadts.pipe([1, 2, 3])
+  const flatResult = await threadts
+    .pipe([1, 2, 3])
     .flatMap((x) => [x, x * 10, x * 100])
     .filter((x) => x > 5)
     .reduce((acc, x) => acc + x, 0)
@@ -133,13 +227,15 @@ async function pipelineExample() {
   console.log('FlatMap pipeline result:', flatResult);
 
   // Pipeline with some/every
-  const hasLargeValue = await threadts.pipe(numbers)
+  const hasLargeValue = await threadts
+    .pipe(numbers)
     .map((x) => x * 2)
     .some((x) => x > 30)
     .execute();
   console.log('Has value > 30:', hasLargeValue);
 
-  const allPositive = await threadts.pipe(numbers)
+  const allPositive = await threadts
+    .pipe(numbers)
     .map((x) => x - 5)
     .every((x) => x > -10)
     .execute();
@@ -148,73 +244,86 @@ async function pipelineExample() {
   // NEW: Pipeline with take, skip, and chunk
   console.log('\n--- New Pipeline Features ---');
 
-  const paginated = await threadts.pipe(numbers)
-    .skip(5)
-    .take(10)
-    .execute();
+  const paginated = await threadts.pipe(numbers).skip(5).take(10).execute();
   console.log('Paginated (skip 5, take 10):', paginated);
 
-  const chunks = await threadts.pipe([1, 2, 3, 4, 5, 6, 7])
-    .chunk(3)
-    .execute();
+  const chunks = await threadts.pipe([1, 2, 3, 4, 5, 6, 7]).chunk(3).execute();
   console.log('Chunked by 3:', chunks);
 
   // NEW: Pipeline with unique, reverse, sort
-  const uniqueSorted = await threadts.pipe([3, 1, 4, 1, 5, 9, 2, 6, 5, 3])
+  const uniqueSorted = await threadts
+    .pipe([3, 1, 4, 1, 5, 9, 2, 6, 5, 3])
     .unique()
     .sort((a, b) => a - b)
     .execute();
   console.log('Unique & sorted:', uniqueSorted);
 
-  const reversed = await threadts.pipe([1, 2, 3, 4, 5])
-    .reverse()
-    .execute();
+  const reversed = await threadts.pipe([1, 2, 3, 4, 5]).reverse().execute();
   console.log('Reversed:', reversed);
 
   // NEW: Aggregation operations
-  const sum = await threadts.pipe([1, 2, 3, 4, 5])
-    .sum()
-    .execute();
+  const sum = await threadts.pipe([1, 2, 3, 4, 5]).sum().execute();
   console.log('Sum:', sum);
 
-  const avg = await threadts.pipe([1, 2, 3, 4, 5])
-    .average()
-    .execute();
+  const avg = await threadts.pipe([1, 2, 3, 4, 5]).average().execute();
   console.log('Average:', avg);
 
-  const max = await threadts.pipe([3, 1, 4, 1, 5, 9])
-    .max()
-    .execute();
+  const max = await threadts.pipe([3, 1, 4, 1, 5, 9]).max().execute();
   console.log('Max:', max);
 
-  const min = await threadts.pipe([3, 1, 4, 1, 5, 9])
-    .min()
-    .execute();
+  const min = await threadts.pipe([3, 1, 4, 1, 5, 9]).min().execute();
   console.log('Min:', min);
 
   // NEW: First and last
-  const first = await threadts.pipe(numbers)
+  const first = await threadts
+    .pipe(numbers)
     .filter((x) => x > 10)
     .first()
     .execute();
   console.log('First > 10:', first);
 
-  const last = await threadts.pipe(numbers)
+  const last = await threadts
+    .pipe(numbers)
     .filter((x) => x < 15)
     .last()
     .execute();
   console.log('Last < 15:', last);
 
   // NEW: isEmpty
-  const isEmpty = await threadts.pipe(numbers)
+  const isEmpty = await threadts
+    .pipe(numbers)
     .filter((x) => x > 100)
     .isEmpty()
     .execute();
   console.log('Is empty (filtered > 100):', isEmpty);
 
+  // NEW: tap for debugging/side-effects
+  console.log('\n--- Tap for debugging ---');
+  const tappedResult = await threadts
+    .pipe([1, 2, 3, 4, 5])
+    .tap((x) => console.log(`  Processing: ${x}`))
+    .map((x) => x * 2)
+    .execute();
+  console.log('Tapped result:', tappedResult);
+
+  // NEW: window for sliding windows
+  console.log('\n--- Window operation ---');
+  const windows = await threadts
+    .pipe([1, 2, 3, 4, 5])
+    .window(3) // Default step=1
+    .execute();
+  console.log('Windows (size=3, step=1):', windows);
+  // [[1,2,3], [2,3,4], [3,4,5]]
+
+  const windowsWithStep = await threadts
+    .pipe([1, 2, 3, 4, 5, 6])
+    .window(2, 2) // size=2, step=2 (non-overlapping)
+    .execute();
+  console.log('Windows (size=2, step=2):', windowsWithStep);
+  // [[1,2], [3,4], [5,6]]
+
   // NEW: toSet
-  const uniqueSet = await threadts.pipe([1, 2, 2, 3, 3, 3])
-    .toSet();
+  const uniqueSet = await threadts.pipe([1, 2, 2, 3, 3, 3]).toSet();
   console.log('To Set:', uniqueSet);
 
   // NEW: groupBy and partition in pipeline
@@ -224,16 +333,187 @@ async function pipelineExample() {
     { name: 'Charlie', role: 'admin' },
   ];
 
-  const grouped = await threadts.pipe(users)
+  const grouped = await threadts
+    .pipe(users)
     .groupBy((user) => user.role)
     .execute();
   console.log('Grouped by role:', grouped);
 
-  const [admins, regularUsers] = await threadts.pipe(users)
+  const [admins, regularUsers] = await threadts
+    .pipe(users)
     .partition((user) => user.role === 'admin')
     .execute();
   console.log('Admins:', admins);
   console.log('Regular users:', regularUsers);
+}
+
+// Example 3b: Advanced Pipeline Features (NEW)
+async function advancedPipelineExample() {
+  console.log('\n🔥 Advanced Pipeline Features (NEW)');
+
+  // --- Distinct Operation ---
+  console.log('\n--- Distinct Operation ---');
+  const items = [
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' },
+    { id: 1, name: 'Alice Clone' },
+    { id: 3, name: 'Charlie' },
+    { id: 2, name: 'Bob Clone' },
+  ];
+
+  const distinctById = await threadts
+    .pipe(items)
+    .distinct((item) => item.id)
+    .execute();
+  console.log('Distinct by ID:', distinctById);
+  // [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }, { id: 3, name: 'Charlie' }]
+
+  // --- Zip Operation ---
+  console.log('\n--- Zip Operation ---');
+  const names = ['Alice', 'Bob', 'Charlie'];
+  const ages = [25, 30, 35];
+
+  const zipped = await threadts.pipe(names).zip(ages).execute();
+  console.log('Zipped names & ages:', zipped);
+  // [['Alice', 25], ['Bob', 30], ['Charlie', 35]]
+
+  // --- ZipWith Operation ---
+  console.log('\n--- ZipWith Operation ---');
+  const combined = await threadts
+    .pipe(names)
+    .zipWith(ages, (name, age) => `${name} is ${age} years old`)
+    .execute();
+  console.log('ZipWith:', combined);
+  // ['Alice is 25 years old', 'Bob is 30 years old', 'Charlie is 35 years old']
+
+  // --- Interleave Operation ---
+  console.log('\n--- Interleave Operation ---');
+  const letters = ['a', 'b', 'c'];
+  const numbers = [1, 2, 3];
+
+  const interleaved = await threadts
+    .pipe(letters)
+    .interleave(numbers)
+    .execute();
+  console.log('Interleaved:', interleaved);
+  // ['a', 1, 'b', 2, 'c', 3]
+
+  // --- Compact Operation ---
+  console.log('\n--- Compact Operation ---');
+  const sparse = [1, null, 2, undefined, 3, null, 4];
+
+  const compacted = await threadts.pipe(sparse).compact().execute();
+  console.log('Compacted (remove null/undefined):', compacted);
+  // [1, 2, 3, 4]
+
+  // --- Flatten Operation ---
+  console.log('\n--- Flatten Operation ---');
+  const nested = [
+    [1, 2],
+    [3, 4],
+    [5, 6],
+  ];
+
+  const flattened = await threadts.pipe(nested).flatten().execute();
+  console.log('Flattened:', flattened);
+  // [1, 2, 3, 4, 5, 6]
+
+  const deepNested = [[[1, 2]], [[3, 4]], [[5, 6]]];
+  const deepFlattened = await threadts.pipe(deepNested).flatten(2).execute();
+  console.log('Deep flattened (depth=2):', deepFlattened);
+  // [1, 2, 3, 4, 5, 6]
+
+  // --- Shuffle Operation ---
+  console.log('\n--- Shuffle Operation ---');
+  const ordered = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const shuffled = await threadts.pipe(ordered).shuffle().execute();
+  console.log('Shuffled:', shuffled);
+  // Random order like [7, 2, 9, 1, 5, 3, 10, 4, 8, 6]
+
+  // --- Sample Operation ---
+  console.log('\n--- Sample Operation ---');
+  const fullSet = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const sampled = await threadts.pipe(fullSet).sample(3).execute();
+  console.log('Random sample of 3:', sampled);
+  // Random 3 elements like [4, 7, 2]
+
+  // --- DropWhile Operation ---
+  console.log('\n--- DropWhile Operation ---');
+  const sequence = [1, 2, 3, 10, 4, 5, 6];
+
+  const dropped = await threadts
+    .pipe(sequence)
+    .dropWhile((x) => x < 5)
+    .execute();
+  console.log('DropWhile x < 5:', dropped);
+  // [10, 4, 5, 6] - drops until it finds an element >= 5
+
+  // --- TakeWhile Operation ---
+  console.log('\n--- TakeWhile Operation ---');
+  const taken = await threadts
+    .pipe(sequence)
+    .takeWhile((x) => x < 5)
+    .execute();
+  console.log('TakeWhile x < 5:', taken);
+  // [1, 2, 3] - takes until it finds an element >= 5
+
+  // --- Peek Operation (debugging alias for tap) ---
+  console.log('\n--- Peek Operation ---');
+  const peeked = await threadts
+    .pipe([1, 2, 3])
+    .peek((x) => console.log(`  Peeking at: ${x}`))
+    .map((x) => x * 2)
+    .execute();
+  console.log('Peeked result:', peeked);
+
+  // --- Join Operation (Terminal) ---
+  console.log('\n--- Join Operation ---');
+  const words = ['Hello', 'World', 'from', 'ThreadTS'];
+
+  const sentence = await threadts.pipe(words).join(' ').execute();
+  console.log('Joined with space:', sentence);
+  // 'Hello World from ThreadTS'
+
+  const csvLine = await threadts.pipe([1, 2, 3, 4, 5]).join(', ').execute();
+  console.log('CSV format:', csvLine);
+  // '1, 2, 3, 4, 5'
+
+  // --- Includes Operation (Terminal) ---
+  console.log('\n--- Includes Operation ---');
+  const data = [10, 20, 30, 40, 50];
+
+  const hasThirty = await threadts.pipe(data).includes(30).execute();
+  console.log('Includes 30:', hasThirty); // true
+
+  const hasHundred = await threadts.pipe(data).includes(100).execute();
+  console.log('Includes 100:', hasHundred); // false
+
+  // --- Combined Example: Complex Data Processing ---
+  console.log('\n--- Combined Example ---');
+  const users = [
+    { id: 1, name: 'Alice', score: 85, active: true },
+    { id: 2, name: 'Bob', score: null, active: true },
+    { id: 3, name: 'Charlie', score: 92, active: false },
+    { id: 1, name: 'Alice Duplicate', score: 75, active: true },
+    { id: 4, name: 'David', score: 88, active: true },
+    { id: 5, name: 'Eve', score: undefined, active: true },
+  ];
+
+  const processedUsers = await threadts
+    .pipe(users)
+    .distinct((u) => u.id) // Remove duplicates by ID
+    .filter((u) => u.active) // Only active users
+    .map((u) => ({ ...u, score: u.score ?? 0 })) // Default null scores to 0
+    .sort((a, b) => (b.score as number) - (a.score as number)) // Sort by score descending
+    .take(3) // Top 3
+    .execute();
+
+  console.log('Top 3 active users by score:');
+  processedUsers.forEach((u, i) =>
+    console.log(`  ${i + 1}. ${u.name}: ${u.score}`)
+  );
 }
 
 // Example 4: Batch processing
@@ -318,14 +598,16 @@ class DataProcessor {
 
   // NEW: @cache decorator with TTL
   @cache(5000, 10) // 5 second TTL, max 10 entries
-  async fetchDataWithTTL(id: string): Promise<{ id: string; timestamp: number }> {
+  async fetchDataWithTTL(
+    id: string
+  ): Promise<{ id: string; timestamp: number }> {
     return { id, timestamp: Date.now() };
   }
 
   // NEW: @concurrent decorator
   @concurrent(2) // Max 2 concurrent executions
   async concurrentOperation(id: number): Promise<string> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return `Concurrent operation ${id} completed`;
   }
 
@@ -343,16 +625,23 @@ class DataProcessor {
   // NEW: @measure decorator
   @measure()
   async measuredOperation(delay: number): Promise<number> {
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
     return delay;
   }
 
   // NEW: @validate decorator
   @validate([
-    (name: unknown) => typeof name === 'string' && (name as string).length > 0 || 'Name must be non-empty string',
-    (age: unknown) => typeof age === 'number' && (age as number) > 0 || 'Age must be positive number'
+    (name: unknown) =>
+      (typeof name === 'string' && (name as string).length > 0) ||
+      'Name must be non-empty string',
+    (age: unknown) =>
+      (typeof age === 'number' && (age as number) > 0) ||
+      'Age must be positive number',
   ])
-  async createUser(name: string, age: number): Promise<{ name: string; age: number }> {
+  async createUser(
+    name: string,
+    age: number
+  ): Promise<{ name: string; age: number }> {
     return { name, age };
   }
 
@@ -450,7 +739,9 @@ async function decoratorExample() {
   await processor.measuredOperation(50);
   await processor.measuredOperation(100);
   await processor.measuredOperation(75);
-  const stats = (processor.measuredOperation as unknown as { getStats?: () => object }).getStats?.();
+  const stats = (
+    processor.measuredOperation as unknown as { getStats?: () => object }
+  ).getStats?.();
   console.log('Measurement stats:', stats);
 
   // @validate
@@ -472,6 +763,115 @@ async function decoratorExample() {
   const config1 = await processor.loadConfiguration();
   const config2 = await processor.loadConfiguration(); // Should NOT log again
   console.log('Same config instance?', config1.timestamp === config2.timestamp);
+
+  // Custom Decorators Demo
+  console.log('\n--- Custom Decorators Demo ---');
+  await customDecoratorExample();
+}
+
+// Example 5b: Custom Decorator Creation
+/**
+ * Custom decorator that logs method calls with timing
+ */
+function logWithTiming() {
+  return createMethodDecorator((originalMethod, methodName) => {
+    const wrappedMethod = async function (
+      this: unknown,
+      ...args: unknown[]
+    ): Promise<unknown> {
+      const start = Date.now();
+      console.log(`  [${methodName}] Starting...`);
+      const result = await originalMethod.apply(this, args);
+      console.log(`  [${methodName}] Completed in ${Date.now() - start}ms`);
+      return result;
+    };
+    return wrappedMethod as typeof originalMethod;
+  });
+}
+
+/**
+ * Custom decorator that includes class name in logs
+ */
+function auditLog() {
+  return createMethodDecoratorWithClass(
+    (originalMethod, methodName, className) => {
+      const wrappedMethod = async function (
+        this: unknown,
+        ...args: unknown[]
+      ): Promise<unknown> {
+        console.log(
+          `  [AUDIT] ${className}.${methodName} called with args:`,
+          args
+        );
+        const result = await originalMethod.apply(this, args);
+        console.log(`  [AUDIT] ${className}.${methodName} returned:`, result);
+        return result;
+      };
+      return wrappedMethod as typeof originalMethod;
+    }
+  );
+}
+
+/**
+ * Custom decorator that counts method invocations
+ */
+function countCalls() {
+  let callCount = 0;
+  return createMethodDecorator((originalMethod, methodName) => {
+    const wrappedMethod = async function (
+      this: unknown,
+      ...args: unknown[]
+    ): Promise<unknown> {
+      callCount++;
+      console.log(`  [${methodName}] Call #${callCount}`);
+      return originalMethod.apply(this, args);
+    };
+    // Add getCount method to access call count
+    (wrappedMethod as unknown as { getCount: () => number }).getCount = () =>
+      callCount;
+    return wrappedMethod as typeof originalMethod;
+  });
+}
+
+class CustomDecoratorDemo {
+  @logWithTiming()
+  async processData(data: number[]): Promise<number> {
+    // Simulate processing
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return data.reduce((a, b) => a + b, 0);
+  }
+
+  @auditLog()
+  async updateRecord(
+    id: string,
+    value: number
+  ): Promise<{ id: string; value: number }> {
+    return { id, value };
+  }
+
+  @countCalls()
+  async increment(): Promise<number> {
+    return Math.random();
+  }
+}
+
+async function customDecoratorExample() {
+  const demo = new CustomDecoratorDemo();
+
+  console.log('\nCustom @logWithTiming decorator:');
+  await demo.processData([1, 2, 3, 4, 5]);
+
+  console.log('\nCustom @auditLog decorator (with class name):');
+  await demo.updateRecord('user-123', 42);
+
+  console.log('\nCustom @countCalls decorator:');
+  await demo.increment();
+  await demo.increment();
+  await demo.increment();
+  const count = (
+    demo.increment as unknown as { getCount: () => number }
+  ).getCount();
+  console.log(`  Total calls to increment: ${count}`);
 }
 
 // Example 6: Performance comparison
@@ -603,6 +1003,9 @@ async function main() {
     console.log('');
 
     await pipelineExample();
+    console.log('');
+
+    await advancedPipelineExample();
     console.log('');
 
     await batchProcessingExample();

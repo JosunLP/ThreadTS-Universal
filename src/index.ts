@@ -33,6 +33,13 @@ export {
   default as threadts,
 } from './core/threadts';
 
+// Array operations exports
+export {
+  createArrayOperations,
+  type ArrayOperationExecutor,
+  type ArrayOperations,
+} from './core/array-operations';
+
 // Type exports
 export type {
   MapOptions,
@@ -63,6 +70,9 @@ export {
   cache,
   circuitBreaker,
   concurrent,
+  createClassDecorator,
+  createMethodDecorator,
+  createMethodDecoratorWithClass,
   debounce,
   lazy,
   logged,

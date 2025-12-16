@@ -39,13 +39,18 @@ console.log(found); // 4
 ### ⚡ **Advanced Features**
 
 - **Auto-scaling Pools**: From 1 to ∞ workers based on load
-- **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`
-- **Enhanced Pipeline API**: Fluent chaining with lazy evaluation, including `take`, `skip`, `chunk`, `unique`, `reverse`, `sort`, `first`, `last`, `sum`, `average`, `min`, `max`
+- **Full Array API**: `map`, `filter`, `reduce`, `reduceRight`, `find`, `findIndex`, `some`, `every`, `forEach`, `flatMap`, `groupBy`, `partition`, `count`, `indexOf`, `lastIndexOf`, `at`, `slice`, `concat`, `range`, `repeat`, `unique`, `uniqueBy`, `chunk`, `zip`
+- **ES2023+ Immutable Methods**: `findLast`, `findLastIndex`, `toSorted`, `toReversed`, `withElement`, `toSpliced`, `groupByObject` - all methods that don't mutate the original array
+- **Enhanced Pipeline API**: Fluent chaining with lazy evaluation
+  - Intermediate: `map`, `filter`, `flatMap`, `take`, `skip`, `chunk`, `tap`, `peek`, `window`, `unique`, `distinct`, `reverse`, `sort`, `zip`, `zipWith`, `interleave`, `compact`, `flatten`, `shuffle`, `sample`, `dropWhile`, `takeWhile`, `slicePipe`, `concatPipe`, `rotate`, `truthy`, `falsy`
+  - Terminal: `reduce`, `forEach`, `find`, `findIndex`, `findLast`, `findLastIndex`, `some`, `every`, `count`, `groupBy`, `partition`, `first`, `last`, `isEmpty`, `sum`, `average`, `min`, `max`, `join`, `includes`
+  - Collectors: `toArray()`, `toSet()`, `toMap()`
 - **Progress Tracking**: Real-time progress monitoring
 - **Intelligent Caching**: Automatic result caching with `@memoize` and `@cache` decorators
 - **Priority Queues**: High/Normal/Low priority execution
 - **Timeout & Cancellation**: AbortController integration
 - **Decorator Suite**: `@parallelMethod()`, `@retry()`, `@rateLimit()`, `@timeout()`, `@debounce()`, `@throttle()`, `@logged()`, `@cache()`, `@concurrent()`, `@circuitBreaker()`, `@measure()`, `@validate()`, `@lazy()`
+- **Custom Decorators**: Utilities for creating your own decorators (`createMethodDecorator`, `createMethodDecoratorWithClass`, `createClassDecorator`)
 - **Monitoring**: Built-in performance monitoring, health checks, and error handling
 
 ## 🚀 Quick Start
@@ -88,11 +93,15 @@ const hasEven = await threadts.some([1, 3, 5, 6], (x) => x % 2 === 0);
 // Result: true
 
 // Group and partition data
-const [evens, odds] = await threadts.partition([1, 2, 3, 4, 5], (x) => x % 2 === 0);
+const [evens, odds] = await threadts.partition(
+  [1, 2, 3, 4, 5],
+  (x) => x % 2 === 0
+);
 // evens: [2, 4], odds: [1, 3, 5]
 
 // Pipeline API for chained operations
-const result = await threadts.pipe([1, 2, 3, 4, 5])
+const result = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .filter((x) => x > 4)
   .reduce((acc, x) => acc + x, 0)
@@ -103,7 +112,14 @@ const result = await threadts.pipe([1, 2, 3, 4, 5])
 ### Method Decorators
 
 ```typescript
-import { parallelMethod, memoize, retry, rateLimit, timeout, debounce } from 'threadts-universal';
+import {
+  parallelMethod,
+  memoize,
+  retry,
+  rateLimit,
+  timeout,
+  debounce,
+} from 'threadts-universal';
 
 class DataProcessor {
   @parallelMethod()
@@ -220,10 +236,7 @@ const result = await threadts.reduceRight(
 Finds the first element that satisfies the predicate (processes in parallel batches).
 
 ```typescript
-const found = await threadts.find(
-  [1, 2, 3, 4, 5],
-  (x) => x > 3
-);
+const found = await threadts.find([1, 2, 3, 4, 5], (x) => x > 3);
 // Result: 4
 ```
 
@@ -232,10 +245,7 @@ const found = await threadts.find(
 Finds the index of the first element that satisfies the predicate.
 
 ```typescript
-const index = await threadts.findIndex(
-  [1, 2, 3, 4, 5],
-  (x) => x > 3
-);
+const index = await threadts.findIndex([1, 2, 3, 4, 5], (x) => x > 3);
 // Result: 3
 ```
 
@@ -244,10 +254,7 @@ const index = await threadts.findIndex(
 Tests whether at least one element satisfies the predicate.
 
 ```typescript
-const hasEven = await threadts.some(
-  [1, 3, 5, 6, 7],
-  (x) => x % 2 === 0
-);
+const hasEven = await threadts.some([1, 3, 5, 6, 7], (x) => x % 2 === 0);
 // Result: true
 ```
 
@@ -256,10 +263,7 @@ const hasEven = await threadts.some(
 Tests whether all elements satisfy the predicate.
 
 ```typescript
-const allPositive = await threadts.every(
-  [1, 2, 3, 4, 5],
-  (x) => x > 0
-);
+const allPositive = await threadts.every([1, 2, 3, 4, 5], (x) => x > 0);
 // Result: true
 ```
 
@@ -278,10 +282,7 @@ await threadts.forEach([1, 2, 3], (x) => {
 Maps each element to an array and flattens the result.
 
 ```typescript
-const result = await threadts.flatMap(
-  [1, 2, 3],
-  (x) => [x, x * 2]
-);
+const result = await threadts.flatMap([1, 2, 3], (x) => [x, x * 2]);
 // Result: [1, 2, 2, 4, 3, 6]
 ```
 
@@ -291,7 +292,11 @@ Groups array elements by a key returned from the function.
 
 ```typescript
 const grouped = await threadts.groupBy(
-  [{ type: 'a', value: 1 }, { type: 'b', value: 2 }, { type: 'a', value: 3 }],
+  [
+    { type: 'a', value: 1 },
+    { type: 'b', value: 2 },
+    { type: 'a', value: 3 },
+  ],
   (item) => item.type
 );
 // Map { 'a' => [{type: 'a', value: 1}, {type: 'a', value: 3}], 'b' => [{type: 'b', value: 2}] }
@@ -314,11 +319,259 @@ const [evens, odds] = await threadts.partition(
 Counts elements that satisfy a predicate. More efficient than `filter().length`.
 
 ```typescript
-const count = await threadts.count(
-  [1, 2, 3, 4, 5],
-  (x) => x > 2
-);
+const count = await threadts.count([1, 2, 3, 4, 5], (x) => x > 2);
 // Result: 3
+```
+
+### Extended Array Operations
+
+ThreadTS Universal provides a comprehensive set of array operations beyond the standard JavaScript Array API. These operations are optimized for parallel execution and can be accessed both as instance methods and through the `getArrayOps()` factory.
+
+#### `threadts.indexOf<T>(array, searchElement, fromIndex?, options?): Promise<number>`
+
+Finds the first index of an element in the array.
+
+```typescript
+const index = await threadts.indexOf([1, 2, 3, 2, 1], 2);
+// Result: 1
+
+const indexFrom = await threadts.indexOf([1, 2, 3, 2, 1], 2, 2);
+// Result: 3
+```
+
+#### `threadts.lastIndexOf<T>(array, searchElement, fromIndex?, options?): Promise<number>`
+
+Finds the last index of an element in the array.
+
+```typescript
+const index = await threadts.lastIndexOf([1, 2, 3, 2, 1], 2);
+// Result: 3
+```
+
+#### `threadts.at<T>(array, index, options?): Promise<T | undefined>`
+
+Returns the element at the specified index, supporting negative indices.
+
+```typescript
+const last = await threadts.at([1, 2, 3, 4, 5], -1);
+// Result: 5
+
+const second = await threadts.at([1, 2, 3, 4, 5], 1);
+// Result: 2
+```
+
+#### `threadts.slice<T>(array, start?, end?, options?): Promise<T[]>`
+
+Extracts a section of the array.
+
+```typescript
+const middle = await threadts.slice([1, 2, 3, 4, 5], 1, 4);
+// Result: [2, 3, 4]
+
+const fromEnd = await threadts.slice([1, 2, 3, 4, 5], -2);
+// Result: [4, 5]
+```
+
+#### `threadts.concat<T>(array, ...items): Promise<T[]>`
+
+Concatenates arrays or values.
+
+```typescript
+const combined = await threadts.concat([1, 2], [3, 4], 5);
+// Result: [1, 2, 3, 4, 5]
+```
+
+#### `threadts.range(start, end, step?, options?): Promise<number[]>`
+
+Generates an array of numbers in a specified range.
+
+```typescript
+const numbers = await threadts.range(0, 10, 2);
+// Result: [0, 2, 4, 6, 8]
+
+const countdown = await threadts.range(5, 0, -1);
+// Result: [5, 4, 3, 2, 1]
+```
+
+#### `threadts.repeat<T>(value, count, options?): Promise<T[]>`
+
+Creates an array with the value repeated n times.
+
+```typescript
+const repeated = await threadts.repeat('x', 5);
+// Result: ['x', 'x', 'x', 'x', 'x']
+```
+
+#### `threadts.unique<T>(array, options?): Promise<T[]>`
+
+Returns an array with duplicate values removed.
+
+```typescript
+const unique = await threadts.unique([1, 2, 2, 3, 3, 3]);
+// Result: [1, 2, 3]
+```
+
+#### `threadts.uniqueBy<T, K>(array, keyFn, options?): Promise<T[]>`
+
+Returns unique elements based on a key function.
+
+```typescript
+const users = [
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' },
+  { id: 1, name: 'Alice Clone' },
+];
+const uniqueById = await threadts.uniqueBy(users, (u) => u.id);
+// Result: [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }]
+```
+
+#### `threadts.chunk<T>(array, size, options?): Promise<T[][]>`
+
+Splits an array into chunks of the specified size.
+
+```typescript
+const chunks = await threadts.chunk([1, 2, 3, 4, 5], 2);
+// Result: [[1, 2], [3, 4], [5]]
+```
+
+#### `threadts.zip<T, U>(array1, array2, options?): Promise<[T, U][]>`
+
+Combines two arrays element-wise into pairs.
+
+```typescript
+const zipped = await threadts.zip(['a', 'b', 'c'], [1, 2, 3]);
+// Result: [['a', 1], ['b', 2], ['c', 3]]
+```
+
+### ES2023+ Immutable Array Methods
+
+ThreadTS Universal provides full support for ES2023+ immutable array methods. These methods return new arrays instead of mutating the original, making them ideal for functional programming patterns.
+
+#### `threadts.findLast<T>(array, predicate, options?): Promise<T | undefined>`
+
+Finds the **last** element that satisfies the predicate (searches from end).
+
+```typescript
+const result = await threadts.findLast([1, 2, 3, 4, 5], (x) => x < 4);
+// Result: 3 (the last number less than 4)
+
+const noMatch = await threadts.findLast([1, 2, 3], (x) => x > 10);
+// Result: undefined
+```
+
+#### `threadts.findLastIndex<T>(array, predicate, options?): Promise<number>`
+
+Finds the index of the **last** element that satisfies the predicate.
+
+```typescript
+const index = await threadts.findLastIndex([1, 2, 3, 2, 1], (x) => x === 2);
+// Result: 3 (the last occurrence of 2)
+
+const notFound = await threadts.findLastIndex([1, 2, 3], (x) => x > 10);
+// Result: -1
+```
+
+#### `threadts.toSorted<T>(array, compareFn?, options?): Promise<T[]>`
+
+Returns a **new sorted array** without mutating the original.
+
+```typescript
+const original = [3, 1, 4, 1, 5];
+const sorted = await threadts.toSorted(original);
+// sorted: [1, 1, 3, 4, 5]
+// original: [3, 1, 4, 1, 5] (unchanged!)
+
+// With custom comparator (descending)
+const descending = await threadts.toSorted([3, 1, 4], (a, b) => b - a);
+// Result: [4, 3, 1]
+```
+
+#### `threadts.toReversed<T>(array, options?): Promise<T[]>`
+
+Returns a **new reversed array** without mutating the original.
+
+```typescript
+const original = [1, 2, 3];
+const reversed = await threadts.toReversed(original);
+// reversed: [3, 2, 1]
+// original: [1, 2, 3] (unchanged!)
+```
+
+#### `threadts.withElement<T>(array, index, value, options?): Promise<T[]>`
+
+Returns a **new array** with the element at the given index replaced.
+
+```typescript
+const original = [1, 2, 3];
+const updated = await threadts.withElement(original, 1, 10);
+// updated: [1, 10, 3]
+// original: [1, 2, 3] (unchanged!)
+
+// Supports negative indices
+const lastReplaced = await threadts.withElement([1, 2, 3], -1, 99);
+// Result: [1, 2, 99]
+```
+
+#### `threadts.toSpliced<T>(array, start, deleteCount?, ...items): Promise<T[]>`
+
+Returns a **new array** with elements removed, replaced, or added at a given index.
+
+```typescript
+const original = [1, 2, 3, 4];
+
+// Remove and insert
+const spliced = await threadts.toSpliced(original, 1, 2, 10, 20);
+// spliced: [1, 10, 20, 4]
+// original: [1, 2, 3, 4] (unchanged!)
+
+// Delete only
+const deleted = await threadts.toSpliced([1, 2, 3, 4], 1, 2);
+// Result: [1, 4]
+
+// Insert only
+const inserted = await threadts.toSpliced([1, 2, 3], 1, 0, 99);
+// Result: [1, 99, 2, 3]
+```
+
+#### `threadts.groupByObject<T, K>(array, keyFn, options?): Promise<Partial<Record<K, T[]>>>`
+
+Groups elements into a plain object based on a key function (similar to `Object.groupBy`).
+
+```typescript
+const items = [
+  { type: 'fruit', name: 'apple' },
+  { type: 'vegetable', name: 'carrot' },
+  { type: 'fruit', name: 'banana' },
+];
+const grouped = await threadts.groupByObject(items, (item) => item.type);
+// Result: {
+//   fruit: [{ type: 'fruit', name: 'apple' }, { type: 'fruit', name: 'banana' }],
+//   vegetable: [{ type: 'vegetable', name: 'carrot' }]
+// }
+```
+
+#### Using the Array Operations Factory
+
+For advanced use cases, you can access all array operations through the factory:
+
+```typescript
+// Get array operations bound to the current ThreadTS instance
+const arrayOps = threadts.getArrayOps();
+
+// Use operations directly
+const index = await arrayOps.indexOf([1, 2, 3], 2);
+const unique = await arrayOps.unique([1, 1, 2, 2, 3]);
+const chunks = await arrayOps.chunk([1, 2, 3, 4, 5, 6], 2);
+
+// ES2023+ operations
+const sorted = await arrayOps.toSorted([3, 1, 2]);
+const reversed = await arrayOps.toReversed([1, 2, 3]);
+const lastMatch = await arrayOps.findLast([1, 2, 3, 2], (x) => x === 2);
+
+// Available operations:
+// indexOf, lastIndexOf, at, slice, concat, fill, includes, join,
+// reverse, sort, range, repeat, zip, unzip, unique, uniqueBy, flat, chunk,
+// findLast, findLastIndex, toSorted, toReversed, withElement, toSpliced, groupByObject
 ```
 
 #### `threadts.batch(tasks, batchSize?): Promise<TaskResult[]>`
@@ -341,7 +594,8 @@ The Pipeline API provides a fluent interface for chaining parallel operations wi
 
 ```typescript
 // Chain multiple operations
-const result = await threadts.pipe([1, 2, 3, 4, 5])
+const result = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .filter((x) => x > 4)
   .reduce((acc, x) => acc + x, 0)
@@ -349,79 +603,213 @@ const result = await threadts.pipe([1, 2, 3, 4, 5])
 // Result: 24 (6 + 8 + 10)
 
 // Using flatMap in pipeline
-const flattened = await threadts.pipe([1, 2, 3])
+const flattened = await threadts
+  .pipe([1, 2, 3])
   .flatMap((x) => [x, x * 10])
   .filter((x) => x > 5)
   .toArray();
 // Result: [10, 20, 30]
 
 // Terminal operations: reduce, forEach, find, some, every, count
-const hasLarge = await threadts.pipe([1, 2, 3, 4, 5])
+const hasLarge = await threadts
+  .pipe([1, 2, 3, 4, 5])
   .map((x) => x * 2)
   .some((x) => x > 8)
   .execute();
 // Result: true
 
 // Using take, skip, and chunk
-const paginated = await threadts.pipe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+const paginated = await threadts
+  .pipe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   .skip(2)
   .take(5)
   .execute();
 // Result: [3, 4, 5, 6, 7]
 
-const chunks = await threadts.pipe([1, 2, 3, 4, 5])
-  .chunk(2)
-  .execute();
+const chunks = await threadts.pipe([1, 2, 3, 4, 5]).chunk(2).execute();
 // Result: [[1, 2], [3, 4], [5]]
 
+// Using tap for debugging/side-effects
+const result = await threadts
+  .pipe([1, 2, 3])
+  .tap((x) => console.log('Processing:', x))
+  .map((x) => x * 2)
+  .execute();
+// Logs: Processing: 1, Processing: 2, Processing: 3
+// Result: [2, 4, 6]
+
+// Using window for sliding windows
+const windows = await threadts.pipe([1, 2, 3, 4, 5]).window(3).execute();
+// Result: [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+
+const windowsWithStep = await threadts
+  .pipe([1, 2, 3, 4, 5, 6])
+  .window(2, 2) // size=2, step=2
+  .execute();
+// Result: [[1, 2], [3, 4], [5, 6]]
+
 // Using unique, reverse, and sort
-const processed = await threadts.pipe([3, 1, 2, 1, 3])
+const processed = await threadts
+  .pipe([3, 1, 2, 1, 3])
   .unique()
   .sort((a, b) => a - b)
   .execute();
 // Result: [1, 2, 3]
 
 // Aggregation operations
-const sum = await threadts.pipe([1, 2, 3, 4, 5])
-  .sum()
-  .execute();
+const sum = await threadts.pipe([1, 2, 3, 4, 5]).sum().execute();
 // Result: 15
 
-const avg = await threadts.pipe([1, 2, 3, 4, 5])
-  .average()
-  .execute();
+const avg = await threadts.pipe([1, 2, 3, 4, 5]).average().execute();
 // Result: 3
 
-const max = await threadts.pipe([3, 1, 4, 1, 5])
-  .max()
-  .execute();
+const max = await threadts.pipe([3, 1, 4, 1, 5]).max().execute();
 // Result: 5
 
 // First and last elements
-const first = await threadts.pipe([1, 2, 3])
+const first = await threadts
+  .pipe([1, 2, 3])
   .filter((x) => x > 1)
   .first()
   .execute();
 // Result: 2
 
 // Collect to different data structures
-const set = await threadts.pipe([1, 2, 2, 3])
-  .toSet();
+const set = await threadts.pipe([1, 2, 2, 3]).toSet();
 // Result: Set { 1, 2, 3 }
 
-const map = await threadts.pipe(users)
-  .toMap((user) => user.id);
+const map = await threadts.pipe(users).toMap((user) => user.id);
 // Result: Map { id1 => user1, id2 => user2, ... }
 
 // GroupBy and Partition in pipeline
-const grouped = await threadts.pipe(users)
+const grouped = await threadts
+  .pipe(users)
   .groupBy((user) => user.role)
   .execute();
 // Result: Map { 'admin' => [...], 'user' => [...] }
 
-const [admins, regular] = await threadts.pipe(users)
+const [admins, regular] = await threadts
+  .pipe(users)
   .partition((user) => user.role === 'admin')
   .execute();
+```
+
+#### New Pipeline Operations (v2.1.0+)
+
+```typescript
+// Distinct - remove duplicates by key
+const items = [{ id: 1 }, { id: 2 }, { id: 1 }, { id: 3 }];
+const uniqueById = await threadts
+  .pipe(items)
+  .distinct((item) => item.id)
+  .execute();
+// Result: [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+// Zip - combine two arrays element-wise
+const names = ['Alice', 'Bob', 'Charlie'];
+const ages = [25, 30, 35];
+const zipped = await threadts.pipe(names).zip(ages).execute();
+// Result: [['Alice', 25], ['Bob', 30], ['Charlie', 35]]
+
+// ZipWith - combine with a custom function
+const combined = await threadts
+  .pipe(names)
+  .zipWith(ages, (name, age) => `${name} is ${age}`)
+  .execute();
+// Result: ['Alice is 25', 'Bob is 30', 'Charlie is 35']
+
+// Interleave - alternate elements from two arrays
+const letters = ['a', 'b', 'c'];
+const numbers = [1, 2, 3];
+const interleaved = await threadts.pipe(letters).interleave(numbers).execute();
+// Result: ['a', 1, 'b', 2, 'c', 3]
+
+// Compact - remove null and undefined values
+const sparse = [1, null, 2, undefined, 3];
+const compacted = await threadts.pipe(sparse).compact().execute();
+// Result: [1, 2, 3]
+
+// Flatten - flatten nested arrays
+const nested = [[1, 2], [3, 4], [5]];
+const flattened = await threadts.pipe(nested).flatten().execute();
+// Result: [1, 2, 3, 4, 5]
+
+const deepNested = [[[1]], [[2]], [[3]]];
+const deepFlattened = await threadts.pipe(deepNested).flatten(2).execute();
+// Result: [1, 2, 3]
+
+// Shuffle - randomly shuffle elements
+const ordered = [1, 2, 3, 4, 5];
+const shuffled = await threadts.pipe(ordered).shuffle().execute();
+// Result: [3, 1, 5, 2, 4] (random order)
+
+// Sample - get random sample of n elements
+const sampled = await threadts.pipe(ordered).sample(3).execute();
+// Result: [2, 4, 1] (3 random elements)
+
+// DropWhile - drop elements while predicate is true
+const sequence = [1, 2, 3, 10, 4, 5];
+const dropped = await threadts
+  .pipe(sequence)
+  .dropWhile((x) => x < 5)
+  .execute();
+// Result: [10, 4, 5]
+
+// TakeWhile - take elements while predicate is true
+const taken = await threadts
+  .pipe(sequence)
+  .takeWhile((x) => x < 5)
+  .execute();
+// Result: [1, 2, 3]
+
+// Peek - debug helper (alias for tap)
+const peeked = await threadts
+  .pipe([1, 2, 3])
+  .peek((x) => console.log('Value:', x))
+  .map((x) => x * 2)
+  .execute();
+// Logs: Value: 1, Value: 2, Value: 3
+// Result: [2, 4, 6]
+
+// Join - join elements into string (terminal)
+const sentence = await threadts.pipe(['Hello', 'World']).join(' ').execute();
+// Result: 'Hello World'
+
+// Includes - check if element exists (terminal)
+const hasThree = await threadts.pipe([1, 2, 3, 4]).includes(3).execute();
+// Result: true
+
+// SlicePipe - extract a portion of the array
+const sliced = await threadts.pipe([1, 2, 3, 4, 5]).slicePipe(1, 4).execute();
+// Result: [2, 3, 4]
+
+// ConcatPipe - concatenate with another array
+const concatenated = await threadts
+  .pipe([1, 2])
+  .concatPipe([3, 4, 5])
+  .execute();
+// Result: [1, 2, 3, 4, 5]
+
+// Rotate - rotate array elements by n positions
+const rotatedRight = await threadts.pipe([1, 2, 3, 4, 5]).rotate(2).execute();
+// Result: [4, 5, 1, 2, 3]
+
+const rotatedLeft = await threadts.pipe([1, 2, 3, 4, 5]).rotate(-2).execute();
+// Result: [3, 4, 5, 1, 2]
+
+// Truthy - filter to only truthy values
+const truthyOnly = await threadts
+  .pipe([0, 1, '', 'hello', null, true, false])
+  .truthy()
+  .execute();
+// Result: [1, 'hello', true]
+
+// Falsy - filter to only falsy values
+const falsyOnly = await threadts
+  .pipe([0, 1, '', 'hello', null, true, false])
+  .falsy()
+  .execute();
+// Result: [0, '', null, false]
 ```
 
 ### Advanced Features
@@ -723,6 +1111,72 @@ async loadConfig(): Promise<Config> {
 // Reset: this.loadConfig.reset()
 ```
 
+### Creating Custom Decorators
+
+ThreadTS provides utility functions for creating your own decorators that work with both legacy (`experimentalDecorators`) and Stage-3 decorator syntax:
+
+```typescript
+import {
+  createMethodDecorator,
+  createMethodDecoratorWithClass,
+  createClassDecorator,
+  isAsyncFunction,
+  ensureAsync,
+} from 'threadts-universal';
+
+// Simple method decorator
+function logExecution() {
+  return createMethodDecorator((originalMethod, methodName) => {
+    return async function (...args: unknown[]) {
+      console.log(`Calling ${methodName}`);
+      const result = await originalMethod.apply(this, args);
+      console.log(`${methodName} returned:`, result);
+      return result;
+    } as typeof originalMethod;
+  });
+}
+
+// Decorator with class name for observability
+function auditLog() {
+  return createMethodDecoratorWithClass((method, methodName, className) => {
+    return async function (...args: unknown[]) {
+      console.log(`[${className}.${methodName}] called with:`, args);
+      return method.apply(this, args);
+    } as typeof method;
+  });
+}
+
+// Class decorator
+function singleton() {
+  const instances = new Map();
+  return createClassDecorator((OriginalClass, className) => {
+    return class extends OriginalClass {
+      constructor(...args: unknown[]) {
+        if (instances.has(className)) {
+          return instances.get(className);
+        }
+        super(...args);
+        instances.set(className, this);
+      }
+    } as typeof OriginalClass;
+  });
+}
+
+// Usage
+class MyService {
+  @logExecution()
+  async process(data: string): Promise<string> {
+    return data.toUpperCase();
+  }
+
+  @auditLog()
+  async save(item: Item): Promise<void> {
+    // Logs: [MyService.save] called with: [...]
+    await db.save(item);
+  }
+}
+```
+
 ### Event System
 
 ```typescript
@@ -751,7 +1205,7 @@ threadts.off('task-complete', listener);
 import {
   PerformanceMonitor,
   HealthMonitor,
-  ErrorHandler
+  ErrorHandler,
 } from 'threadts-universal';
 
 // Performance Monitoring
@@ -887,7 +1341,7 @@ import {
   detectPlatform,
   supportsWorkerThreads,
   getOptimalThreadCount,
-  getMemoryInfo
+  getMemoryInfo,
 } from 'threadts-universal';
 
 console.log('Platform:', detectPlatform()); // 'node', 'browser', 'deno', 'bun'
@@ -927,7 +1381,9 @@ src/
 │
 ├── core/
 │   ├── threadts.ts       # Main ThreadTS class (singleton pattern)
-│   └── pipeline.ts       # Pipeline & TerminalPipeline classes
+│   ├── pipeline.ts       # Pipeline & TerminalPipeline classes
+│   ├── pipeline-operations.ts  # Pipeline operation handlers
+│   └── array-operations.ts     # Extended array operations factory
 │
 ├── adapters/
 │   ├── base.ts           # Abstract WorkerAdapter base class
@@ -1000,14 +1456,15 @@ Fluent API for data processing with lazy evaluation:
 
 ```typescript
 // Pipeline provides intermediate operations (lazy)
-const pipeline = threadts.pipe(data)
-  .filter(x => x > 0)     // Returns Pipeline
-  .map(x => x * 2)        // Returns Pipeline
+const pipeline = threadts
+  .pipe(data)
+  .filter((x) => x > 0) // Returns Pipeline
+  .map((x) => x * 2) // Returns Pipeline
   .sort((a, b) => a - b); // Returns Pipeline
 
 // Terminal operations execute the pipeline
-const result = await pipeline.execute();  // Returns TerminalPipeline
-const array = await pipeline.toArray();   // Executes and returns array
+const result = await pipeline.execute(); // Returns TerminalPipeline
+const array = await pipeline.toArray(); // Executes and returns array
 const sum = await pipeline.sum().execute(); // Aggregation
 ```
 
@@ -1024,10 +1481,18 @@ abstract class WorkerAdapter {
 }
 
 // Platform adapters
-class BrowserWorkerAdapter extends WorkerAdapter { /* Web Worker */ }
-class NodeWorkerAdapter extends WorkerAdapter { /* Worker Threads */ }
-class DenoWorkerAdapter extends WorkerAdapter { /* Deno Worker */ }
-class BunWorkerAdapter extends WorkerAdapter { /* Bun Worker */ }
+class BrowserWorkerAdapter extends WorkerAdapter {
+  /* Web Worker */
+}
+class NodeWorkerAdapter extends WorkerAdapter {
+  /* Worker Threads */
+}
+class DenoWorkerAdapter extends WorkerAdapter {
+  /* Deno Worker */
+}
+class BunWorkerAdapter extends WorkerAdapter {
+  /* Bun Worker */
+}
 ```
 
 ## 🤝 Contributing

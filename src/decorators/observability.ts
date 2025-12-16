@@ -7,75 +7,7 @@
  * @module decorators/observability
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFunction = (...args: any[]) => any;
-
-/**
- * Type for Stage-3 decorator context
- */
-interface DecoratorContext {
-  kind: 'method' | 'getter' | 'setter' | 'field' | 'class' | 'accessor';
-  name: string | symbol;
-  static: boolean;
-  private: boolean;
-  access?: {
-    get?(): unknown;
-    set?(value: unknown): void;
-  };
-  addInitializer?(initializer: () => void): void;
-}
-
-/**
- * Helper to create decorators compatible with both legacy and Stage-3 syntax
- */
-function createMethodDecorator<T extends AnyFunction>(
-  decoratorLogic: (
-    originalMethod: T,
-    methodName: string,
-    className?: string
-  ) => T
-): (
-  targetOrMethod: unknown,
-  propertyKeyOrContext?: string | DecoratorContext,
-  descriptor?: PropertyDescriptor
-) => T | PropertyDescriptor | void {
-  return function (
-    targetOrMethod: unknown,
-    propertyKeyOrContext?: string | DecoratorContext,
-    descriptor?: PropertyDescriptor
-  ): T | PropertyDescriptor | void {
-    // Stage-3 decorator syntax: (method, context)
-    if (
-      typeof targetOrMethod === 'function' &&
-      propertyKeyOrContext &&
-      typeof propertyKeyOrContext === 'object' &&
-      'kind' in propertyKeyOrContext
-    ) {
-      const context = propertyKeyOrContext as DecoratorContext;
-      if (context.kind !== 'method') {
-        throw new Error('Decorator can only be applied to methods');
-      }
-      const methodName = String(context.name);
-      return decoratorLogic(targetOrMethod as T, methodName, 'Unknown');
-    }
-
-    // Legacy decorator syntax: (target, propertyKey, descriptor)
-    if (descriptor && typeof descriptor.value === 'function') {
-      const methodName = String(propertyKeyOrContext);
-      const className =
-        (targetOrMethod as { constructor?: { name?: string } })?.constructor
-          ?.name || 'Unknown';
-      descriptor.value = decoratorLogic(
-        descriptor.value as T,
-        methodName,
-        className
-      );
-      return descriptor;
-    }
-
-    throw new Error('Decorator can only be applied to methods');
-  };
-}
+import { createMethodDecorator, createMethodDecoratorWithClass } from './utils';
 
 /**
  * Decorator for logging method execution
@@ -86,40 +18,44 @@ export function logged(
 ) {
   const { logArgs = true, logResult = true, logTiming = true } = options;
 
-  return createMethodDecorator((originalMethod, methodName, className) => {
-    const wrappedMethod = async function (
-      this: unknown,
-      ...args: unknown[]
-    ): Promise<unknown> {
-      const startTime = Date.now();
-      const argsLog = logArgs ? ` with args: ${JSON.stringify(args)}` : '';
+  return createMethodDecoratorWithClass(
+    (originalMethod, methodName, className) => {
+      const wrappedMethod = async function (
+        this: unknown,
+        ...args: unknown[]
+      ): Promise<unknown> {
+        const startTime = Date.now();
+        const argsLog = logArgs ? ` with args: ${JSON.stringify(args)}` : '';
 
-      console.log(`[${className}.${methodName}] Starting${argsLog}`);
+        console.log(`[${className}.${methodName}] Starting${argsLog}`);
 
-      try {
-        const result = await originalMethod.apply(this, args);
-        const duration = Date.now() - startTime;
-        const timingLog = logTiming ? ` in ${duration}ms` : '';
-        const resultLog = logResult ? ` Result: ${JSON.stringify(result)}` : '';
+        try {
+          const result = await originalMethod.apply(this, args);
+          const duration = Date.now() - startTime;
+          const timingLog = logTiming ? ` in ${duration}ms` : '';
+          const resultLog = logResult
+            ? ` Result: ${JSON.stringify(result)}`
+            : '';
 
-        console.log(
-          `[${className}.${methodName}] Completed${timingLog}.${resultLog}`
-        );
+          console.log(
+            `[${className}.${methodName}] Completed${timingLog}.${resultLog}`
+          );
 
-        return result;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        const timingLog = logTiming ? ` after ${duration}ms` : '';
-        console.error(
-          `[${className}.${methodName}] Failed${timingLog}:`,
-          error
-        );
-        throw error;
-      }
-    };
+          return result;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          const timingLog = logTiming ? ` after ${duration}ms` : '';
+          console.error(
+            `[${className}.${methodName}] Failed${timingLog}:`,
+            error
+          );
+          throw error;
+        }
+      };
 
-    return wrappedMethod as typeof originalMethod;
-  });
+      return wrappedMethod as typeof originalMethod;
+    }
+  );
 }
 
 /**

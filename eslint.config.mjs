@@ -1,6 +1,6 @@
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -16,7 +16,13 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-empty-function': 'warn',
@@ -40,6 +46,12 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**/*', 'node_modules/**/*', '**/*.js', '**/*.d.ts', '**/*.cjs'],
+    ignores: [
+      'dist/**/*',
+      'node_modules/**/*',
+      '**/*.js',
+      '**/*.d.ts',
+      '**/*.cjs',
+    ],
   }
 );

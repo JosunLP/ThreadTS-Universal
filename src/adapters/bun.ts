@@ -1,34 +1,51 @@
 /**
  * ThreadTS Universal - Bun Worker Adapter
- * Enhanced with Bun-specific APIs and optimizations
+ *
+ * Implementiert Worker-Unterstützung für Bun-Umgebungen.
+ * Nutzt Bun-spezifische Optimierungen wie High-Precision-Timing
+ * und native Garbage Collection.
+ *
+ * @module adapters/bun
+ * @author ThreadTS Universal Team
  */
 
-import {
-  SerializableFunction,
-  ThreadOptions,
-  ThreadResult,
-  WorkerAdapter,
-  WorkerError,
-  WorkerInstance,
-} from '../types';
-import { getHighResTimestamp } from '../utils/platform';
-import { createWorkerScript } from '../utils/serialization';
+import { WorkerInstance } from '../types';
+import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
-// Bun Worker API types and interfaces
-interface BunWorkerOptions {
-  name?: string;
-  type?: 'classic' | 'module';
+/**
+ * Bun-Worker-Optionen.
+ */
+interface BunWorkerOptions extends WorkerOptions {
+  /** Credential-Handling für Cross-Origin-Requests */
   credentials?: 'omit' | 'same-origin' | 'include';
 }
 
+/**
+ * Bun-Runtime-Namespace für Typprüfung.
+ *
+ * Bun bietet zusätzliche APIs für Performance und System-Interaktion.
+ */
 interface BunGlobal {
   Bun: {
+    /** Bun-Versionsnummer */
     version: string;
+    /** Bun Git-Revision */
     revision: string;
+    /** Umgebungsvariablen */
     env: Record<string, string | undefined>;
+    /** Pfad zum Hauptmodul */
     main: string;
+    /** Kommandozeilenargumente */
     argv: string[];
+    /**
+     * Findet ein Binary im PATH.
+     * @param binary - Name des Binaries
+     * @returns Vollständiger Pfad oder null
+     */
     which(binary: string): string | null;
+    /**
+     * Führt einen Subprozess synchron aus.
+     */
     spawnSync(
       cmd: string[],
       options?: {
@@ -45,25 +62,57 @@ interface BunGlobal {
       stdout: Buffer;
       stderr: Buffer;
     };
+    /**
+     * Löst Garbage Collection aus.
+     * @param force - Erzwingt sofortige Collection
+     */
     gc(force?: boolean): void;
+    /**
+     * Gibt aktuelle Zeit in Nanosekunden zurück.
+     * Höhere Präzision als performance.now()
+     */
     nanoseconds(): number;
+    /**
+     * Allokiert unsicheren Speicher ohne Initialisierung.
+     * @param size - Größe in Bytes
+     */
     allocUnsafe(size: number): Uint8Array;
+    /**
+     * Schreibt Daten in einen File-Descriptor.
+     */
     write(fd: number, data: string | Uint8Array): number;
+    /**
+     * File-System-Router für Next.js-Style Routing.
+     */
     FileSystemRouter: new (options: { dir: string; style?: 'nextjs' }) => {
       match(pathname: string): { filePath: string; kind: string } | null;
     };
   };
 }
 
-export class BunWorkerAdapter implements WorkerAdapter {
+/**
+ * Worker-Adapter für Bun-Umgebungen.
+ *
+ * Unterstützt:
+ * - High-Performance Workers mit Bun-Optimierungen
+ * - Nanosekunden-präzises Timing
+ * - Native Garbage Collection
+ * - Modul-Worker mit ES Module Syntax
+ *
+ * @extends AbstractWorkerAdapter
+ *
+ * @example
+ * ```typescript
+ * const adapter = new BunWorkerAdapter();
+ * console.log(adapter.getBunVersion()); // "1.0.0"
+ * console.log(adapter.nanoseconds()); // 1234567890123456
+ * ```
+ */
+export class BunWorkerAdapter extends AbstractWorkerAdapter {
   readonly platform = 'bun' as const;
 
   async createWorker(script: string): Promise<WorkerInstance> {
     return new BunWorkerInstance(script);
-  }
-
-  async terminateWorker(worker: WorkerInstance): Promise<void> {
-    await worker.terminate();
   }
 
   isSupported(): boolean {
@@ -74,7 +123,15 @@ export class BunWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Get Bun version information
+   * Gibt die Bun-Versionsnummer zurück.
+   *
+   * @returns Bun-Version oder null wenn nicht verfügbar
+   *
+   * @example
+   * ```typescript
+   * const version = adapter.getBunVersion();
+   * console.log(version); // "1.0.0"
+   * ```
    */
   getBunVersion(): string | null {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -82,7 +139,9 @@ export class BunWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Get Bun revision
+   * Gibt die Bun-Git-Revision zurück.
+   *
+   * @returns Bun-Revision oder null wenn nicht verfügbar
    */
   getBunRevision(): string | null {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -90,7 +149,17 @@ export class BunWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Trigger garbage collection (Bun-specific feature)
+   * Löst Garbage Collection aus (Bun-spezifisches Feature).
+   *
+   * Nützlich für Memory-Profiling oder nach speicherintensiven Operationen.
+   *
+   * @param force - Erzwingt sofortige Collection (Standard: false)
+   *
+   * @example
+   * ```typescript
+   * // Nach großer Operation:
+   * adapter.gc(true);
+   * ```
    */
   gc(force = false): void {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -100,7 +169,19 @@ export class BunWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Get high-precision nanoseconds timestamp (Bun-specific)
+   * Gibt die aktuelle Zeit in Nanosekunden zurück.
+   *
+   * Höhere Präzision als performance.now() für Performance-Messungen.
+   *
+   * @returns Zeit in Nanosekunden
+   *
+   * @example
+   * ```typescript
+   * const start = adapter.nanoseconds();
+   * // ... Operation ...
+   * const duration = adapter.nanoseconds() - start;
+   * console.log(`${duration / 1000000}ms`);
+   * ```
    */
   nanoseconds(): number {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -108,170 +189,56 @@ export class BunWorkerAdapter implements WorkerAdapter {
   }
 }
 
-class BunWorkerInstance implements WorkerInstance {
-  readonly id: string;
-  private worker: Worker | null = null;
-  private isTerminated = false;
-  private isExecuting = false;
-  private workerUrl: string | null = null;
-
-  constructor(private script: string) {
-    this.id = `bun-worker-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  async execute<T = unknown>(
-    fn: SerializableFunction,
-    data: unknown,
-    options: ThreadOptions = {}
-  ): Promise<ThreadResult<T>> {
-    if (this.isTerminated) {
-      throw new WorkerError('Worker has been terminated');
-    }
-
-    if (this.isExecuting) {
-      throw new WorkerError('Worker is already executing a task');
-    }
-
-    this.isExecuting = true;
-    const startTime = getHighResTimestamp();
-
-    try {
-      // Create worker script
-      const workerScript = createWorkerScript(fn, data, {
-        timeout: options.timeout,
-      });
-
-      // Create blob URL for worker (Bun supports blob URLs)
-      const blob = new Blob([workerScript], { type: 'application/javascript' });
-      this.workerUrl = URL.createObjectURL(blob);
-
-      return await new Promise<ThreadResult<T>>((resolve, reject) => {
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
-        let isResolved = false;
-
-        // Enhanced Bun worker options
-        const workerOptions: BunWorkerOptions = {
-          name: this.id,
-          type: 'module',
-          credentials: 'omit', // Security: don't include credentials
-        };
-
-        // Create worker with Bun-optimized settings
-        this.worker = new Worker(this.workerUrl!, workerOptions);
-
-        // Set up abort signal
-        if (options.signal) {
-          options.signal.addEventListener('abort', () => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(timeoutId);
-              reject(new WorkerError('Operation was aborted'));
-            }
-          });
-        }
-
-        // Set up timeout with high precision using Bun's nanoseconds
-        if (options.timeout) {
-          timeoutId = setTimeout(() => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(timeoutId);
-              reject(
-                new WorkerError(
-                  `Operation timed out after ${options.timeout}ms`
-                )
-              );
-            }
-          }, options.timeout);
-        }
-
-        // Handle worker messages
-        this.worker.onmessage = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          const { result, error, executionTime } = event.data as {
-            result: T;
-            error?: string;
-            executionTime?: number;
-          };
-
-          this.cleanup(timeoutId);
-
-          if (error) {
-            reject(new WorkerError(error));
-          } else {
-            resolve({
-              result,
-              executionTime: executionTime || getHighResTimestamp() - startTime,
-              workerId: this.id,
-            });
-          }
-        };
-
-        // Handle worker errors
-        this.worker.onerror = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          this.cleanup(timeoutId);
-          reject(
-            new WorkerError(`Worker error: ${(event as ErrorEvent).message}`)
-          );
-        };
-
-        // Handle message errors (for structured clone errors)
-        this.worker.onmessageerror = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          this.cleanup(timeoutId);
-          reject(new WorkerError(`Message serialization error: ${event.type}`));
-        };
-
-        // Optimized message passing for Bun
-        // Bun has better support for transferable objects
-        if (options.transferable && options.transferable.length > 0) {
-          this.worker.postMessage(data, options.transferable);
-        } else {
-          this.worker.postMessage(data);
-        }
-      });
-    } finally {
-      this.isExecuting = false;
-    }
-  }
-
-  async terminate(): Promise<void> {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isTerminated = true;
-  }
-
-  isIdle(): boolean {
-    return !this.isExecuting && !this.isTerminated;
-  }
-
-  private cleanup(timeoutId?: ReturnType<typeof setTimeout>): void {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    if (this.workerUrl) {
-      URL.revokeObjectURL(this.workerUrl);
-      this.workerUrl = null;
-    }
+/**
+ * Bun-Worker-Instanz.
+ *
+ * Erweitert AbstractWebWorkerInstance mit Bun-spezifischen Features:
+ * - Nanosekunden-Timing für präzise Performance-Messungen
+ * - Native Garbage Collection Unterstützung
+ * - Optimiertes Transferable-Object Handling
+ *
+ * @extends AbstractWebWorkerInstance
+ */
+class BunWorkerInstance extends AbstractWebWorkerInstance {
+  /**
+   * Erstellt eine neue Bun-Worker-Instanz.
+   *
+   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   */
+  constructor(_script: string) {
+    super('bun', {
+      workerName: undefined, // Wird automatisch generiert
+      workerType: 'module', // Bun bevorzugt Module-Worker
+    });
   }
 
   /**
-   * Get Bun-specific worker information
+   * Erstellt Bun-spezifische Worker-Optionen.
+   *
+   * Konfiguriert:
+   * - Modul-Worker (ES Module Syntax)
+   * - credentials: 'omit' für Sicherheit
+   *
+   * @returns BunWorkerOptions
+   */
+  protected createPlatformWorkerOptions(): BunWorkerOptions {
+    return {
+      type: 'module',
+      name: this.id,
+      credentials: 'omit', // Sicherheit: Keine Credentials inkludieren
+    };
+  }
+
+  /**
+   * Gibt Bun-spezifische Worker-Informationen zurück.
+   *
+   * @returns Objekt mit Worker-ID, Bun-Version und Fähigkeiten
+   *
+   * @example
+   * ```typescript
+   * const info = worker.getWorkerInfo();
+   * console.log(info.capabilities); // ['transferable-objects', ...]
+   * ```
    */
   getWorkerInfo(): {
     id: string;
@@ -295,7 +262,9 @@ class BunWorkerInstance implements WorkerInstance {
   }
 
   /**
-   * Trigger garbage collection for this worker's memory
+   * Erzwingt Garbage Collection für diesen Worker.
+   *
+   * Nutzt Buns native GC-API für sofortige Speicherfreigabe.
    */
   forceGC(): void {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -305,7 +274,11 @@ class BunWorkerInstance implements WorkerInstance {
   }
 
   /**
-   * Get high-precision timing using Bun's nanoseconds
+   * Gibt Zeit mit hoher Präzision in Nanosekunden zurück.
+   *
+   * Nutzt Buns nanoseconds() für maximale Präzision.
+   *
+   * @returns Zeit in Nanosekunden
    */
   getHighPrecisionTime(): number {
     const bun = (globalThis as unknown as BunGlobal).Bun;

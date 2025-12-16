@@ -38,6 +38,11 @@ import {
   validateFunction,
   validateSerializable,
 } from '../utils/validation';
+import {
+  createArrayOperations,
+  type ArrayOperations,
+} from './array-operations';
+import { Pipeline, TerminalPipeline } from './pipeline';
 
 /**
  * Default batch size for search operations (find, findIndex, some, every).
@@ -145,6 +150,9 @@ export class ThreadTS extends EventTarget {
     Set<ThreadEventListener<keyof ThreadEventMap>>
   > = new Map();
 
+  /** Extended array operations */
+  private arrayOps: ArrayOperations | null = null;
+
   constructor(config: Partial<ThreadConfig> = {}) {
     super();
 
@@ -189,6 +197,8 @@ export class ThreadTS extends EventTarget {
   private async initialize(): Promise<void> {
     try {
       this.isReady = true;
+      // Initialize array operations
+      this.arrayOps = createArrayOperations(this);
       this.emitEvent('pool-resize', {
         oldSize: 0,
         newSize: this.config.poolSize,
@@ -197,6 +207,201 @@ export class ThreadTS extends EventTarget {
       console.error('Failed to initialize ThreadTS:', error);
       throw error;
     }
+  }
+
+  /**
+   * Returns the extended array operations module.
+   * Provides additional array methods like indexOf, lastIndexOf, at, slice, etc.
+   *
+   * @returns The ArrayOperations object with extended methods
+   *
+   * @example
+   * ```typescript
+   * const ops = threadts.getArrayOps();
+   * const index = await ops.indexOf([1, 2, 3], 2);
+   * const chunk = await ops.chunk([1, 2, 3, 4, 5], 2);
+   * ```
+   */
+  getArrayOps(): ArrayOperations {
+    if (!this.arrayOps) {
+      this.arrayOps = createArrayOperations(this);
+    }
+    return this.arrayOps;
+  }
+
+  // ==================== Extended Array Methods ====================
+
+  /**
+   * Finds the index of the first occurrence of a value in the array.
+   * @see ArrayOperations.indexOf
+   */
+  async indexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex = 0
+  ): Promise<number> {
+    return this.getArrayOps().indexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Finds the index of the last occurrence of a value in the array.
+   * @see ArrayOperations.lastIndexOf
+   */
+  async lastIndexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex?: number
+  ): Promise<number> {
+    return this.getArrayOps().lastIndexOf(array, searchElement, fromIndex);
+  }
+
+  /**
+   * Returns the element at the specified index.
+   * @see ArrayOperations.at
+   */
+  async at<T>(array: T[], index: number): Promise<T | undefined> {
+    return this.getArrayOps().at(array, index);
+  }
+
+  /**
+   * Creates a new array with elements from startIndex to endIndex.
+   * @see ArrayOperations.slice
+   */
+  async slice<T>(array: T[], start?: number, end?: number): Promise<T[]> {
+    return this.getArrayOps().slice(array, start, end);
+  }
+
+  /**
+   * Concatenates multiple arrays into one.
+   * @see ArrayOperations.concat
+   */
+  async concat<T>(array: T[], ...items: (T | T[])[]): Promise<T[]> {
+    return this.getArrayOps().concat(array, ...items);
+  }
+
+  /**
+   * Creates an array containing a range of numbers.
+   * @see ArrayOperations.range
+   */
+  async range(start: number, end: number, step = 1): Promise<number[]> {
+    return this.getArrayOps().range(start, end, step);
+  }
+
+  /**
+   * Creates an array by repeating a value.
+   * @see ArrayOperations.repeat
+   */
+  async repeat<T>(value: T, count: number): Promise<T[]> {
+    return this.getArrayOps().repeat(value, count);
+  }
+
+  /**
+   * Removes duplicate values from an array.
+   * @see ArrayOperations.unique
+   */
+  async unique<T>(array: T[]): Promise<T[]> {
+    return this.getArrayOps().unique(array);
+  }
+
+  /**
+   * Removes duplicate values using a key function.
+   * @see ArrayOperations.uniqueBy
+   */
+  async uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): Promise<T[]> {
+    return this.getArrayOps().uniqueBy(array, keyFn);
+  }
+
+  /**
+   * Splits an array into chunks of the specified size.
+   * @see ArrayOperations.chunk
+   */
+  async chunk<T>(array: T[], size: number): Promise<T[][]> {
+    return this.getArrayOps().chunk(array, size);
+  }
+
+  /**
+   * Zips multiple arrays together into an array of tuples.
+   * @see ArrayOperations.zip
+   */
+  async zip<T extends unknown[][]>(
+    ...arrays: T
+  ): Promise<{ [K in keyof T]: T[K] extends (infer U)[] ? U : never }[]> {
+    return this.getArrayOps().zip(...arrays);
+  }
+
+  // ==================== ES2023+ Array Methods ====================
+
+  /**
+   * Finds the last element that satisfies the predicate.
+   * @see ArrayOperations.findLast
+   */
+  async findLast<T>(
+    array: T[],
+    predicate: (value: T, index: number, array: T[]) => boolean
+  ): Promise<T | undefined> {
+    return this.getArrayOps().findLast(array, predicate);
+  }
+
+  /**
+   * Finds the index of the last element that satisfies the predicate.
+   * @see ArrayOperations.findLastIndex
+   */
+  async findLastIndex<T>(
+    array: T[],
+    predicate: (value: T, index: number, array: T[]) => boolean
+  ): Promise<number> {
+    return this.getArrayOps().findLastIndex(array, predicate);
+  }
+
+  /**
+   * Returns a new sorted array (immutable).
+   * @see ArrayOperations.toSorted
+   */
+  async toSorted<T>(
+    array: T[],
+    compareFn?: (a: T, b: T) => number
+  ): Promise<T[]> {
+    return this.getArrayOps().toSorted(array, compareFn);
+  }
+
+  /**
+   * Returns a new reversed array (immutable).
+   * @see ArrayOperations.toReversed
+   */
+  async toReversed<T>(array: T[]): Promise<T[]> {
+    return this.getArrayOps().toReversed(array);
+  }
+
+  /**
+   * Returns a new array with the element at the given index replaced.
+   * @see ArrayOperations.withElement
+   */
+  async withElement<T>(array: T[], index: number, value: T): Promise<T[]> {
+    return this.getArrayOps().withElement(array, index, value);
+  }
+
+  /**
+   * Returns a new array with elements removed/replaced/added at a given index.
+   * @see ArrayOperations.toSpliced
+   */
+  async toSpliced<T>(
+    array: T[],
+    start: number,
+    deleteCount?: number,
+    ...items: T[]
+  ): Promise<T[]> {
+    return this.getArrayOps().toSpliced(array, start, deleteCount, ...items);
+  }
+
+  /**
+   * Groups elements of an array based on a callback function.
+   * @see ArrayOperations.groupByObject
+   */
+  async groupByObject<T, K extends PropertyKey>(
+    array: T[],
+    keyFn: (item: T, index: number) => K
+  ): Promise<Partial<Record<K, T[]>>> {
+    return this.getArrayOps().groupByObject(array, keyFn);
   }
 
   private emitEvent<K extends keyof ThreadEventMap>(
@@ -1385,788 +1590,133 @@ export class ThreadTS extends EventTarget {
     const instance = ThreadTS.getInstance();
     return instance.pipe<T>(array);
   }
-}
 
-/**
- * Pipeline operation definition for lazy evaluation.
- */
-interface PipelineOperation {
-  type: string;
-  fn?: SerializableFunction;
-  options?: MapOptions | ThreadOptions;
-  initialValue?: unknown;
-  count?: number;
-}
-
-/**
- * Pipeline class for fluent chaining of parallel operations.
- * Supports lazy evaluation - operations are only executed when execute() is called.
- *
- * @template T - The current type of array elements
- *
- * @example
- * ```typescript
- * const result = await ThreadTS.pipe([1, 2, 3, 4, 5])
- *   .map(x => x * 2)
- *   .filter(x => x > 4)
- *   .reduce((acc, x) => acc + x, 0)
- *   .execute();
- * ```
- */
-class Pipeline<T> {
-  private operations: PipelineOperation[] = [];
-
-  constructor(
-    private array: T[],
-    private threadts: ThreadTS
-  ) {}
+  // ==================== Static Extended Array Methods ====================
 
   /**
-   * Adds a map operation to the pipeline.
+   * Static method to find the index of an element.
+   * @see {@link ThreadTS.indexOf} for instance method documentation
    */
-  map<R>(fn: SerializableFunction, options?: MapOptions): Pipeline<R> {
-    this.operations.push({ type: 'map', fn, options });
-    return this as unknown as Pipeline<R>;
+  static async indexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex = 0
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.indexOf(array, searchElement, fromIndex);
   }
 
   /**
-   * Adds a filter operation to the pipeline.
+   * Static method to find the last index of an element.
+   * @see {@link ThreadTS.lastIndexOf} for instance method documentation
    */
-  filter(fn: SerializableFunction, options?: MapOptions): Pipeline<T> {
-    this.operations.push({ type: 'filter', fn, options });
-    return this;
+  static async lastIndexOf<T>(
+    array: T[],
+    searchElement: T,
+    fromIndex?: number
+  ): Promise<number> {
+    const instance = ThreadTS.getInstance();
+    return instance.lastIndexOf(array, searchElement, fromIndex);
   }
 
   /**
-   * Adds a flatMap operation to the pipeline.
+   * Static method to get an element at a specific index.
+   * @see {@link ThreadTS.at} for instance method documentation
    */
-  flatMap<R>(fn: SerializableFunction, options?: MapOptions): Pipeline<R> {
-    this.operations.push({ type: 'flatMap', fn, options });
-    return this as unknown as Pipeline<R>;
+  static async at<T>(array: T[], index: number): Promise<T | undefined> {
+    const instance = ThreadTS.getInstance();
+    return instance.at(array, index);
   }
 
   /**
-   * Takes the first n elements from the pipeline.
-   * This is a synchronous operation that limits results.
-   *
-   * @param count - Number of elements to take
-   * @returns Pipeline with limited elements
-   *
-   * @example
-   * ```typescript
-   * const first3 = await ThreadTS.pipe([1, 2, 3, 4, 5])
-   *   .take(3)
-   *   .execute();
-   * // Result: [1, 2, 3]
-   * ```
+   * Static method to slice an array.
+   * @see {@link ThreadTS.slice} for instance method documentation
    */
-  take(count: number): Pipeline<T> {
-    this.operations.push({
-      type: 'take',
-      count: Math.max(0, Math.floor(count)),
-    });
-    return this;
+  static async slice<T>(
+    array: T[],
+    start?: number,
+    end?: number
+  ): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.slice(array, start, end);
   }
 
   /**
-   * Skips the first n elements from the pipeline.
-   * This is a synchronous operation that offsets results.
-   *
-   * @param count - Number of elements to skip
-   * @returns Pipeline with offset elements
-   *
-   * @example
-   * ```typescript
-   * const afterFirst2 = await ThreadTS.pipe([1, 2, 3, 4, 5])
-   *   .skip(2)
-   *   .execute();
-   * // Result: [3, 4, 5]
-   * ```
+   * Static method to concatenate arrays.
+   * @see {@link ThreadTS.concat} for instance method documentation
    */
-  skip(count: number): Pipeline<T> {
-    this.operations.push({
-      type: 'skip',
-      count: Math.max(0, Math.floor(count)),
-    });
-    return this;
+  static async concat<T>(array: T[], ...items: (T | T[])[]): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.concat(array, ...items);
   }
 
   /**
-   * Splits the array into chunks of the specified size.
-   * Returns a pipeline of arrays.
-   *
-   * @param size - Size of each chunk
-   * @returns Pipeline with chunked arrays
-   *
-   * @example
-   * ```typescript
-   * const chunks = await ThreadTS.pipe([1, 2, 3, 4, 5])
-   *   .chunk(2)
-   *   .execute();
-   * // Result: [[1, 2], [3, 4], [5]]
-   * ```
+   * Static method to create a range of numbers.
+   * @see {@link ThreadTS.range} for instance method documentation
    */
-  chunk(size: number): Pipeline<T[]> {
-    this.operations.push({
-      type: 'chunk',
-      count: Math.max(1, Math.floor(size)),
-    });
-    return this as unknown as Pipeline<T[]>;
+  static async range(start: number, end: number, step = 1): Promise<number[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.range(start, end, step);
   }
 
   /**
-   * Removes duplicate elements from the pipeline.
-   * Uses JSON.stringify for comparison by default.
-   *
-   * @param keyFn - Optional function to extract comparison key
-   * @returns Pipeline with unique elements
-   *
-   * @example
-   * ```typescript
-   * const unique = await ThreadTS.pipe([1, 2, 2, 3, 3, 3])
-   *   .unique()
-   *   .execute();
-   * // Result: [1, 2, 3]
-   * ```
+   * Static method to repeat a value.
+   * @see {@link ThreadTS.repeat} for instance method documentation
    */
-  unique(keyFn?: SerializableFunction): Pipeline<T> {
-    this.operations.push({ type: 'unique', fn: keyFn });
-    return this;
+  static async repeat<T>(value: T, count: number): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.repeat(value, count);
   }
 
   /**
-   * Reverses the order of elements in the pipeline.
-   *
-   * @returns Pipeline with reversed elements
-   *
-   * @example
-   * ```typescript
-   * const reversed = await ThreadTS.pipe([1, 2, 3])
-   *   .reverse()
-   *   .execute();
-   * // Result: [3, 2, 1]
-   * ```
+   * Static method to get unique values.
+   * @see {@link ThreadTS.unique} for instance method documentation
    */
-  reverse(): Pipeline<T> {
-    this.operations.push({ type: 'reverse' });
-    return this;
+  static async unique<T>(array: T[]): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.unique(array);
   }
 
   /**
-   * Sorts elements in the pipeline.
-   *
-   * @param compareFn - Optional comparison function
-   * @returns Pipeline with sorted elements
-   *
-   * @example
-   * ```typescript
-   * const sorted = await ThreadTS.pipe([3, 1, 2])
-   *   .sort((a, b) => a - b)
-   *   .execute();
-   * // Result: [1, 2, 3]
-   * ```
+   * Static method to get unique values by key.
+   * @see {@link ThreadTS.uniqueBy} for instance method documentation
    */
-  sort(compareFn?: SerializableFunction): Pipeline<T> {
-    this.operations.push({ type: 'sort', fn: compareFn });
-    return this;
+  static async uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): Promise<T[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.uniqueBy(array, keyFn);
   }
 
   /**
-   * Adds a reduce operation to the pipeline. This is a terminal operation.
+   * Static method to chunk an array.
+   * @see {@link ThreadTS.chunk} for instance method documentation
    */
-  reduce<R>(
-    fn: SerializableFunction,
-    initialValue: R,
-    options?: ThreadOptions
-  ): TerminalPipeline<R> {
-    this.operations.push({ type: 'reduce', fn, initialValue, options });
-    return new TerminalPipeline<R>(this.array, this.operations, this.threadts);
+  static async chunk<T>(array: T[], size: number): Promise<T[][]> {
+    const instance = ThreadTS.getInstance();
+    return instance.chunk(array, size);
   }
 
   /**
-   * Adds a forEach operation to the pipeline. This is a terminal operation.
+   * Static method to zip arrays.
+   * @see {@link ThreadTS.zip} for instance method documentation
    */
-  forEach(
-    fn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<void> {
-    this.operations.push({ type: 'forEach', fn, options });
-    return new TerminalPipeline<void>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
+  static async zip<T extends unknown[][]>(
+    ...arrays: T
+  ): Promise<{ [K in keyof T]: T[K] extends (infer U)[] ? U : never }[]> {
+    const instance = ThreadTS.getInstance();
+    return instance.zip(...arrays);
   }
 
   /**
-   * Adds a find operation to the pipeline. This is a terminal operation.
+   * Static method to get the array operations module.
+   * @see {@link ThreadTS.getArrayOps} for instance method documentation
    */
-  find(
-    fn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<T | undefined> {
-    this.operations.push({ type: 'find', fn, options });
-    return new TerminalPipeline<T | undefined>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Adds a findIndex operation to the pipeline. This is a terminal operation.
-   */
-  findIndex(
-    fn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<number> {
-    this.operations.push({ type: 'findIndex', fn, options });
-    return new TerminalPipeline<number>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Adds a some operation to the pipeline. This is a terminal operation.
-   */
-  some(
-    fn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<boolean> {
-    this.operations.push({ type: 'some', fn, options });
-    return new TerminalPipeline<boolean>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Adds an every operation to the pipeline. This is a terminal operation.
-   */
-  every(
-    fn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<boolean> {
-    this.operations.push({ type: 'every', fn, options });
-    return new TerminalPipeline<boolean>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Adds a count operation to the pipeline. This is a terminal operation.
-   * If no predicate is provided, counts all elements.
-   */
-  count(
-    fn?: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<number> {
-    const countFn = fn ?? (() => true);
-    this.operations.push({ type: 'count', fn: countFn, options });
-    return new TerminalPipeline<number>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Groups elements by a key function. This is a terminal operation.
-   *
-   * @param keyFn - Function that returns the group key for each element
-   * @param options - Execution options
-   * @returns TerminalPipeline that resolves to a Map of grouped elements
-   *
-   * @example
-   * ```typescript
-   * const grouped = await ThreadTS.pipe(users)
-   *   .groupBy(user => user.role)
-   *   .execute();
-   * ```
-   */
-  groupBy<K extends string | number | symbol>(
-    keyFn: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<Map<K, T[]>> {
-    this.operations.push({ type: 'groupBy', fn: keyFn, options });
-    return new TerminalPipeline<Map<K, T[]>>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Partitions elements into two arrays based on a predicate. This is a terminal operation.
-   *
-   * @param predicate - Function that returns true for elements in the first partition
-   * @param options - Execution options
-   * @returns TerminalPipeline that resolves to a tuple of [matching, non-matching]
-   *
-   * @example
-   * ```typescript
-   * const [evens, odds] = await ThreadTS.pipe([1, 2, 3, 4, 5])
-   *   .partition(x => x % 2 === 0)
-   *   .execute();
-   * ```
-   */
-  partition(
-    predicate: SerializableFunction,
-    options?: MapOptions
-  ): TerminalPipeline<[T[], T[]]> {
-    this.operations.push({ type: 'partition', fn: predicate, options });
-    return new TerminalPipeline<[T[], T[]]>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Gets the first element of the pipeline. This is a terminal operation.
-   *
-   * @returns TerminalPipeline that resolves to the first element or undefined
-   */
-  first(): TerminalPipeline<T | undefined> {
-    this.operations.push({ type: 'first' });
-    return new TerminalPipeline<T | undefined>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Gets the last element of the pipeline. This is a terminal operation.
-   *
-   * @returns TerminalPipeline that resolves to the last element or undefined
-   */
-  last(): TerminalPipeline<T | undefined> {
-    this.operations.push({ type: 'last' });
-    return new TerminalPipeline<T | undefined>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Checks if the pipeline contains no elements. This is a terminal operation.
-   *
-   * @returns TerminalPipeline that resolves to true if empty
-   */
-  isEmpty(): TerminalPipeline<boolean> {
-    this.operations.push({ type: 'isEmpty' });
-    return new TerminalPipeline<boolean>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Calculates the sum of numeric elements. This is a terminal operation.
-   *
-   * @returns TerminalPipeline that resolves to the sum
-   */
-  sum(): TerminalPipeline<number> {
-    this.operations.push({ type: 'sum' });
-    return new TerminalPipeline<number>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Calculates the average of numeric elements. This is a terminal operation.
-   *
-   * @returns TerminalPipeline that resolves to the average or NaN if empty
-   */
-  average(): TerminalPipeline<number> {
-    this.operations.push({ type: 'average' });
-    return new TerminalPipeline<number>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Finds the minimum element. This is a terminal operation.
-   *
-   * @param compareFn - Optional comparison function
-   * @returns TerminalPipeline that resolves to the minimum element
-   */
-  min(compareFn?: SerializableFunction): TerminalPipeline<T | undefined> {
-    this.operations.push({ type: 'min', fn: compareFn });
-    return new TerminalPipeline<T | undefined>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Finds the maximum element. This is a terminal operation.
-   *
-   * @param compareFn - Optional comparison function
-   * @returns TerminalPipeline that resolves to the maximum element
-   */
-  max(compareFn?: SerializableFunction): TerminalPipeline<T | undefined> {
-    this.operations.push({ type: 'max', fn: compareFn });
-    return new TerminalPipeline<T | undefined>(
-      this.array,
-      this.operations,
-      this.threadts
-    );
-  }
-
-  /**
-   * Executes all operations in the pipeline and returns the result array.
-   */
-  async execute(): Promise<T[]> {
-    let result: unknown[] = this.array;
-
-    for (const op of this.operations) {
-      switch (op.type) {
-        case 'map':
-          result = await this.threadts.map(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'filter':
-          result = await this.threadts.filter(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'flatMap':
-          result = await this.threadts.flatMap(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'take':
-          result = result.slice(0, op.count ?? 0);
-          break;
-        case 'skip':
-          result = result.slice(op.count ?? 0);
-          break;
-        case 'chunk': {
-          const chunkSize = op.count ?? 1;
-          const chunks: unknown[][] = [];
-          for (let i = 0; i < result.length; i += chunkSize) {
-            chunks.push(result.slice(i, i + chunkSize));
-          }
-          result = chunks;
-          break;
-        }
-        case 'unique': {
-          const seen = new Set<string>();
-          const uniqueResult: unknown[] = [];
-          for (const item of result) {
-            const key = op.fn
-              ? JSON.stringify(op.fn(item))
-              : JSON.stringify(item);
-            if (!seen.has(key)) {
-              seen.add(key);
-              uniqueResult.push(item);
-            }
-          }
-          result = uniqueResult;
-          break;
-        }
-        case 'reverse':
-          result = [...result].reverse();
-          break;
-        case 'sort':
-          result = [...result].sort(
-            op.fn as ((a: unknown, b: unknown) => number) | undefined
-          );
-          break;
-      }
-    }
-
-    return result as T[];
-  }
-
-  /**
-   * Collects the pipeline results into an array.
-   * Alias for execute().
-   */
-  async toArray(): Promise<T[]> {
-    return this.execute();
-  }
-
-  /**
-   * Collects the pipeline results into a Set.
-   */
-  async toSet(): Promise<Set<T>> {
-    const result = await this.execute();
-    return new Set(result);
-  }
-
-  /**
-   * Collects the pipeline results into a Map using a key function.
-   *
-   * @param keyFn - Function that returns the key for each element
-   * @returns Promise that resolves to a Map
-   */
-  async toMap<K>(keyFn: (item: T) => K): Promise<Map<K, T>> {
-    const result = await this.execute();
-    const map = new Map<K, T>();
-    for (const item of result) {
-      map.set(keyFn(item), item);
-    }
-    return map;
+  static getArrayOps(): ArrayOperations {
+    const instance = ThreadTS.getInstance();
+    return instance.getArrayOps();
   }
 }
 
-/**
- * Terminal pipeline for operations that produce a single value.
- */
-class TerminalPipeline<R> {
-  constructor(
-    private array: unknown[],
-    private operations: PipelineOperation[],
-    private threadts: ThreadTS
-  ) {}
-
-  /**
-   * Executes all operations in the pipeline and returns the final result.
-   */
-  async execute(): Promise<R> {
-    let result: unknown[] = this.array;
-
-    for (let i = 0; i < this.operations.length; i++) {
-      const op = this.operations[i];
-      const isLast = i === this.operations.length - 1;
-
-      switch (op.type) {
-        case 'map':
-          result = await this.threadts.map(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'filter':
-          result = await this.threadts.filter(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'flatMap':
-          result = await this.threadts.flatMap(
-            result,
-            op.fn!,
-            op.options as MapOptions
-          );
-          break;
-        case 'take':
-          result = result.slice(0, op.count ?? 0);
-          break;
-        case 'skip':
-          result = result.slice(op.count ?? 0);
-          break;
-        case 'chunk': {
-          const chunkSize = op.count ?? 1;
-          const chunks: unknown[][] = [];
-          for (let j = 0; j < result.length; j += chunkSize) {
-            chunks.push(result.slice(j, j + chunkSize));
-          }
-          result = chunks;
-          break;
-        }
-        case 'unique': {
-          const seen = new Set<string>();
-          const uniqueResult: unknown[] = [];
-          for (const item of result) {
-            const key = op.fn
-              ? JSON.stringify(op.fn(item))
-              : JSON.stringify(item);
-            if (!seen.has(key)) {
-              seen.add(key);
-              uniqueResult.push(item);
-            }
-          }
-          result = uniqueResult;
-          break;
-        }
-        case 'reverse':
-          result = [...result].reverse();
-          break;
-        case 'sort':
-          result = [...result].sort(
-            op.fn as ((a: unknown, b: unknown) => number) | undefined
-          );
-          break;
-        case 'reduce':
-          if (isLast) {
-            return this.threadts.reduce(
-              result,
-              op.fn!,
-              op.initialValue as R,
-              op.options as ThreadOptions
-            );
-          }
-          break;
-        case 'forEach':
-          if (isLast) {
-            await this.threadts.forEach(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            );
-            return undefined as R;
-          }
-          break;
-        case 'find':
-          if (isLast) {
-            return this.threadts.find(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'findIndex':
-          if (isLast) {
-            return this.threadts.findIndex(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'some':
-          if (isLast) {
-            return this.threadts.some(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'every':
-          if (isLast) {
-            return this.threadts.every(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'count':
-          if (isLast) {
-            return this.threadts.count(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'groupBy':
-          if (isLast) {
-            return this.threadts.groupBy(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'partition':
-          if (isLast) {
-            return this.threadts.partition(
-              result,
-              op.fn!,
-              op.options as MapOptions
-            ) as Promise<R>;
-          }
-          break;
-        case 'first':
-          if (isLast) {
-            return (result.length > 0 ? result[0] : undefined) as R;
-          }
-          break;
-        case 'last':
-          if (isLast) {
-            return (
-              result.length > 0 ? result[result.length - 1] : undefined
-            ) as R;
-          }
-          break;
-        case 'isEmpty':
-          if (isLast) {
-            return (result.length === 0) as R;
-          }
-          break;
-        case 'sum':
-          if (isLast) {
-            return result.reduce(
-              (acc: number, val) => acc + (typeof val === 'number' ? val : 0),
-              0
-            ) as R;
-          }
-          break;
-        case 'average':
-          if (isLast) {
-            if (result.length === 0) return NaN as R;
-            const sum = result.reduce(
-              (acc: number, val) => acc + (typeof val === 'number' ? val : 0),
-              0
-            );
-            return (sum / result.length) as R;
-          }
-          break;
-        case 'min':
-          if (isLast) {
-            if (result.length === 0) return undefined as R;
-            const compareFn = op.fn as
-              | ((a: unknown, b: unknown) => number)
-              | undefined;
-            return [...result].sort(
-              compareFn ??
-                ((a, b) => {
-                  if (a === b) return 0;
-                  return (a as number) < (b as number) ? -1 : 1;
-                })
-            )[0] as R;
-          }
-          break;
-        case 'max':
-          if (isLast) {
-            if (result.length === 0) return undefined as R;
-            const compareFn = op.fn as
-              | ((a: unknown, b: unknown) => number)
-              | undefined;
-            return [...result].sort(
-              compareFn ??
-                ((a, b) => {
-                  if (a === b) return 0;
-                  return (a as number) > (b as number) ? -1 : 1;
-                })
-            )[0] as R;
-          }
-          break;
-      }
-    }
-
-    return result as R;
-  }
-}
-
+// Re-export Pipeline classes from pipeline module
 export { Pipeline, TerminalPipeline };
 
 export default ThreadTS;

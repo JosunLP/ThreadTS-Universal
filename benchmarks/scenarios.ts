@@ -29,6 +29,9 @@ async function main() {
   // 5. Validation Scenario
   await validationScenario();
 
+  // 6. Pipeline Operations Scenario
+  await pipelineScenario();
+
   console.log('\n✅ All real-world scenarios completed successfully!');
 }
 
@@ -173,17 +176,11 @@ async function searchOperationsScenario() {
   console.log(`   First high scorer at index: ${highScorerIndex}`);
 
   // Check if any user is inactive
-  const hasInactive = await threadts.some(
-    users,
-    (user: User) => !user.active
-  );
+  const hasInactive = await threadts.some(users, (user: User) => !user.active);
   console.log(`   Has inactive users: ${hasInactive}`);
 
   // Check if all users have valid IDs
-  const allValidIds = await threadts.every(
-    users,
-    (user: User) => user.id >= 0
-  );
+  const allValidIds = await threadts.every(users, (user: User) => user.id >= 0);
   console.log(`   All valid IDs: ${allValidIds}`);
 
   const duration = performance.now() - start;
@@ -230,9 +227,52 @@ async function validationScenario() {
   const duration = performance.now() - start;
 
   console.log(`✅ Validation completed in ${duration.toFixed(2)}ms`);
-  console.log(`   Valid emails: ${validEmails.length}/${formSubmissions.length}`);
+  console.log(
+    `   Valid emails: ${validEmails.length}/${formSubmissions.length}`
+  );
   console.log(`   First invalid email: ${firstInvalid?.email}`);
   console.log(`   All adults: ${allAdults}`);
+}
+
+async function pipelineScenario() {
+  console.log('\n🔗 Scenario: Pipeline Operations');
+  console.log('Testing new pipeline features: tap, window...');
+
+  const numbers = Array.from({ length: 1000 }, (_, i) => i + 1);
+  const start = performance.now();
+
+  // Test tap for debugging
+  let tapCount = 0;
+  const tappedResult = await threadts
+    .pipe(numbers.slice(0, 100))
+    .tap(() => {
+      tapCount++;
+    })
+    .map((x) => x * 2)
+    .filter((x) => x > 50)
+    .execute();
+
+  // Test window for sliding windows
+  const windowedResult = await threadts
+    .pipe(numbers.slice(0, 20))
+    .window(5, 2) // size=5, step=2
+    .execute();
+
+  // Test complex pipeline with new features
+  const complexResult = await threadts
+    .pipe(numbers)
+    .filter((x) => x % 2 === 0)
+    .take(50)
+    .chunk(10)
+    .execute();
+
+  const duration = performance.now() - start;
+
+  console.log(`✅ Pipeline operations completed in ${duration.toFixed(2)}ms`);
+  console.log(`   Tap executed ${tapCount} times`);
+  console.log(`   Filtered result count: ${tappedResult.length}`);
+  console.log(`   Windows created: ${windowedResult.length}`);
+  console.log(`   Chunks created: ${complexResult.length}`);
 }
 
 // Script-Ausführung
