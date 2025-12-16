@@ -177,7 +177,7 @@ jobs:
           EOF
 
       - name: 📤 Upload Browser Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: browser-test-results-${{ matrix.browser }}
@@ -311,7 +311,7 @@ jobs:
           node feature-detection.js
 
       - name: 📤 Upload Node.js Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: node-test-results-${{ matrix.os }}-${{ matrix.node-version }}
           path: |
@@ -448,7 +448,7 @@ jobs:
           EOF
 
       - name: 📤 Upload Deno Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: deno-test-results
           path: |
@@ -608,7 +608,7 @@ jobs:
           EOF
 
       - name: 📤 Upload Bun Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bun-test-results
           path: |
@@ -726,7 +726,7 @@ jobs:
           EOF
 
       - name: 📤 Upload Final Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: platform-compatibility-report
           path: platform-compatibility-report.md

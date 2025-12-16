@@ -144,7 +144,7 @@ jobs:
           echo "generated=true" >> $GITHUB_OUTPUT
 
       - name: 📤 Upload Pre-Release Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pre-release-artifacts
           path: |
@@ -351,7 +351,7 @@ jobs:
           echo "🎯 To execute this release, re-run with dry_run=false"
 
       - name: 📤 Upload Dry Run Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dry-run-simulation
           path: |
@@ -439,7 +439,7 @@ jobs:
           EOF
 
       - name: 📤 Upload Release Summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-summary
           path: |
