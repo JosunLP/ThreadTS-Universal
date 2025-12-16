@@ -1,46 +1,67 @@
 /**
  * ThreadTS Universal - Deno Worker Adapter
- * Enhanced with Deno-specific APIs and features
+ *
+ * Implementiert Worker-Unterstützung für Deno-Umgebungen.
+ * Nutzt Deno-spezifische Features wie Permission-Control und Modul-Worker.
+ *
+ * @module adapters/deno
+ * @author ThreadTS Universal Team
  */
 
-import {
-  SerializableFunction,
-  ThreadOptions,
-  ThreadResult,
-  WorkerAdapter,
-  WorkerError,
-  WorkerInstance,
-} from '../types';
-import { getHighResTimestamp } from '../utils/platform';
-import { createWorkerScript } from '../utils/serialization';
+import { WorkerInstance } from '../types';
+import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
-// Deno Worker API types and interfaces
-interface DenoWorkerOptions {
-  type?: 'classic' | 'module';
+/**
+ * Deno-Worker-Optionen mit Permission-Kontrolle.
+ *
+ * Ermöglicht feingranulare Zugriffsrechte für Worker.
+ */
+interface DenoWorkerOptions extends WorkerOptions {
+  /** Deno-spezifische Einstellungen */
   deno?: {
-    permissions?: {
-      net?: boolean | string[];
-      read?: boolean | string[];
-      write?: boolean | string[];
-      env?: boolean | string[];
-      run?: boolean | string[];
-      ffi?: boolean | string[];
-      hrtime?: boolean;
-      sys?: boolean | string[];
-    };
+    /** Permission-Konfiguration für den Worker */
+    permissions?: DenoWorkerPermissions;
+    /** Ob Deno-Namespace im Worker verfügbar sein soll */
     namespace?: boolean;
   };
-  name?: string;
 }
 
-interface DenoPermissions {
-  query(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
-  request(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
-  revoke(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
+/**
+ * Deno Permission-Konfiguration.
+ *
+ * Jede Permission kann:
+ * - `true`: Vollzugriff
+ * - `false`: Kein Zugriff
+ * - `string[]`: Zugriff auf spezifische Ressourcen
+ */
+interface DenoWorkerPermissions {
+  /** Netzwerkzugriff */
+  net?: boolean | string[];
+  /** Dateisystem-Lesezugriff */
+  read?: boolean | string[];
+  /** Dateisystem-Schreibzugriff */
+  write?: boolean | string[];
+  /** Umgebungsvariablen */
+  env?: boolean | string[];
+  /** Subprozess-Ausführung */
+  run?: boolean | string[];
+  /** Foreign Function Interface */
+  ffi?: boolean | string[];
+  /** High-Resolution Timer */
+  hrtime?: boolean;
+  /** System-Informationen */
+  sys?: boolean | string[];
 }
 
+/**
+ * Deno-Namespace Interface für Typprüfung.
+ */
 interface DenoNamespace {
-  permissions: DenoPermissions;
+  permissions: {
+    query(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
+    request(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
+    revoke(descriptor: PermissionDescriptor): Promise<PermissionStatus>;
+  };
   version: {
     deno: string;
     v8: string;
@@ -62,15 +83,28 @@ interface DenoNamespace {
   };
 }
 
-export class DenoWorkerAdapter implements WorkerAdapter {
+/**
+ * Worker-Adapter für Deno-Umgebungen.
+ *
+ * Unterstützt:
+ * - Modul-Worker (ES Module Syntax)
+ * - Feingranulare Permission-Kontrolle
+ * - Sandbox-Isolation
+ *
+ * @extends AbstractWorkerAdapter
+ *
+ * @example
+ * ```typescript
+ * const adapter = new DenoWorkerAdapter();
+ * console.log(adapter.getDenoVersion()); // "1.40.0"
+ * const worker = await adapter.createWorker('');
+ * ```
+ */
+export class DenoWorkerAdapter extends AbstractWorkerAdapter {
   readonly platform = 'deno' as const;
 
   async createWorker(script: string): Promise<WorkerInstance> {
     return new DenoWorkerInstance(script);
-  }
-
-  async terminateWorker(worker: WorkerInstance): Promise<void> {
-    await worker.terminate();
   }
 
   isSupported(): boolean {
@@ -81,7 +115,15 @@ export class DenoWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Get Deno version information
+   * Gibt die Deno-Versionsinformationen zurück.
+   *
+   * @returns Deno-Version oder null wenn nicht verfügbar
+   *
+   * @example
+   * ```typescript
+   * const version = adapter.getDenoVersion();
+   * console.log(version); // "1.40.0"
+   * ```
    */
   getDenoVersion(): string | null {
     const deno = (globalThis as unknown as { Deno?: DenoNamespace }).Deno;
@@ -89,7 +131,18 @@ export class DenoWorkerAdapter implements WorkerAdapter {
   }
 
   /**
-   * Check if specific permission is granted
+   * Prüft ob eine spezifische Permission gewährt wurde.
+   *
+   * @param name - Permission-Name (z.B. 'read', 'write', 'net')
+   * @param descriptor - Optionaler Permission-Deskriptor für spezifische Ressourcen
+   * @returns true wenn Permission gewährt
+   *
+   * @example
+   * ```typescript
+   * if (await adapter.checkPermission('read')) {
+   *   // Dateisystem lesen erlaubt
+   * }
+   * ```
    */
   async checkPermission(
     name: string,
@@ -109,182 +162,71 @@ export class DenoWorkerAdapter implements WorkerAdapter {
   }
 }
 
-class DenoWorkerInstance implements WorkerInstance {
-  readonly id: string;
-  private worker: Worker | null = null;
-  private isTerminated = false;
-  private isExecuting = false;
-  private workerUrl: string | null = null;
-
-  constructor(private script: string) {
-    this.id = `deno-worker-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  async execute<T = unknown>(
-    fn: SerializableFunction,
-    data: unknown,
-    options: ThreadOptions = {}
-  ): Promise<ThreadResult<T>> {
-    if (this.isTerminated) {
-      throw new WorkerError('Worker has been terminated');
-    }
-
-    if (this.isExecuting) {
-      throw new WorkerError('Worker is already executing a task');
-    }
-
-    this.isExecuting = true;
-    const startTime = getHighResTimestamp();
-
-    try {
-      // Create worker script
-      const workerScript = createWorkerScript(fn, data, {
-        timeout: options.timeout,
-      });
-
-      // Create blob URL for worker (Deno supports blob URLs like browsers)
-      const blob = new Blob([workerScript], { type: 'application/javascript' });
-      this.workerUrl = URL.createObjectURL(blob);
-
-      return await new Promise<ThreadResult<T>>((resolve, reject) => {
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
-        let isResolved = false;
-
-        // Enhanced Deno worker options with fine-grained permissions
-        const workerOptions: DenoWorkerOptions = {
-          type: 'module',
-          name: this.id,
-          deno: {
-            permissions: {
-              // Minimal permissions for security
-              net: false,
-              read: false,
-              write: false,
-              env: false,
-              run: false,
-              ffi: false,
-              hrtime: true, // Allow high-resolution timing for performance monitoring
-              sys: false,
-            },
-            namespace: false, // Don't expose Deno namespace to worker
-          },
-        };
-
-        // Create worker with enhanced security options
-        this.worker = new Worker(this.workerUrl!, workerOptions);
-
-        // Set up abort signal
-        if (options.signal) {
-          options.signal.addEventListener('abort', () => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(timeoutId);
-              reject(new WorkerError('Operation was aborted'));
-            }
-          });
-        }
-
-        // Set up timeout
-        if (options.timeout) {
-          timeoutId = setTimeout(() => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(timeoutId);
-              reject(
-                new WorkerError(
-                  `Operation timed out after ${options.timeout}ms`
-                )
-              );
-            }
-          }, options.timeout);
-        }
-
-        // Handle worker messages
-        this.worker.onmessage = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          const { result, error, executionTime } = event.data as {
-            result: T;
-            error?: string;
-            executionTime?: number;
-          };
-
-          this.cleanup(timeoutId);
-
-          if (error) {
-            reject(new WorkerError(error));
-          } else {
-            resolve({
-              result,
-              executionTime: executionTime || getHighResTimestamp() - startTime,
-              workerId: this.id,
-            });
-          }
-        };
-
-        // Handle worker errors
-        this.worker.onerror = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          this.cleanup(timeoutId);
-          reject(
-            new WorkerError(`Worker error: ${(event as ErrorEvent).message}`)
-          );
-        };
-
-        // Handle message errors (for structured clone errors)
-        this.worker.onmessageerror = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          this.cleanup(timeoutId);
-          reject(new WorkerError(`Message serialization error: ${event.type}`));
-        };
-
-        // Transfer data if transferable objects are present
-        if (options.transferable && options.transferable.length > 0) {
-          this.worker.postMessage(data, options.transferable);
-        } else {
-          this.worker.postMessage(data);
-        }
-      });
-    } finally {
-      this.isExecuting = false;
-    }
-  }
-
-  async terminate(): Promise<void> {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isTerminated = true;
-  }
-
-  isIdle(): boolean {
-    return !this.isExecuting && !this.isTerminated;
-  }
-
-  private cleanup(timeoutId?: ReturnType<typeof setTimeout>): void {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    if (this.workerUrl) {
-      URL.revokeObjectURL(this.workerUrl);
-      this.workerUrl = null;
-    }
+/**
+ * Deno-Worker-Instanz.
+ *
+ * Erweitert AbstractWebWorkerInstance mit Deno-spezifischen Features:
+ * - Permission-Isolation (minimal by default)
+ * - Modul-Worker-Support
+ * - Kein Deno-Namespace im Worker (Sandbox)
+ *
+ * @extends AbstractWebWorkerInstance
+ */
+class DenoWorkerInstance extends AbstractWebWorkerInstance {
+  /**
+   * Erstellt eine neue Deno-Worker-Instanz.
+   *
+   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   */
+  constructor(_script: string) {
+    super('deno', {
+      workerName: undefined, // Wird automatisch generiert
+      workerType: 'module', // Deno bevorzugt Module-Worker
+    });
   }
 
   /**
-   * Get Deno-specific worker information
+   * Erstellt Deno-spezifische Worker-Optionen.
+   *
+   * Konfiguriert minimale Permissions für maximale Sicherheit:
+   * - Nur hrtime für Performance-Messung erlaubt
+   * - Kein Netzwerk-, Dateisystem- oder Subprozess-Zugriff
+   * - Deno-Namespace nicht exponiert (Sandbox)
+   *
+   * @returns DenoWorkerOptions mit Permission-Konfiguration
+   */
+  protected createPlatformWorkerOptions(): DenoWorkerOptions {
+    return {
+      type: 'module',
+      name: this.id,
+      deno: {
+        permissions: {
+          // Minimale Permissions für Sicherheit
+          net: false,
+          read: false,
+          write: false,
+          env: false,
+          run: false,
+          ffi: false,
+          hrtime: true, // Für Performance-Monitoring
+          sys: false,
+        },
+        namespace: false, // Deno-Namespace nicht im Worker exponieren
+      },
+    };
+  }
+
+  /**
+   * Gibt Deno-spezifische Worker-Informationen zurück.
+   *
+   * @returns Objekt mit Worker-ID, Deno-Version und aktiven Permissions
+   *
+   * @example
+   * ```typescript
+   * const info = worker.getWorkerInfo();
+   * console.log(info.denoVersion); // "1.40.0"
+   * console.log(info.permissions); // ["hrtime"]
+   * ```
    */
   getWorkerInfo(): {
     id: string;
@@ -295,12 +237,14 @@ class DenoWorkerInstance implements WorkerInstance {
     return {
       id: this.id,
       denoVersion: deno?.version.deno || null,
-      permissions: ['hrtime'], // Currently granted permissions
+      permissions: ['hrtime'], // Aktuell gewährte Permissions
     };
   }
 
   /**
-   * Check if Deno API is available in worker context
+   * Prüft ob die Deno-API im Worker-Kontext verfügbar ist.
+   *
+   * @returns true wenn Deno-Namespace verfügbar
    */
   hasDenoAPI(): boolean {
     return (

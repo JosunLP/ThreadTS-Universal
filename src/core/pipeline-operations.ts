@@ -9,6 +9,16 @@
  */
 
 import type { MapOptions, SerializableFunction, ThreadOptions } from '../types';
+import {
+  chunkArray,
+  interleaveArrays,
+  randomSample,
+  rotateArray,
+  shuffleCopy,
+  slidingWindow,
+  uniqueBy,
+  uniqueByJson,
+} from '../utils/array-helpers';
 import type { ThreadTS } from './threadts';
 
 /**
@@ -91,27 +101,15 @@ export async function executeIntermediateOperation(
 
     case 'chunk': {
       const chunkSize = op.count ?? 1;
-      const chunks: unknown[][] = [];
-      for (let i = 0; i < data.length; i += chunkSize) {
-        chunks.push(data.slice(i, i + chunkSize));
-      }
-      return chunks;
+      return chunkArray(data, chunkSize);
     }
 
-    case 'tap': {
-      // Execute side-effect function without modifying data
-      for (const item of data) {
-        if (op.fn) {
-          op.fn(item);
-        }
-      }
-      return data;
-    }
-
+    case 'tap':
     case 'peek': {
-      // Alias for tap - debugging helper
-      for (const item of data) {
-        if (op.fn) {
+      // Execute side-effect function without modifying data.
+      // 'peek' is an alias for 'tap' - both are used for debugging/logging.
+      if (op.fn) {
+        for (const item of data) {
           op.fn(item);
         }
       }
@@ -121,38 +119,25 @@ export async function executeIntermediateOperation(
     case 'window': {
       const windowSize = op.count ?? 1;
       const step = op.step ?? 1;
-      const windows: unknown[][] = [];
-      for (let i = 0; i <= data.length - windowSize; i += step) {
-        windows.push(data.slice(i, i + windowSize));
-      }
-      return windows;
+      return slidingWindow(data, windowSize, step);
     }
 
     case 'unique': {
-      const seen = new Set<string>();
-      const uniqueResult: unknown[] = [];
-      for (const item of data) {
-        const key = op.fn ? JSON.stringify(op.fn(item)) : JSON.stringify(item);
-        if (!seen.has(key)) {
-          seen.add(key);
-          uniqueResult.push(item);
-        }
-      }
-      return uniqueResult;
+      // Verwendet JSON-Stringifizierung für Vergleich (tiefe Gleichheit)
+      return uniqueByJson(
+        data,
+        op.fn as ((item: unknown) => unknown) | undefined
+      );
     }
 
     case 'distinct': {
-      // Alias for unique with different comparison method
-      const seen = new Set<unknown>();
-      const distinctResult: unknown[] = [];
-      for (const item of data) {
-        const key = op.fn ? op.fn(item) : item;
-        if (!seen.has(key)) {
-          seen.add(key);
-          distinctResult.push(item);
-        }
+      // Verwendet strikte Gleichheit oder benutzerdefinierte Schlüsselfunktion
+      // Im Gegensatz zu 'unique' wird hier keine JSON-Serialisierung verwendet
+      if (op.fn) {
+        return uniqueBy(data, op.fn as (item: unknown) => unknown);
       }
-      return distinctResult;
+      // Ohne Schlüsselfunktion: verwende Set für primitive Werte
+      return [...new Set(data)];
     }
 
     case 'reverse':
@@ -191,13 +176,7 @@ export async function executeIntermediateOperation(
       // Interleave with another array
       const other = op.initialValue as unknown[];
       if (!Array.isArray(other)) return data;
-      const interleaved: unknown[] = [];
-      const maxLen = Math.max(data.length, other.length);
-      for (let i = 0; i < maxLen; i++) {
-        if (i < data.length) interleaved.push(data[i]);
-        if (i < other.length) interleaved.push(other[i]);
-      }
-      return interleaved;
+      return interleaveArrays(data, other);
     }
 
     case 'compact': {
@@ -217,24 +196,13 @@ export async function executeIntermediateOperation(
     }
 
     case 'shuffle': {
-      // Fisher-Yates shuffle
-      const shuffled = [...data];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
+      // Fisher-Yates shuffle - verwendet Utility-Funktion
+      return shuffleCopy(data);
     }
 
     case 'sample': {
-      // Random sample of n elements
-      const sampleSize = Math.min(op.count ?? 1, data.length);
-      const shuffled = [...data];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled.slice(0, sampleSize);
+      // Random sample of n elements - verwendet Utility-Funktion
+      return randomSample(data, op.count ?? 1);
     }
 
     case 'dropWhile': {
@@ -282,11 +250,8 @@ export async function executeIntermediateOperation(
     }
 
     case 'rotate': {
-      // Rotate array by n positions
-      const n = op.count ?? 0;
-      if (data.length === 0 || n === 0) return data;
-      const normalizedN = ((n % data.length) + data.length) % data.length;
-      return [...data.slice(-normalizedN), ...data.slice(0, -normalizedN)];
+      // Rotate array by n positions - verwendet Utility-Funktion
+      return rotateArray(data, op.count ?? 0);
     }
 
     case 'truthy': {

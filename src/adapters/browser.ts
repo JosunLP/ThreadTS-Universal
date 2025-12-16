@@ -1,28 +1,40 @@
 /**
  * ThreadTS Universal - Browser Worker Adapter
+ *
+ * Implementiert Worker-Unterstützung für Browser-Umgebungen.
+ * Verwendet die Web Worker API mit Blob-URLs für dynamische Script-Ausführung.
+ *
+ * @module adapters/browser
+ * @author ThreadTS Universal Team
  */
 
-import {
-  SerializableData,
-  SerializableFunction,
-  ThreadOptions,
-  ThreadResult,
-  WorkerAdapter,
-  WorkerError,
-  WorkerInstance,
-} from '../types';
-import { getHighResTimestamp } from '../utils/platform';
-import { createWorkerScript } from '../utils/serialization';
+import { WorkerInstance } from '../types';
+import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
-export class BrowserWorkerAdapter implements WorkerAdapter {
+/**
+ * Worker-Adapter für Browser-Umgebungen.
+ *
+ * Unterstützt:
+ * - Web Workers mit Blob-URLs
+ * - Transferable Objects (ArrayBuffer, MessagePort, etc.)
+ * - AbortSignal für Abbruchunterstützung
+ *
+ * @extends AbstractWorkerAdapter
+ *
+ * @example
+ * ```typescript
+ * const adapter = new BrowserWorkerAdapter();
+ * if (adapter.isSupported()) {
+ *   const worker = await adapter.createWorker('');
+ *   const result = await worker.execute(fn, data);
+ * }
+ * ```
+ */
+export class BrowserWorkerAdapter extends AbstractWorkerAdapter {
   readonly platform = 'browser' as const;
 
   async createWorker(script: string): Promise<WorkerInstance> {
     return new BrowserWorkerInstance(script);
-  }
-
-  async terminateWorker(worker: WorkerInstance): Promise<void> {
-    await worker.terminate();
   }
 
   isSupported(): boolean {
@@ -54,138 +66,39 @@ export class BrowserWorkerAdapter implements WorkerAdapter {
   }
 }
 
-class BrowserWorkerInstance implements WorkerInstance {
-  readonly id: string;
-  private worker: Worker | null = null;
-  private isTerminated = false;
-  private isExecuting = false;
-
-  constructor(private script: string) {
-    this.id = `browser-worker-${Math.random().toString(36).substr(2, 9)}`;
+/**
+ * Browser-Worker-Instanz.
+ *
+ * Nutzt die gemeinsame AbstractWebWorkerInstance-Basisklasse
+ * für konsistentes Verhalten und reduzierte Code-Duplikation.
+ *
+ * @extends AbstractWebWorkerInstance
+ */
+class BrowserWorkerInstance extends AbstractWebWorkerInstance {
+  /**
+   * Erstellt eine neue Browser-Worker-Instanz.
+   *
+   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   */
+  constructor(_script: string) {
+    super('browser', {
+      workerName: undefined, // Wird automatisch generiert
+      workerType: 'classic', // Browser-Standard
+    });
   }
 
-  async execute<T = unknown>(
-    fn: SerializableFunction,
-    data: SerializableData,
-    options: ThreadOptions = {}
-  ): Promise<ThreadResult<T>> {
-    if (this.isTerminated) {
-      throw new WorkerError('Worker has been terminated');
-    }
-
-    if (this.isExecuting) {
-      throw new WorkerError('Worker is already executing a task');
-    }
-
-    this.isExecuting = true;
-    const startTime = getHighResTimestamp();
-
-    try {
-      // Create worker script
-      const workerScript = createWorkerScript(fn, data, {
-        timeout: options.timeout,
-      });
-
-      // Create blob URL for worker
-      const blob = new Blob([workerScript], { type: 'application/javascript' });
-      const workerUrl = URL.createObjectURL(blob);
-
-      return await new Promise<ThreadResult<T>>((resolve, reject) => {
-        let timeoutId: number | undefined;
-        let isResolved = false;
-
-        // Create worker
-        this.worker = new Worker(workerUrl);
-
-        // Set up abort signal
-        if (options.signal) {
-          options.signal.addEventListener('abort', () => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(workerUrl, timeoutId);
-              reject(new WorkerError('Operation was aborted'));
-            }
-          });
-        }
-
-        // Set up timeout
-        if (options.timeout) {
-          timeoutId = window.setTimeout(() => {
-            if (!isResolved) {
-              isResolved = true;
-              this.cleanup(workerUrl, timeoutId);
-              reject(
-                new WorkerError(
-                  `Operation timed out after ${options.timeout}ms`
-                )
-              );
-            }
-          }, options.timeout);
-        }
-
-        // Handle worker messages
-        this.worker.onmessage = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          const { result, error, executionTime } = event.data;
-
-          this.cleanup(workerUrl, timeoutId);
-
-          if (error) {
-            reject(new WorkerError(error));
-          } else {
-            resolve({
-              result,
-              executionTime: executionTime || getHighResTimestamp() - startTime,
-              workerId: this.id,
-            });
-          }
-        };
-
-        // Handle worker errors
-        this.worker.onerror = (event) => {
-          if (isResolved) return;
-          isResolved = true;
-
-          this.cleanup(workerUrl, timeoutId);
-          reject(new WorkerError(`Worker error: ${event.message}`));
-        };
-
-        // Transfer data if transferable objects are present
-        if (options.transferable && options.transferable.length > 0) {
-          this.worker.postMessage(data, options.transferable);
-        } else {
-          this.worker.postMessage(data);
-        }
-      });
-    } finally {
-      this.isExecuting = false;
-    }
-  }
-
-  async terminate(): Promise<void> {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isTerminated = true;
-  }
-
-  isIdle(): boolean {
-    return !this.isExecuting && !this.isTerminated;
-  }
-
-  private cleanup(workerUrl: string, timeoutId?: number): void {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    URL.revokeObjectURL(workerUrl);
+  /**
+   * Erstellt Browser-spezifische Worker-Optionen.
+   *
+   * Browser-Worker verwenden standardmäßig 'classic'-Typ.
+   * Module-Worker werden noch nicht von allen Browsern unterstützt.
+   *
+   * @returns WorkerOptions für new Worker()
+   */
+  protected createPlatformWorkerOptions(): WorkerOptions {
+    return {
+      type: this.webConfig.workerType,
+      name: this.webConfig.workerName,
+    };
   }
 }
