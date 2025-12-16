@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Memory & Stability Benchmarks
- * Tests für Speicherverhalten und Stabilität
+ * Tests for memory behavior and stability
  */
 
 import { ThreadTS } from '../src/core/threadts';
@@ -28,7 +28,7 @@ async function main() {
   // 4. Error Recovery
   results.push(await testErrorRecovery());
 
-  // Ergebnisse
+  // Results
   console.log('\n📊 Memory & Stability Results:');
   console.log('═'.repeat(45));
 
@@ -50,10 +50,10 @@ async function main() {
 }
 
 async function testMemoryLeaks(): Promise<{ name: string; passed: boolean }> {
-  // Einfacher Memory-Test ohne Worker-Abhängigkeit
+  // Simple memory test without worker dependency
   const initialMemory = process.memoryUsage().heapUsed;
 
-  // Führe viele kleine Operations aus
+  // Run many small operations
   const results: number[] = [];
   for (let i = 0; i < 1000; i++) {
     const data = Array.from({ length: 100 }, (_, j) => i * j);
@@ -75,7 +75,7 @@ async function testMemoryLeaks(): Promise<{ name: string; passed: boolean }> {
 
   return {
     name: 'Memory Leak Prevention',
-    passed: Math.abs(memoryIncreaseKB) < 5000, // Max 5MB Speicher-Veränderung
+    passed: Math.abs(memoryIncreaseKB) < 5000, // Max 5MB memory change
   };
 }
 
@@ -83,7 +83,7 @@ async function testHighFrequency(): Promise<{ name: string; passed: boolean }> {
   const startTime = performance.now();
   const promises: Promise<number>[] = [];
 
-  // 50 parallele async Operations ohne Worker
+  // 50 parallel async operations without workers
   for (let i = 0; i < 50; i++) {
     promises.push(Promise.resolve(Math.sqrt(i)));
   }
@@ -97,7 +97,7 @@ async function testHighFrequency(): Promise<{ name: string; passed: boolean }> {
 
   return {
     name: 'High-Frequency Operations',
-    passed: results.length === 50 && duration < 1000, // Max 1s für 50 Operations
+    passed: results.length === 50 && duration < 1000, // Max 1s for 50 operations
   };
 }
 
@@ -105,7 +105,7 @@ async function testLargeDataProcessing(): Promise<{
   name: string;
   passed: boolean;
 }> {
-  // Großes Array (1MB Daten)
+  // Large array (1MB of data)
   const bigArray = new Float64Array(125000); // 1MB
   for (let i = 0; i < bigArray.length; i++) {
     bigArray[i] = Math.random();
@@ -114,7 +114,7 @@ async function testLargeDataProcessing(): Promise<{
   const startTime = performance.now();
 
   try {
-    // Direkte Berechnung ohne Worker
+    // Direct computation without workers
     let sum = 0;
     for (let i = 0; i < bigArray.length; i++) {
       sum += bigArray[i];
@@ -141,15 +141,15 @@ async function testErrorRecovery(): Promise<{ name: string; passed: boolean }> {
   let successAfterError = false;
 
   try {
-    // Provoziere einen Fehler
+    // Trigger an error
     throw new Error('Test error');
   } catch (error) {
     errorHandled = true;
   }
 
   try {
-    // Test ob das System nach Fehler noch funktioniert
-    const result = 7 * 3; // Einfache Berechnung ohne Worker
+    // Test whether the system still works after an error
+    const result = 7 * 3; // Simple computation without workers
     successAfterError = result === 21;
   } catch (error) {
     console.log(`Recovery test failed: ${error}`);
@@ -161,5 +161,5 @@ async function testErrorRecovery(): Promise<{ name: string; passed: boolean }> {
   };
 }
 
-// Script-Ausführung
+// Script execution
 main().catch(console.error);

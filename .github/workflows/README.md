@@ -1,68 +1,68 @@
 # 🚀 ThreadTS Universal - GitHub Actions Workflows
 
-Dieses Verzeichnis enthält die umfassende CI/CD-Pipeline für das ThreadTS Universal Projekt.
+This directory contains the comprehensive CI/CD pipeline for the ThreadTS Universal project.
 
-## 📋 **Workflow-Übersicht**
+## 📋 **Workflow overview**
 
 ### **1. 🚀 CI/CD Pipeline** (`ci-cd.yml`)
 
-**Hauptworkflow für kontinuierliche Integration und Deployment**
+#### Primary workflow for continuous integration and deployment
 
-- **Trigger:** Push/PR auf main/develop, täglicher Gesundheitscheck
-- **Funktionen:**
+- **Triggers:** Push/PR to main/develop, daily health check
+- **Features:**
   - Multi-OS Testing (Ubuntu, Windows, macOS)
   - Multi-Node.js Version Support (16, 18, 20, 21)
-  - Browser-Kompatibilitätstests (Chrome, Safari, Firefox)
+  - Browser compatibility tests (Chrome, Safari, Firefox)
   - Security Scanning (CodeQL, Snyk)
-  - Automatische Releases mit Semantic Versioning
-  - Dokumentations-Deployment
-  - Package-Verifikation
+  - Automated releases with semantic versioning
+  - Documentation deployment
+  - Package verification
 
 ### **2. 🔄 Dependency Updates** (`dependency-updates.yml`)
 
-**Automatisierte Dependency-Verwaltung und Sicherheitsüberwachung**
+#### Automated dependency management and security monitoring
 
-- **Trigger:** Wöchentlich (Montags), manuell
-- **Funktionen:**
-  - Wöchentliche Dependency-Scans
+- **Triggers:** Weekly (Mondays), manual
+- **Features:**
+  - Weekly dependency scans
   - Security Vulnerability Monitoring
-  - Intelligente Update-Kategorisierung (patch/minor/major)
-  - Automatische Test-Ausführung nach Updates
-  - Pull Request-Erstellung für Reviews
-  - Security Team-Benachrichtigungen
+  - Smart update categorization (patch/minor/major)
+  - Automatic test execution after updates
+  - Pull request creation for reviews
+  - Security team notifications
 
 ### **3. ⚡ Performance Monitoring** (`performance-monitoring.yml`)
 
-**Kontinuierliche Performance-Überwachung und Regression-Erkennung**
+#### Continuous performance monitoring and regression detection
 
-- **Trigger:** Push auf main, täglich, manuell
-- **Funktionen:**
+- **Triggers:** Push to main, daily, manual
+- **Features:**
   - Core Performance Benchmarks
   - Memory Leak Detection
   - Real-World Scenario Testing
   - Performance Trend Analysis
-  - Automatische Alerting bei Degradation
+  - Automated alerting on degradation
   - Dashboard Integration
 
 ### **4. 🌐 Platform Compatibility** (`platform-compatibility.yml`)
 
-**Cross-Platform Kompatibilitätstests**
+#### Cross-platform compatibility tests
 
-- **Trigger:** Push/PR, wöchentlich (Freitags), manuell
-- **Funktionen:**
-  - Browser-Kompatibilität (Chrome, Safari, Firefox)
+- **Triggers:** Push/PR, weekly (Fridays), manual
+- **Features:**
+  - Browser compatibility (Chrome, Safari, Firefox)
   - Multi-Version Node.js Testing
   - Deno Compatibility Verification
   - Bun Compatibility Verification
   - Worker Support Validation
-  - Feature Detection und Reporting
+  - Feature detection and reporting
 
 ### **5. 🚀 Release Automation** (`release-automation.yml`)
 
-**Vollautomatisierte Release-Pipeline**
+#### Fully automated release pipeline
 
-- **Trigger:** Manuell (workflow_dispatch)
-- **Funktionen:**
+- **Trigger:** Manual (workflow_dispatch)
+- **Features:**
   - Pre-Release Validation
   - Automated Version Bumping
   - Changelog Generation
@@ -71,9 +71,9 @@ Dieses Verzeichnis enthält die umfassende CI/CD-Pipeline für das ThreadTS Univ
   - Dry Run Simulation
   - Post-Release Notifications
 
-## 🔧 **Setup und Konfiguration**
+## 🔧 **Setup and configuration**
 
-### **Erforderliche GitHub Secrets:**
+### **Required GitHub secrets**
 
 ```bash
 # NPM Publishing
@@ -84,7 +84,7 @@ SNYK_TOKEN=<your-snyk-token>
 CODECOV_TOKEN=<your-codecov-token>
 ```
 
-### **Branch Protection Rules:**
+### **Branch protection rules**
 
 ```yaml
 main:
@@ -98,7 +98,7 @@ main:
   require_code_owner_reviews: true
 ```
 
-## 📊 **Workflow-Matrix**
+## 📊 **Workflow matrix**
 
 | Workflow      | Trigger | Duration | Artifacts          | Environment |
 | ------------- | ------- | -------- | ------------------ | ----------- |
@@ -108,39 +108,39 @@ main:
 | Compatibility | Weekly  | ~20min   | Platform Reports   | testing     |
 | Release       | Manual  | ~8min    | Packages, Releases | production  |
 
-## 🎯 **Best Practices**
+## 🎯 **Best practices**
 
-### **Workflow-Optimierung:**
+### **Workflow optimization**
 
-- Parallelisierung wo möglich
-- Artifact Caching für schnellere Builds
-- Bedingte Ausführung basierend auf geänderten Dateien
-- Resource-effiziente Matrix-Strategien
+- Parallelize where possible
+- Artifact caching for faster builds
+- Conditional execution based on changed files
+- Resource-efficient matrix strategies
 
-### **Security:**
+### **Security**
 
-- Least-privilege Prinzip für Secrets
-- Environment Protection für Production
-- Security Scanning in allen Workflows
-- Vulnerability Alerting
+- Least-privilege principle for secrets
+- Environment protection for production
+- Security scanning in all workflows
+- Vulnerability alerting
 
-### **Monitoring:**
+### **Monitoring**
 
-- Performance Regression Detection
-- Health Checks und Alerting
-- Comprehensive Logging
-- Trend Analysis
+- Performance regression detection
+- Health checks and alerting
+- Comprehensive logging
+- Trend analysis
 
-## 📈 **Metriken und Reporting**
+## 📈 **Metrics and reporting**
 
-### **Automatische Berichte:**
+### **Automated reports**
 
 - **Code Coverage:** Codecov Integration
 - **Performance Trends:** Benchmark History
 - **Security Status:** Vulnerability Dashboard
 - **Compatibility Matrix:** Platform Support Overview
 
-### **Badge Integration:**
+### **Badge integration:**
 
 ```markdown
 ![CI/CD](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI%2FCD%20Pipeline/badge.svg)
@@ -150,58 +150,61 @@ main:
 
 ## 🚨 **Troubleshooting**
 
-### **Häufige Probleme:**
+### **Common issues**
 
-1. **Workflow Failures:**
-   - Check der Logs in GitHub Actions Tab
-   - Dependency-Konflikte prüfen
-   - Node.js Version Compatibility
+#### Workflow failures
 
-2. **Test Failures:**
-   - Memory Leaks in Worker Pool
-   - Platform-spezifische Issues
-   - Timing-sensitive Tests
+- Check the logs in the GitHub Actions tab
+- Check for dependency conflicts
+- Node.js version compatibility
 
-3. **Release Issues:**
-   - NPM Token Expiration
-   - Version Conflicts
-   - Branch Protection Rules
+#### Test failures
 
-### **Debug-Befehle:**
+- Memory leaks in the worker pool
+- Platform-specific issues
+- Timing-sensitive tests
+
+#### Release issues
+
+- NPM token expiration
+- Version conflicts
+- Branch protection rules
+
+### **Debug commands**
 
 ```bash
-# Lokale Workflow-Simulation
+# Local workflow simulation
 act -j quality-gate
 
-# Dependency-Check
+# Dependency check
 npm run deps:check
 
-# Performance-Test
+# Performance test
 npm run benchmark:all
 
-# Platform-Test
+# Platform test
 npm run test:all
 ```
 
-## 🔄 **Wartung und Updates**
+## 🔄 **Maintenance and updates**
 
-### **Monatliche Tasks:**
+### **Monthly tasks**
 
-- [ ] GitHub Actions Versions updaten
-- [ ] Dependency Security Review
-- [ ] Performance Baseline-Anpassung
-- [ ] Workflow-Optimierung
+- [ ] Update GitHub Actions versions
+- [ ] Dependency security review
+- [ ] Performance baseline adjustment
+- [ ] Workflow optimization
 
-### **Quartalsweise:**
+### **Quarterly**
 
-- [ ] Platform Compatibility Matrix Review
-- [ ] Security Best Practices Update
-- [ ] Performance Targets Adjustment
-- [ ] Documentation Sync
+- [ ] Platform compatibility matrix review
+- [ ] Security best practices update
+- [ ] Performance targets adjustment
+- [ ] Documentation sync
 
 ---
 
-**📚 Weitere Ressourcen:**
+**📚 More resources:**
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [ThreadTS Universal Documentation](https://threadts.dev)

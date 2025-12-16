@@ -1,8 +1,8 @@
 /**
  * ThreadTS Universal - Deno Worker Adapter
  *
- * Implementiert Worker-Unterstützung für Deno-Umgebungen.
- * Nutzt Deno-spezifische Features wie Permission-Control und Modul-Worker.
+ * Implements worker support for Deno environments.
+ * Uses Deno-specific features like permission control and module workers.
  *
  * @module adapters/deno
  * @author ThreadTS Universal Team
@@ -12,49 +12,49 @@ import { WorkerInstance } from '../types';
 import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
 /**
- * Deno-Worker-Optionen mit Permission-Kontrolle.
+ * Deno worker options with permission control.
  *
- * Ermöglicht feingranulare Zugriffsrechte für Worker.
+ * Enables fine-grained access control for workers.
  */
 interface DenoWorkerOptions extends WorkerOptions {
-  /** Deno-spezifische Einstellungen */
+  /** Deno-specific settings */
   deno?: {
-    /** Permission-Konfiguration für den Worker */
+    /** Permission configuration for the worker */
     permissions?: DenoWorkerPermissions;
-    /** Ob Deno-Namespace im Worker verfügbar sein soll */
+    /** Whether the Deno namespace should be available inside the worker */
     namespace?: boolean;
   };
 }
 
 /**
- * Deno Permission-Konfiguration.
+ * Deno permission configuration.
  *
- * Jede Permission kann:
- * - `true`: Vollzugriff
- * - `false`: Kein Zugriff
- * - `string[]`: Zugriff auf spezifische Ressourcen
+ * Each permission can be:
+ * - `true`: full access
+ * - `false`: no access
+ * - `string[]`: access to specific resources
  */
 interface DenoWorkerPermissions {
-  /** Netzwerkzugriff */
+  /** Network access */
   net?: boolean | string[];
-  /** Dateisystem-Lesezugriff */
+  /** File system read access */
   read?: boolean | string[];
-  /** Dateisystem-Schreibzugriff */
+  /** File system write access */
   write?: boolean | string[];
-  /** Umgebungsvariablen */
+  /** Environment variables */
   env?: boolean | string[];
-  /** Subprozess-Ausführung */
+  /** Subprocess execution */
   run?: boolean | string[];
   /** Foreign Function Interface */
   ffi?: boolean | string[];
   /** High-Resolution Timer */
   hrtime?: boolean;
-  /** System-Informationen */
+  /** System information */
   sys?: boolean | string[];
 }
 
 /**
- * Deno-Namespace Interface für Typprüfung.
+ * Deno namespace interface for type checking.
  */
 interface DenoNamespace {
   permissions: {
@@ -84,12 +84,12 @@ interface DenoNamespace {
 }
 
 /**
- * Worker-Adapter für Deno-Umgebungen.
+ * Worker adapter for Deno environments.
  *
- * Unterstützt:
- * - Modul-Worker (ES Module Syntax)
- * - Feingranulare Permission-Kontrolle
- * - Sandbox-Isolation
+ * Supports:
+ * - Module workers (ES module syntax)
+ * - Fine-grained permission control
+ * - Sandbox isolation
  *
  * @extends AbstractWorkerAdapter
  *
@@ -115,9 +115,9 @@ export class DenoWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Gibt die Deno-Versionsinformationen zurück.
+   * Returns Deno version information.
    *
-   * @returns Deno-Version oder null wenn nicht verfügbar
+   * @returns Deno version or null if not available
    *
    * @example
    * ```typescript
@@ -131,16 +131,16 @@ export class DenoWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Prüft ob eine spezifische Permission gewährt wurde.
+   * Checks whether a specific permission has been granted.
    *
-   * @param name - Permission-Name (z.B. 'read', 'write', 'net')
-   * @param descriptor - Optionaler Permission-Deskriptor für spezifische Ressourcen
-   * @returns true wenn Permission gewährt
+   * @param name - Permission name (e.g. 'read', 'write', 'net')
+   * @param descriptor - Optional permission descriptor for specific resources
+   * @returns true if permission is granted
    *
    * @example
    * ```typescript
    * if (await adapter.checkPermission('read')) {
-   *   // Dateisystem lesen erlaubt
+   *   // File system read is allowed
    * }
    * ```
    */
@@ -163,37 +163,37 @@ export class DenoWorkerAdapter extends AbstractWorkerAdapter {
 }
 
 /**
- * Deno-Worker-Instanz.
+ * Deno worker instance.
  *
- * Erweitert AbstractWebWorkerInstance mit Deno-spezifischen Features:
- * - Permission-Isolation (minimal by default)
- * - Modul-Worker-Support
- * - Kein Deno-Namespace im Worker (Sandbox)
+ * Extends AbstractWebWorkerInstance with Deno-specific features:
+ * - Permission isolation (minimal by default)
+ * - Module worker support
+ * - No Deno namespace inside the worker (sandbox)
  *
  * @extends AbstractWebWorkerInstance
  */
 class DenoWorkerInstance extends AbstractWebWorkerInstance {
   /**
-   * Erstellt eine neue Deno-Worker-Instanz.
+   * Creates a new Deno worker instance.
    *
-   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   * @param _script - Initial script (overridden by execute())
    */
   constructor(_script: string) {
     super('deno', {
-      workerName: undefined, // Wird automatisch generiert
-      workerType: 'module', // Deno bevorzugt Module-Worker
+      workerName: undefined, // Auto-generated
+      workerType: 'module', // Deno prefers module workers
     });
   }
 
   /**
-   * Erstellt Deno-spezifische Worker-Optionen.
+   * Creates Deno-specific worker options.
    *
-   * Konfiguriert minimale Permissions für maximale Sicherheit:
-   * - Nur hrtime für Performance-Messung erlaubt
-   * - Kein Netzwerk-, Dateisystem- oder Subprozess-Zugriff
-   * - Deno-Namespace nicht exponiert (Sandbox)
+   * Configures minimal permissions for maximum security:
+   * - Only hrtime is allowed for performance measurement
+   * - No network, file system, or subprocess access
+   * - Deno namespace is not exposed (sandbox)
    *
-   * @returns DenoWorkerOptions mit Permission-Konfiguration
+   * @returns DenoWorkerOptions with permission configuration
    */
   protected createPlatformWorkerOptions(): DenoWorkerOptions {
     return {
@@ -201,25 +201,25 @@ class DenoWorkerInstance extends AbstractWebWorkerInstance {
       name: this.id,
       deno: {
         permissions: {
-          // Minimale Permissions für Sicherheit
+          // Minimal permissions for security
           net: false,
           read: false,
           write: false,
           env: false,
           run: false,
           ffi: false,
-          hrtime: true, // Für Performance-Monitoring
+          hrtime: true, // For performance monitoring
           sys: false,
         },
-        namespace: false, // Deno-Namespace nicht im Worker exponieren
+        namespace: false, // Do not expose the Deno namespace in the worker
       },
     };
   }
 
   /**
-   * Gibt Deno-spezifische Worker-Informationen zurück.
+   * Returns Deno-specific worker information.
    *
-   * @returns Objekt mit Worker-ID, Deno-Version und aktiven Permissions
+   * @returns Object with worker ID, Deno version, and active permissions
    *
    * @example
    * ```typescript
@@ -237,14 +237,14 @@ class DenoWorkerInstance extends AbstractWebWorkerInstance {
     return {
       id: this.id,
       denoVersion: deno?.version.deno || null,
-      permissions: ['hrtime'], // Aktuell gewährte Permissions
+      permissions: ['hrtime'], // Currently granted permissions
     };
   }
 
   /**
-   * Prüft ob die Deno-API im Worker-Kontext verfügbar ist.
+   * Checks whether the Deno API is available in the worker context.
    *
-   * @returns true wenn Deno-Namespace verfügbar
+   * @returns true if the Deno namespace is available
    */
   hasDenoAPI(): boolean {
     return (

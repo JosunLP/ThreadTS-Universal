@@ -1,8 +1,8 @@
 /**
  * ThreadTS Universal - Browser Worker Adapter
  *
- * Implementiert Worker-Unterstützung für Browser-Umgebungen.
- * Verwendet die Web Worker API mit Blob-URLs für dynamische Script-Ausführung.
+ * Implements worker support for browser environments.
+ * Uses the Web Worker API with blob URLs for dynamic script execution.
  *
  * @module adapters/browser
  * @author ThreadTS Universal Team
@@ -12,12 +12,12 @@ import { WorkerInstance } from '../types';
 import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
 /**
- * Worker-Adapter für Browser-Umgebungen.
+ * Worker adapter for browser environments.
  *
- * Unterstützt:
- * - Web Workers mit Blob-URLs
+ * Supports:
+ * - Web Workers with blob URLs
  * - Transferable Objects (ArrayBuffer, MessagePort, etc.)
- * - AbortSignal für Abbruchunterstützung
+ * - AbortSignal support for cancellation
  *
  * @extends AbstractWorkerAdapter
  *
@@ -39,7 +39,7 @@ export class BrowserWorkerAdapter extends AbstractWorkerAdapter {
 
   isSupported(): boolean {
     try {
-      // Erweiterte Prüfung mit Fehlerbehandlung
+      // Extended detection with error handling
       if (
         typeof Worker === 'undefined' ||
         typeof Blob === 'undefined' ||
@@ -48,8 +48,8 @@ export class BrowserWorkerAdapter extends AbstractWorkerAdapter {
         return false;
       }
 
-      // Teste ob wir tatsächlich einen Worker erstellen können
-      // (in manchen Umgebungen ist Worker definiert, aber nicht funktional)
+      // Test whether we can actually create a worker
+      // (in some environments Worker is defined but not functional)
       try {
         const testBlob = new Blob([''], { type: 'application/javascript' });
         const testUrl = URL.createObjectURL(testBlob);
@@ -67,33 +67,33 @@ export class BrowserWorkerAdapter extends AbstractWorkerAdapter {
 }
 
 /**
- * Browser-Worker-Instanz.
+ * Browser worker instance.
  *
- * Nutzt die gemeinsame AbstractWebWorkerInstance-Basisklasse
- * für konsistentes Verhalten und reduzierte Code-Duplikation.
+ * Uses the shared AbstractWebWorkerInstance base class
+ * for consistent behavior and reduced code duplication.
  *
  * @extends AbstractWebWorkerInstance
  */
 class BrowserWorkerInstance extends AbstractWebWorkerInstance {
   /**
-   * Erstellt eine neue Browser-Worker-Instanz.
+   * Creates a new browser worker instance.
    *
-   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   * @param _script - Initial script (overridden by execute())
    */
   constructor(_script: string) {
     super('browser', {
-      workerName: undefined, // Wird automatisch generiert
-      workerType: 'classic', // Browser-Standard
+      workerName: undefined, // Auto-generated
+      workerType: 'classic', // Browser default
     });
   }
 
   /**
-   * Erstellt Browser-spezifische Worker-Optionen.
+   * Creates browser-specific worker options.
    *
-   * Browser-Worker verwenden standardmäßig 'classic'-Typ.
-   * Module-Worker werden noch nicht von allen Browsern unterstützt.
+   * Browser workers use 'classic' by default.
+   * Module workers are not yet supported by all browsers.
    *
-   * @returns WorkerOptions für new Worker()
+   * @returns WorkerOptions for new Worker()
    */
   protected createPlatformWorkerOptions(): WorkerOptions {
     return {

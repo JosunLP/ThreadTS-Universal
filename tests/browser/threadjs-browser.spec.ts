@@ -1,17 +1,17 @@
 /**
  * ThreadTS Universal - Browser Integration Tests
- * Tests für Browser-spezifische Funktionalität mit umgebungsabhängiger Worker-Unterstützung
+ * Tests for browser-specific functionality with environment-dependent worker support
  */
 
 import { expect, test } from '@playwright/test';
 
 test.describe('ThreadTS Universal - Browser', () => {
   test.beforeAll(async () => {
-    // Capability-Detection direkt in den Tests statt im Global Setup
+    // Capability detection directly in tests rather than in global setup
     console.log('🔍 Starting browser capability detection...');
   });
 
-  test('sollte Worker-Unterstützung prüfen', async ({ page }) => {
+  test('should detect worker support', async ({ page }) => {
     await page.goto('data:text/html,<!DOCTYPE html><html><body></body></html>');
 
     const workerSupport = await page.evaluate(() => {
@@ -37,13 +37,13 @@ test.describe('ThreadTS Universal - Browser', () => {
     );
   });
 
-  test('sollte Worker-Funktionalität testen oder graceful fallback verwenden', async ({
+  test('should test worker functionality or use a graceful fallback', async ({
     page,
   }) => {
     await page.goto('data:text/html,<!DOCTYPE html><html><body></body></html>');
 
     const result = await page.evaluate(() => {
-      // Prüfe zuerst Worker-Support
+      // Check worker support first
       if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined') {
         console.log(
           '✅ Workers are supported - testing actual Worker functionality'
@@ -86,7 +86,7 @@ test.describe('ThreadTS Universal - Browser', () => {
 
             worker.postMessage(21);
 
-            // Timeout fallback nach 2 Sekunden
+            // Timeout fallback after 2 seconds
             setTimeout(() => {
               if (!resolved) {
                 resolved = true;
@@ -104,7 +104,7 @@ test.describe('ThreadTS Universal - Browser', () => {
         console.log(
           '❌ Workers are not supported - using synchronous fallback'
         );
-        // Fallback: synchrone Berechnung
+        // Fallback: synchronous computation
         return Promise.resolve(21 * 2);
       }
     });
@@ -112,24 +112,24 @@ test.describe('ThreadTS Universal - Browser', () => {
     expect(result).toBe(42);
   });
 
-  test('sollte ThreadTS-ähnliche Parallele Verarbeitung simulieren', async ({
+  test('should simulate ThreadTS-like parallel processing', async ({
     page,
   }) => {
     await page.goto('data:text/html,<!DOCTYPE html><html><body></body></html>');
 
     const parallelResult = await page.evaluate(async () => {
-      // Simuliere parallele Verarbeitung auch ohne echte Worker
+      // Simulate parallel processing even without real workers
       const simulateParallelWork = async (tasks: number[]) => {
         const processTask = (value: number) => {
           return new Promise<number>((resolve) => {
-            // Simuliere CPU-intensive Arbeit
+            // Simulate CPU-intensive work
             setTimeout(() => {
               resolve(value * value);
-            }, Math.random() * 50); // Random delay für Parallelitäts-Simulation
+            }, Math.random() * 50); // Random delay to simulate parallelism
           });
         };
 
-        // Verarbeite alle Tasks "parallel" (auch ohne Worker)
+        // Process all tasks "in parallel" (even without workers)
         return Promise.all(tasks.map(processTask));
       };
 
@@ -148,13 +148,13 @@ test.describe('ThreadTS Universal - Browser', () => {
     expect(parallelResult.output).toEqual([1, 4, 9, 16, 25]);
     expect(parallelResult.sum).toBe(55);
 
-    // Log Worker-Support für Debug-Zwecke
+    // Log worker support for debugging
     console.log(
       `Test completed with Worker support: ${parallelResult.workerSupported}`
     );
   });
 
-  test('sollte Browser-Kompatibilität prüfen', async ({ page }) => {
+  test('should verify browser compatibility', async ({ page }) => {
     const browserSupport = await page.evaluate(() => {
       return {
         hasArrayBuffer: typeof ArrayBuffer !== 'undefined',
@@ -168,9 +168,9 @@ test.describe('ThreadTS Universal - Browser', () => {
     expect(browserSupport.hasSetTimeout).toBe(true);
   });
 
-  test('sollte asynchrone Verarbeitung unterstützen', async ({ page }) => {
+  test('should support async processing', async ({ page }) => {
     const asyncResult = await page.evaluate(async () => {
-      // Simuliere ThreadTS async processing
+      // Simulate ThreadTS async processing
       const mockAsyncTask = async (value: number) => {
         return new Promise<number>((resolve) => {
           setTimeout(() => resolve(value * value), 10);

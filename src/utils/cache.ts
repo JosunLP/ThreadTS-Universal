@@ -1,32 +1,32 @@
 /**
  * ThreadTS Universal - Cache Utilities
  *
- * Gemeinsame Cache-Implementierungen für Decorators.
- * Folgt dem DRY-Prinzip durch Extraktion gemeinsamer Cache-Logik.
+ * Shared cache implementations for decorators.
+ * Follows the DRY principle by extracting common cache logic.
  *
  * @module utils/cache
  * @author ThreadTS Universal Team
  */
 
 /**
- * Eintrag im Cache mit Wert und optionalem Ablaufdatum.
+ * Cache entry containing a value and an optional expiration timestamp.
  *
- * @template T - Typ des gecachten Wertes
+ * @template T - Type of the cached value
  */
 export interface CacheEntry<T> {
-  /** Der gecachte Wert */
+  /** Cached value */
   value: T;
-  /** Ablaufzeitpunkt in Millisekunden (optional) */
+  /** Expiration timestamp in milliseconds (optional) */
   expiry?: number;
 }
 
 /**
- * Konfiguration für den LRU-Cache.
+ * Configuration for the LRU cache.
  */
 export interface LRUCacheConfig {
-  /** Maximale Anzahl der Einträge im Cache */
+  /** Maximum number of entries in the cache */
   maxSize: number;
-  /** Time-to-Live in Millisekunden (optional, 0 = kein Ablauf) */
+  /** Time-to-live in milliseconds (optional, 0 = no expiration) */
   ttlMs?: number;
 }
 
@@ -34,12 +34,12 @@ export interface LRUCacheConfig {
  * LRU (Least Recently Used) Cache Implementierung.
  *
  * Features:
- * - Begrenzte Größe mit automatischer Eviction
- * - Optionale TTL (Time-to-Live) für Einträge
- * - Effiziente O(1) Operationen durch Map-basierte Implementierung
+ * - Bounded size with automatic eviction
+ * - Optional TTL (time-to-live) for entries
+ * - Efficient O(1) operations via a Map-based implementation
  *
- * @template K - Typ des Schlüssels
- * @template V - Typ des Wertes
+ * @template K - Key type
+ * @template V - Value type
  *
  * @example
  * ```typescript
@@ -49,19 +49,19 @@ export interface LRUCacheConfig {
  * ```
  */
 export class LRUCache<K, V> {
-  /** Interne Map für Cache-Einträge */
+  /** Internal map for cache entries */
   private readonly cache: Map<K, CacheEntry<V>>;
 
-  /** Maximale Cache-Größe */
+  /** Maximum cache size */
   private readonly maxSize: number;
 
-  /** Time-to-Live in Millisekunden (0 = kein Ablauf) */
+  /** Time-to-live in milliseconds (0 = no expiration) */
   private readonly ttlMs: number;
 
   /**
-   * Erstellt einen neuen LRU-Cache.
+   * Creates a new LRU cache.
    *
-   * @param config - Cache-Konfiguration
+   * @param config - Cache configuration
    */
   constructor(config: LRUCacheConfig) {
     this.cache = new Map();
@@ -70,13 +70,13 @@ export class LRUCache<K, V> {
   }
 
   /**
-   * Holt einen Wert aus dem Cache.
+   * Retrieves a value from the cache.
    *
-   * Aktualisiert die LRU-Ordnung (zuletzt verwendet -> Ende der Map).
-   * Gibt undefined zurück, wenn der Schlüssel nicht existiert oder abgelaufen ist.
+   * Updates the LRU order (most recently used -> end of the Map).
+   * Returns undefined if the key does not exist or has expired.
    *
-   * @param key - Der Schlüssel
-   * @returns Der gecachte Wert oder undefined
+   * @param key - The key
+   * @returns The cached value or undefined
    */
   get(key: K): V | undefined {
     const entry = this.cache.get(key);
@@ -85,13 +85,13 @@ export class LRUCache<K, V> {
       return undefined;
     }
 
-    // Prüfe auf Ablauf
+    // Check expiration
     if (entry.expiry !== undefined && Date.now() > entry.expiry) {
       this.cache.delete(key);
       return undefined;
     }
 
-    // LRU-Update: Eintrag ans Ende verschieben
+    // LRU update: move entry to the end
     this.cache.delete(key);
     this.cache.set(key, entry);
 
@@ -99,20 +99,20 @@ export class LRUCache<K, V> {
   }
 
   /**
-   * Speichert einen Wert im Cache.
+   * Stores a value in the cache.
    *
-   * Bei Erreichen der maximalen Größe wird der älteste Eintrag entfernt.
+   * When reaching maximum capacity, the oldest entry is evicted.
    *
-   * @param key - Der Schlüssel
-   * @param value - Der zu speichernde Wert
+   * @param key - The key
+   * @param value - The value to store
    */
   set(key: K, value: V): void {
-    // Wenn Schlüssel bereits existiert, entfernen (für korrekte LRU-Ordnung)
+    // If the key already exists, delete it (to maintain correct LRU ordering)
     if (this.cache.has(key)) {
       this.cache.delete(key);
     }
 
-    // Eviction bei voller Kapazität
+    // Evict oldest entry when at capacity
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {
@@ -120,7 +120,7 @@ export class LRUCache<K, V> {
       }
     }
 
-    // Neuen Eintrag hinzufügen
+    // Add new entry
     const entry: CacheEntry<V> = {
       value,
       expiry: this.ttlMs > 0 ? Date.now() + this.ttlMs : undefined,
@@ -129,10 +129,10 @@ export class LRUCache<K, V> {
   }
 
   /**
-   * Prüft, ob ein Schlüssel im Cache existiert und gültig ist.
+   * Checks whether a key exists in the cache and is still valid.
    *
-   * @param key - Der Schlüssel
-   * @returns true wenn der Schlüssel existiert und nicht abgelaufen ist
+   * @param key - The key
+   * @returns true if the key exists and has not expired
    */
   has(key: K): boolean {
     const entry = this.cache.get(key);
@@ -141,7 +141,7 @@ export class LRUCache<K, V> {
       return false;
     }
 
-    // Prüfe auf Ablauf
+    // Check expiration
     if (entry.expiry !== undefined && Date.now() > entry.expiry) {
       this.cache.delete(key);
       return false;
@@ -151,39 +151,38 @@ export class LRUCache<K, V> {
   }
 
   /**
-   * Entfernt einen Eintrag aus dem Cache.
+   * Removes an entry from the cache.
    *
-   * @param key - Der zu entfernende Schlüssel
-   * @returns true wenn der Schlüssel existierte und entfernt wurde
+   * @param key - The key to remove
+   * @returns true if the key existed and was removed
    */
   delete(key: K): boolean {
     return this.cache.delete(key);
   }
 
   /**
-   * Leert den gesamten Cache.
+   * Clears the entire cache.
    */
   clear(): void {
     this.cache.clear();
   }
 
   /**
-   * Gibt die aktuelle Anzahl der Einträge zurück.
+   * Returns the current number of entries.
    *
-   * @returns Anzahl der Einträge im Cache
+   * @returns Number of entries in the cache
    */
   get size(): number {
     return this.cache.size;
   }
 
   /**
-   * Entfernt alle abgelaufenen Einträge aus dem Cache.
+   * Removes all expired entries from the cache.
    *
-   * Diese Methode wird nicht automatisch aufgerufen, um Performance
-   * bei get/set nicht zu beeinträchtigen. Kann bei Bedarf manuell
-   * aufgerufen werden (z.B. periodisch).
+   * This method is not called automatically to avoid impacting get/set
+   * performance. Call it manually if needed (e.g. periodically).
    *
-   * @returns Anzahl der entfernten Einträge
+   * @returns Number of removed entries
    */
   prune(): number {
     if (this.ttlMs === 0) {
@@ -204,9 +203,9 @@ export class LRUCache<K, V> {
   }
 
   /**
-   * Gibt Cache-Statistiken zurück.
+   * Returns cache statistics.
    *
-   * @returns Objekt mit Cache-Statistiken
+   * @returns Cache statistics object
    */
   stats(): CacheStats {
     return {
@@ -218,80 +217,80 @@ export class LRUCache<K, V> {
 }
 
 /**
- * Cache-Statistiken.
+ * Cache statistics.
  */
 export interface CacheStats {
-  /** Aktuelle Anzahl der Einträge */
+  /** Current number of entries */
   size: number;
-  /** Maximale Anzahl der Einträge */
+  /** Maximum number of entries */
   maxSize: number;
-  /** Time-to-Live in Millisekunden */
+  /** Time-to-live in milliseconds */
   ttlMs: number;
 }
 
 /**
- * Erstellt einen String-Schlüssel aus Funktionsargumenten.
+ * Creates a string cache key from function arguments.
  *
- * Verwendet JSON.stringify für serialisierbare Argumente.
- * Warnung: Funktionen und zirkuläre Referenzen werden nicht unterstützt.
+ * Uses JSON.stringify for serializable arguments.
+ * Warning: functions and circular references are not supported.
  *
- * @param args - Die zu serialisierenden Argumente
- * @returns Ein String-Schlüssel für den Cache
+ * @param args - Arguments to serialize
+ * @returns A string key for the cache
  *
  * @example
  * ```typescript
  * const key = createCacheKey([1, 'test', { a: 1 }]);
- * // '[[1,"test",{"a":1}]]' oder ähnlich
+ * // '[[1,"test",{"a":1}]]' or similar
  * ```
  */
 export function createCacheKey(args: unknown[]): string {
   try {
     return JSON.stringify(args);
   } catch {
-    // Fallback für nicht-serialisierbare Werte
+    // Fallback for non-serializable values
     return args.map((arg) => String(arg)).join('::');
   }
 }
 
 /**
- * Lazy-Initialisierungszustand.
+ * Lazy initialization state.
  *
- * Verwaltet den Zustand für einmalige Initialisierung mit
- * Unterstützung für parallele Aufrufe während der Initialisierung.
+ * Manages state for one-time initialization with support for concurrent
+ * callers while initialization is in progress.
  *
- * @template T - Typ des initialisierten Wertes
+ * @template T - Type of the initialized value
  */
 export class LazyInitializer<T> {
-  /** Der initialisierte Wert */
+  /** Initialized value */
   private value: T | undefined = undefined;
 
-  /** Ob die Initialisierung abgeschlossen ist */
+  /** Whether initialization has completed */
   private initialized = false;
 
-  /** Promise für laufende Initialisierung (verhindert Race-Conditions) */
+  /** Promise for ongoing initialization (prevents race conditions) */
   private initializing: Promise<T> | null = null;
 
   /**
-   * Holt den Wert, initialisiert bei Bedarf.
+   * Returns the value, initializing it if needed.
    *
-   * Bei parallelen Aufrufen während der Initialisierung wird das
-   * gleiche Promise zurückgegeben, um doppelte Initialisierung zu verhindern.
+   * If called concurrently while initialization is in progress, the same
+   * Promise is returned to prevent duplicate initialization.
    *
-   * @param initializer - Funktion zur Initialisierung des Wertes
-   * @returns Promise mit dem initialisierten Wert
+   * @param initializer - Function that initializes the value
+   * @returns Promise resolving to the initialized value
    */
   async get(initializer: () => Promise<T>): Promise<T> {
-    // Bereits initialisiert?
+    // Already initialized?
     if (this.initialized) {
       return this.value as T;
     }
 
-    // Initialisierung läuft bereits?
+    // Initialization already in progress?
     if (this.initializing !== null) {
       return this.initializing;
     }
 
-    // Starte neue Initialisierung
+    // Start a new initialization
     this.initializing = (async () => {
       try {
         this.value = await initializer();
@@ -306,10 +305,9 @@ export class LazyInitializer<T> {
   }
 
   /**
-   * Setzt den Lazy-Zustand zurück.
+   * Resets the lazy state.
    *
-   * Nach dem Reset wird beim nächsten Aufruf von get()
-   * die Initialisierung erneut durchgeführt.
+   * After reset, the next call to get() will initialize again.
    */
   reset(): void {
     this.value = undefined;
@@ -318,9 +316,9 @@ export class LazyInitializer<T> {
   }
 
   /**
-   * Prüft, ob der Wert bereits initialisiert wurde.
+   * Checks whether the value has already been initialized.
    *
-   * @returns true wenn initialisiert
+   * @returns true if initialized
    */
   isInitialized(): boolean {
     return this.initialized;

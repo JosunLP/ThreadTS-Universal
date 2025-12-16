@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Memory Leak Detection Tests
- * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
+ * Automated monitoring for memory leaks in the worker pool
  */
 
 import { ThreadTS } from '../src/core/threadts';
@@ -11,7 +11,7 @@ describe('Memory Leak Detection', () => {
 
   beforeEach(() => {
     threadts = ThreadTS.getInstance();
-    // Baseline Memory-Usage ermitteln
+    // Determine baseline memory usage
     if (typeof process !== 'undefined' && process.memoryUsage) {
       initialMemory = process.memoryUsage().heapUsed;
     } else if (
@@ -25,10 +25,10 @@ describe('Memory Leak Detection', () => {
   });
 
   afterEach(async () => {
-    // Cleanup nach jedem Test
+    // Cleanup after each test
     await threadts.terminate();
 
-    // Force Garbage Collection wenn verfügbar
+    // Force garbage collection if available
     if (typeof global !== 'undefined' && (global as any).gc) {
       (global as any).gc();
     }
@@ -37,12 +37,12 @@ describe('Memory Leak Detection', () => {
   it('should not leak memory after multiple worker executions', async () => {
     const iterations = 100;
 
-    // Mehrfache Worker-Ausführung
+    // Execute workers multiple times
     for (let i = 0; i < iterations; i++) {
       await threadts.run((x: number) => x * 2, i);
     }
 
-    // Memory-Usage nach Verarbeitung prüfen
+    // Check memory usage after processing
     let finalMemory: number;
     if (typeof process !== 'undefined' && process.memoryUsage) {
       finalMemory = process.memoryUsage().heapUsed;
@@ -55,7 +55,7 @@ describe('Memory Leak Detection', () => {
       finalMemory = 0;
     }
 
-    // Memory-Increase sollte minimal sein (< 5MB)
+    // Memory increase should be minimal (< 5MB)
     const memoryIncrease = finalMemory - initialMemory;
     const maxAllowedIncrease = 5 * 1024 * 1024; // 5MB
 
@@ -63,50 +63,50 @@ describe('Memory Leak Detection', () => {
   });
 
   it('should clean up worker pool properly', async () => {
-    // Worker-Pool mit mehreren Aufgaben belasten
+    // Put the worker pool under load with multiple tasks
     const tasks = Array.from({ length: 50 }, (_, i) =>
       threadts.run((x: number) => x ** 2, i)
     );
 
     await Promise.all(tasks);
 
-    // Pool-Statistiken prüfen
+    // Check pool statistics
     const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
     expect(stats.idleWorkers).toBeGreaterThanOrEqual(0);
   });
 
   it('should handle worker termination gracefully', async () => {
-    // Worker starten
+    // Start workers
     const task1 = threadts.run((x: number) => x * 2, 10);
     const task2 = threadts.run((x: number) => x * 3, 20);
 
-    // Während Ausführung terminieren
+    // Terminate while execution is in progress
     const terminatePromise = threadts.terminate();
 
-    // Tasks sollten graceful abgebrochen werden
+    // Tasks should be cancelled gracefully
     await expect(
       Promise.all([task1, task2, terminatePromise])
     ).resolves.toBeDefined();
   });
 
   it('should prevent circular reference memory leaks', async () => {
-    // Objekt mit zirkulären Referenzen erstellen
+    // Create an object with circular references
     const circularObj: any = { name: 'test' };
     circularObj.self = circularObj;
 
-    // Worker sollte mit Serialization-Error fehlschlagen
+    // The worker should fail with a serialization error
     await expect(
       threadts.run((obj: any) => obj.name, circularObj)
     ).rejects.toThrow();
 
-    // Memory sollte nicht geleakt sein
+    // Memory should not be leaked
     const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
   });
 
   it('should handle large data transfers without memory buildup', async () => {
-    // Große Arrays verarbeiten (10MB)
+    // Process large arrays (1 million numbers, ~8MB)
     const largeArray = new Array(1_000_000).fill(0).map((_, i) => i);
 
     for (let i = 0; i < 10; i++) {
@@ -116,7 +116,7 @@ describe('Memory Leak Detection', () => {
       );
     }
 
-    // Memory-Usage sollte stabil bleiben
+    // Memory usage should remain stable
     let currentMemory: number;
     if (typeof process !== 'undefined' && process.memoryUsage) {
       currentMemory = process.memoryUsage().heapUsed;
@@ -130,7 +130,7 @@ describe('Memory Leak Detection', () => {
     }
 
     const memoryIncrease = currentMemory - initialMemory;
-    const maxAllowedIncrease = 50 * 1024 * 1024; // 50MB für große Arrays
+    const maxAllowedIncrease = 50 * 1024 * 1024; // 50MB for large arrays
 
     expect(memoryIncrease).toBeLessThan(maxAllowedIncrease);
   });

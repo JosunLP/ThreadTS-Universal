@@ -1,11 +1,11 @@
 /**
  * ThreadTS Universal - Caching Decorators
  *
- * Decorators für Caching und Memoization von Methodenergebnissen.
- * Unterstützt sowohl Legacy (experimentalDecorators) als auch Stage-3 Decorator-Syntax.
+ * Decorators for caching and memoization of method results.
+ * Supports both legacy (experimentalDecorators) and Stage-3 decorator syntax.
  *
- * Verwendet die gemeinsame LRUCache-Klasse für konsistentes Caching-Verhalten
- * und folgt dem DRY-Prinzip (Don't Repeat Yourself).
+ * Uses the shared LRUCache class for consistent caching behavior
+ * and follows the DRY principle (Don't Repeat Yourself).
  *
  * @module decorators/caching
  * @author ThreadTS Universal Team
@@ -15,51 +15,51 @@ import { createCacheKey, LazyInitializer, LRUCache } from '../utils/cache';
 import { createMethodDecorator } from './utils';
 
 /**
- * Typ für erweiterte Methoden mit Cache-Kontrolle.
+ * Type for augmented methods with cache controls.
  */
 export interface CacheableMethod {
-  /** Leert den Cache der Methode */
+  /** Clears the method's cache */
   clearCache?: () => void;
-  /** Gibt Cache-Statistiken zurück */
+  /** Returns cache statistics */
   getCacheStats?: () => { size: number; maxSize: number };
 }
 
 /**
- * Typ für erweiterte Methoden mit Reset-Funktion.
+ * Type for augmented methods with reset controls.
  */
 export interface LazyMethod {
-  /** Setzt den Lazy-Zustand zurück */
+  /** Resets the lazy state */
   reset?: () => void;
-  /** Prüft ob bereits initialisiert */
+  /** Checks whether it's already initialized */
   isInitialized?: () => boolean;
 }
 
 /**
- * Decorator für Memoization mit optionalem Cache-Größenlimit.
+ * Decorator for memoization with an optional cache size limit.
  *
- * Cacht Methodenergebnisse basierend auf den Argumenten. Bei gleichem
- * Aufruf wird das gecachte Ergebnis zurückgegeben. Verwendet LRU
- * (Least Recently Used) Eviction bei Erreichen der maximalen Größe.
+ * Caches method results based on arguments. If called with the same
+ * arguments, the cached result is returned. Uses LRU (Least Recently Used)
+ * eviction when the maximum size is reached.
  *
- * @param maxCacheSize - Maximale Anzahl gecachter Einträge (Standard: 100)
+ * @param maxCacheSize - Maximum number of cached entries (default: 100)
  * @returns Method Decorator
  *
  * @example
  * ```typescript
  * class Calculator {
- *   @memoize(50) // Cache für max 50 Eingaben
+ *   @memoize(50) // Cache up to 50 inputs
  *   async computeExpensive(input: number): Promise<number> {
- *     // Teure Berechnung...
+ *     // Expensive computation...
  *     return result;
  *   }
  * }
  * ```
  */
 export function memoize(maxCacheSize: number = 100) {
-  // Verwende die gemeinsame LRUCache-Klasse
+  // Use the shared LRUCache class
   const lruCache = new LRUCache<string, unknown>({
     maxSize: maxCacheSize,
-    ttlMs: 0, // Kein Ablauf bei memoize
+    ttlMs: 0, // No expiration for memoize
   });
 
   return createMethodDecorator((originalMethod) => {
@@ -69,18 +69,18 @@ export function memoize(maxCacheSize: number = 100) {
     ): Promise<unknown> {
       const key = createCacheKey(args);
 
-      // Cache-Hit prüfen
+      // Check cache hit
       if (lruCache.has(key)) {
         return lruCache.get(key);
       }
 
-      // Methode ausführen und cachen
+      // Execute method and cache
       const result = await originalMethod.apply(this, args);
       lruCache.set(key, result);
       return result;
     };
 
-    // Erweitere Methode mit Cache-Kontrollfunktionen
+    // Augment method with cache controls
     const cacheableMethod = wrappedMethod as typeof originalMethod &
       CacheableMethod;
     cacheableMethod.clearCache = () => lruCache.clear();
@@ -94,32 +94,32 @@ export function memoize(maxCacheSize: number = 100) {
 }
 
 /**
- * Decorator für Caching mit TTL (Time To Live) Unterstützung.
+ * Decorator for caching with TTL (time-to-live) support.
  *
- * Ähnlich wie memoize, aber mit automatischem Ablauf der Cache-Einträge.
- * Ideal für Daten, die sich periodisch ändern können.
+ * Similar to memoize, but with automatic expiration of cache entries.
+ * Ideal for data that may change periodically.
  *
- * @param ttlMs - Time-to-Live in Millisekunden (Standard: 60000 = 1 Minute)
- * @param maxSize - Maximale Cache-Größe (Standard: 100)
+ * @param ttlMs - Time-to-live in milliseconds (default: 60000 = 1 minute)
+ * @param maxSize - Maximum cache size (default: 100)
  * @returns Method Decorator
  *
  * @example
  * ```typescript
  * class DataService {
- *   @cache(30000, 50) // Cache für 30 Sekunden, max 50 Einträge
+ *   @cache(30000, 50) // Cache for 30 seconds, max 50 entries
  *   async fetchData(id: string): Promise<Data> {
  *     return await api.getData(id);
  *   }
  *
  *   refreshData(id: string) {
- *     // Manuelles Leeren bei Bedarf
+ *     // Manual clear if needed
  *     (this.fetchData as any).clearCache();
  *   }
  * }
  * ```
  */
 export function cache(ttlMs: number = 60000, maxSize: number = 100) {
-  // Verwende die gemeinsame LRUCache-Klasse mit TTL
+  // Use the shared LRUCache class with TTL
   const lruCache = new LRUCache<string, unknown>({
     maxSize,
     ttlMs,
@@ -132,19 +132,19 @@ export function cache(ttlMs: number = 60000, maxSize: number = 100) {
     ): Promise<unknown> {
       const key = createCacheKey(args);
 
-      // Cache-Hit prüfen (LRUCache behandelt Ablauf automatisch)
+      // Check cache hit (LRUCache handles expiration automatically)
       const cached = lruCache.get(key);
       if (cached !== undefined) {
         return cached;
       }
 
-      // Methode ausführen und cachen
+      // Execute method and cache
       const result = await originalMethod.apply(this, args);
       lruCache.set(key, result);
       return result;
     };
 
-    // Erweitere Methode mit Cache-Kontrollfunktionen
+    // Augment method with cache controls
     const cacheableMethod = wrappedMethod as typeof originalMethod &
       CacheableMethod;
     cacheableMethod.clearCache = () => lruCache.clear();
@@ -158,12 +158,11 @@ export function cache(ttlMs: number = 60000, maxSize: number = 100) {
 }
 
 /**
- * Decorator für Lazy-Initialisierung.
+ * Decorator for lazy initialization.
  *
- * Die Methode wird nur einmal beim ersten Aufruf ausgeführt.
- * Alle nachfolgenden Aufrufe geben das gespeicherte Ergebnis zurück.
- * Unterstützt parallele Aufrufe während der Initialisierung ohne
- * Race-Conditions.
+ * The method is executed only once on the first call.
+ * All subsequent calls return the stored result.
+ * Supports concurrent calls during initialization without race conditions.
  *
  * @returns Method Decorator
  *
@@ -172,7 +171,7 @@ export function cache(ttlMs: number = 60000, maxSize: number = 100) {
  * class ConfigService {
  *   @lazy()
  *   async loadConfig(): Promise<Config> {
- *     console.log('Loading config...'); // Wird nur einmal ausgegeben
+ *     console.log('Loading config...'); // Printed only once
  *     return await fetchConfig();
  *   }
  *
@@ -184,7 +183,7 @@ export function cache(ttlMs: number = 60000, maxSize: number = 100) {
  * ```
  */
 export function lazy() {
-  // Verwende die gemeinsame LazyInitializer-Klasse
+  // Use the shared LazyInitializer class
   const initializer = new LazyInitializer<unknown>();
 
   return createMethodDecorator((originalMethod) => {
@@ -195,7 +194,7 @@ export function lazy() {
       return initializer.get(() => originalMethod.apply(this, args));
     };
 
-    // Erweitere Methode mit Kontrollfunktionen
+    // Augment method with controls
     const lazyMethod = wrappedMethod as typeof originalMethod & LazyMethod;
     lazyMethod.reset = () => initializer.reset();
     lazyMethod.isInitialized = () => initializer.isInitialized();
