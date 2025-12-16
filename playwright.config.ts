@@ -18,7 +18,7 @@ export default defineConfig({
         // Enable Web Workers where possible
         launchOptions: {
           // The following flags disable browser security features and are
-          // intended ONLY for Playwright tests so worker-based scenarios can run
+          // intended only for Playwright tests so worker-based scenarios can run
           // without CORS / mixed-content restrictions.
           args: [
             '--enable-web-workers',
