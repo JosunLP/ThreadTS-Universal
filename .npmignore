@@ -1,0 +1,36 @@
+# Source and build artifacts
+src/
+!src/**/*.d.ts
+tests/
+examples/
+coverage/
+.nyc_output/
+
+# Configuration files
+tsconfig.json
+tsconfig.*.json
+vite.config.ts
+vitest.config.ts
+playwright.config.ts
+eslint.config.js
+.eslintrc*
+.prettierrc*
+.editorconfig
+
+# Git and CI
+.git/
+.github/
+.gitignore
+.npmignore
+
+# Logs and temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+
+# Documentation (optional, keep README/LICENSE usually)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
