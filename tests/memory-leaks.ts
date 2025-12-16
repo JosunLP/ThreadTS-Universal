@@ -106,7 +106,7 @@ describe('Memory Leak Detection', () => {
   });
 
   it('should handle large data transfers without memory buildup', async () => {
-    // Process large arrays (roughly 10MB)
+    // Process large arrays (rounded to 10MB)
     const largeArray = new Array(1_000_000).fill(0).map((_, i) => i);
 
     for (let i = 0; i < 10; i++) {
