@@ -21,7 +21,7 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "test": "vitest run",
-    "test:ci": "vitest run --pool=forks --singleFork",
+    "test:ci": "vitest run --pool=forks --poolOptions.forks.singleFork=true",
     "test:local": "vitest run --expose-gc",
     "test:browser": "playwright test",
     "test:node": "npm run test:node:ci",
