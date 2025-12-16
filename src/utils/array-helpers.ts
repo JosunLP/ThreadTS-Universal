@@ -138,7 +138,7 @@ export function slidingWindow<T>(array: T[], size: number, step = 1): T[][] {
 }
 
 /**
- * Interleaves (weaves) two arrays.
+ * Interleaves two arrays.
  *
  * @template T - Array element type
  * @param array1 - First array
