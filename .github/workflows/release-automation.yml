@@ -1,36 +1,11 @@
 name: 🚀 Release Automation
 
+# Triggered by pushing a tag like v1.0.0, v1.2.3-beta.0, etc.
 on:
-  workflow_dispatch:
-    inputs:
-      release_type:
-        description: "Type of release"
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-          - prerelease
-      prerelease_identifier:
-        description: "Prerelease identifier (alpha, beta, rc)"
-        required: false
-        default: "beta"
-        type: choice
-        options:
-          - alpha
-          - beta
-          - rc
-      skip_tests:
-        description: "Skip test suite (not recommended)"
-        required: false
-        default: false
-        type: boolean
-      dry_run:
-        description: "Dry run (no actual release)"
-        required: false
-        default: false
-        type: boolean
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 permissions:
   contents: write
@@ -47,23 +22,56 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
-  # 🔍 PRE-RELEASE VALIDATION
+  # 🔍 VALIDATE & BUILD
   # ═══════════════════════════════════════════════════════════════
 
-  pre-release-validation:
-    name: 🔍 Pre-Release Validation
+  validate:
+    name: 🔍 Validate Release
     runs-on: ubuntu-latest
     outputs:
-      current-version: ${{ steps.version-info.outputs.current }}
-      next-version: ${{ steps.version-info.outputs.next }}
-      has-changelog: ${{ steps.changelog.outputs.exists }}
+      version: ${{ steps.version.outputs.version }}
+      is-prerelease: ${{ steps.version.outputs.is-prerelease }}
 
     steps:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract Version from Tag
+        id: version
+        run: |
+          # Get version from tag (remove 'v' prefix)
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📊 Release version: $VERSION"
+
+          # Check if prerelease (contains hyphen like 1.0.0-beta.0)
+          if [[ "$VERSION" == *-* ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+            echo "📦 This is a prerelease"
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "📦 This is a stable release"
+          fi
+
+      - name: ✅ Validate Tag matches package.json
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   Tag version:     $TAG_VERSION"
+            echo "   package.json:    $PACKAGE_VERSION"
+            echo ""
+            echo "💡 Fix: Update package.json version to $TAG_VERSION before tagging"
+            exit 1
+          fi
+
+          echo "✅ Version validated: $TAG_VERSION"
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
@@ -75,138 +83,35 @@ jobs:
       - name: 📋 Install Dependencies
         run: npm ci
 
-      - name: 📊 Version Information
-        id: version-info
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-
-          # Calculate next version without modifying package.json
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
-
-          if [ "$RELEASE_TYPE" = "prerelease" ]; then
-            IDENTIFIER="${{ github.event.inputs.prerelease_identifier }}"
-            NEXT_VERSION=$(npx semver "$CURRENT_VERSION" -i prerelease --preid "$IDENTIFIER")
-          else
-            NEXT_VERSION=$(npx semver "$CURRENT_VERSION" -i "$RELEASE_TYPE")
-          fi
-
-          echo "next=$NEXT_VERSION" >> $GITHUB_OUTPUT
-          echo "📊 Version bump: $CURRENT_VERSION → $NEXT_VERSION"
-
       - name: 🏗️ Build Project
         run: npm run build
 
-      - name: 🧪 Run Test Suite
-        if: inputs.skip_tests != true
-        run: |
-          echo "Running test suite..."
-          npm run test
+      - name: 🧪 Run Tests
+        run: npm run test
 
       - name: 🔒 Security Audit
-        run: |
-          echo "Running security audit..."
-          npm audit --audit-level=high || echo "⚠️ Security audit found issues (non-blocking)"
+        run: npm audit --audit-level=high || echo "⚠️ Security issues found (non-blocking)"
 
-      - name: 📋 Check Changelog
-        id: changelog
-        run: |
-          if [ -f "CHANGELOG.md" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "📋 No CHANGELOG.md found, will create one"
-          fi
-
-      - name: 📋 Generate Changelog Entry
-        run: |
-          CURRENT_VERSION="${{ steps.version-info.outputs.current }}"
-          NEXT_VERSION="${{ steps.version-info.outputs.next }}"
-
-          # Check if a tag for the current version exists
-          if git rev-parse "v$CURRENT_VERSION" >/dev/null 2>&1; then
-            COMPARE_REF="v$CURRENT_VERSION"
-          else
-            # Fall back to first commit or recent commits
-            COMPARE_REF=$(git rev-list --max-parents=0 HEAD | head -1)
-          fi
-
-          cat > changelog-entry.md << EOF
-          ## v$NEXT_VERSION ($(date -u +%Y-%m-%d))
-
-          **Release Type:** ${{ github.event.inputs.release_type }}
-
-          ### Changes
-
-          EOF
-
-          # Features
-          FEATURES=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="^feat" 2>/dev/null | head -10)
-          if [ -n "$FEATURES" ]; then
-            echo "#### ✨ Features" >> changelog-entry.md
-            echo "$FEATURES" >> changelog-entry.md
-            echo "" >> changelog-entry.md
-          fi
-
-          # Fixes
-          FIXES=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="^fix" 2>/dev/null | head -10)
-          if [ -n "$FIXES" ]; then
-            echo "#### 🐛 Bug Fixes" >> changelog-entry.md
-            echo "$FIXES" >> changelog-entry.md
-            echo "" >> changelog-entry.md
-          fi
-
-          # Performance
-          PERF=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="^perf" 2>/dev/null | head -5)
-          if [ -n "$PERF" ]; then
-            echo "#### ⚡ Performance" >> changelog-entry.md
-            echo "$PERF" >> changelog-entry.md
-            echo "" >> changelog-entry.md
-          fi
-
-          # Breaking Changes
-          BREAKING=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="BREAKING" 2>/dev/null | head -5)
-          if [ -n "$BREAKING" ]; then
-            echo "#### 💥 Breaking Changes" >> changelog-entry.md
-            echo "$BREAKING" >> changelog-entry.md
-            echo "" >> changelog-entry.md
-          fi
-
-          # If no conventional commits found, list recent commits
-          if [ -z "$FEATURES" ] && [ -z "$FIXES" ] && [ -z "$PERF" ]; then
-            echo "#### 📝 Recent Changes" >> changelog-entry.md
-            git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" 2>/dev/null | head -15 >> changelog-entry.md
-            echo "" >> changelog-entry.md
-          fi
-
-          cat changelog-entry.md
-
-      - name: 📤 Upload Pre-Release Artifacts
+      - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pre-release-artifacts
-          path: |
-            changelog-entry.md
-            dist/
+          name: dist
+          path: dist/
           retention-days: 1
 
   # ═══════════════════════════════════════════════════════════════
-  # 🎯 RELEASE EXECUTION
+  # 📦 PUBLISH TO NPM
   # ═══════════════════════════════════════════════════════════════
 
-  execute-release:
-    name: 🎯 Execute Release
+  publish:
+    name: 📦 Publish to NPM
     runs-on: ubuntu-latest
-    needs: pre-release-validation
-    if: inputs.dry_run != true
+    needs: validate
     environment: production
 
     steps:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
@@ -218,74 +123,13 @@ jobs:
       - name: 📋 Install Dependencies
         run: npm ci
 
-      - name: 🏗️ Build Project
-        run: npm run build
-
-      - name: 📥 Download Pre-Release Artifacts
+      - name: 📥 Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: pre-release-artifacts
-          path: artifacts/
+          name: dist
+          path: dist/
 
-      - name: 🔧 Configure Git
-        run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      - name: 📈 Version Bump
-        id: version-bump
-        run: |
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
-
-          if [ "$RELEASE_TYPE" = "prerelease" ]; then
-            IDENTIFIER="${{ github.event.inputs.prerelease_identifier }}"
-            NEW_VERSION=$(npm version prerelease --preid="$IDENTIFIER" --no-git-tag-version)
-          else
-            NEW_VERSION=$(npm version "$RELEASE_TYPE" --no-git-tag-version)
-          fi
-
-          # Remove 'v' prefix for consistency
-          NEW_VERSION="${NEW_VERSION#v}"
-
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "🎯 Version bumped to: $NEW_VERSION"
-
-      - name: 📋 Update Changelog
-        run: |
-          NEW_VERSION="${{ steps.version-bump.outputs.version }}"
-
-          if [ -f "CHANGELOG.md" ]; then
-            # Prepend new changelog entry
-            {
-              echo "# Changelog"
-              echo ""
-              cat artifacts/changelog-entry.md
-              echo ""
-              # Skip the first line (# Changelog) of existing file
-              tail -n +2 CHANGELOG.md
-            } > CHANGELOG.md.new
-            mv CHANGELOG.md.new CHANGELOG.md
-          else
-            # Create new changelog
-            {
-              echo "# Changelog"
-              echo ""
-              cat artifacts/changelog-entry.md
-            } > CHANGELOG.md
-          fi
-
-      - name: 📝 Commit Changes
-        run: |
-          NEW_VERSION="${{ steps.version-bump.outputs.version }}"
-          git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore(release): v$NEW_VERSION"
-
-      - name: 🏷️ Create Git Tag
-        run: |
-          NEW_VERSION="${{ steps.version-bump.outputs.version }}"
-          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-
-      - name: 📦 Pack and Verify Package
+      - name: 📦 Pack Package
         run: |
           npm pack
           echo "📋 Package contents:"
@@ -297,133 +141,129 @@ jobs:
           cd /tmp/install-test
           npm init -y
 
-          # Install the packed package
           npm install "$GITHUB_WORKSPACE"/threadts-universal-*.tgz
 
-          # Test import
+          # Test ESM import
           cat > test.mjs << 'EOF'
           import threadts from 'threadts-universal';
           console.log('✅ ESM import successful');
-          console.log('ThreadTS type:', typeof threadts);
           EOF
-
           node test.mjs
 
-          # Test require
+          # Test CJS require
           cat > test.cjs << 'EOF'
           const threadts = require('threadts-universal');
           console.log('✅ CJS require successful');
-          console.log('ThreadTS type:', typeof threadts);
           EOF
-
           node test.cjs
 
       - name: 📤 Publish to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
-
-          if [ "$RELEASE_TYPE" = "prerelease" ]; then
-            npm publish --tag "${{ github.event.inputs.prerelease_identifier }}" --provenance --access public
+          if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
+            # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
+            VERSION="${{ needs.validate.outputs.version }}"
+            PREID=$(echo "$VERSION" | sed -n 's/.*-\([a-z]*\).*/\1/p')
+            npm publish --tag "${PREID:-next}" --provenance --access public
           else
             npm publish --provenance --access public
           fi
+          echo "✅ Published threadts-universal@${{ needs.validate.outputs.version }}"
 
-          echo "✅ Package published successfully"
+  # ═══════════════════════════════════════════════════════════════
+  # 🎉 CREATE GITHUB RELEASE
+  # ═══════════════════════════════════════════════════════════════
 
-      - name: 📤 Push Changes
+  github-release:
+    name: 🎉 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, publish]
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📋 Generate Release Notes
+        id: notes
         run: |
-          git push origin HEAD
-          git push origin "v${{ steps.version-bump.outputs.version }}"
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          # Find previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "v$VERSION" ]; then
+            COMPARE_REF=$(git rev-list --max-parents=0 HEAD | head -1)
+          else
+            COMPARE_REF="$PREV_TAG"
+          fi
+
+          {
+            echo "## What's Changed"
+            echo ""
+
+            # Features
+            FEATURES=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="^feat" 2>/dev/null | head -10)
+            if [ -n "$FEATURES" ]; then
+              echo "### ✨ Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+
+            # Fixes
+            FIXES=$(git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" --grep="^fix" 2>/dev/null | head -10)
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+
+            # If no conventional commits, show recent commits
+            if [ -z "$FEATURES" ] && [ -z "$FIXES" ]; then
+              echo "### 📝 Changes"
+              git log "$COMPARE_REF"..HEAD --pretty=format:"- %s" 2>/dev/null | head -15
+              echo ""
+            fi
+
+            echo ""
+            echo "---"
+            echo "📦 **NPM:** \`npm install threadts-universal@$VERSION\`"
+          } > release-notes.md
+
+          cat release-notes.md
+
+      - name: 📦 Download Build for Release
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: 📦 Create Package Tarball
+        run: npm pack
 
       - name: 🎉 Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version-bump.outputs.version }}
-          name: ThreadTS Universal v${{ steps.version-bump.outputs.version }}
-          body_path: artifacts/changelog-entry.md
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: ThreadTS Universal v${{ needs.validate.outputs.version }}
+          body_path: release-notes.md
           draft: false
-          prerelease: ${{ github.event.inputs.release_type == 'prerelease' }}
+          prerelease: ${{ needs.validate.outputs.is-prerelease }}
           generate_release_notes: true
           files: |
             threadts-universal-*.tgz
 
   # ═══════════════════════════════════════════════════════════════
-  # 📊 DRY RUN SIMULATION
-  # ═══════════════════════════════════════════════════════════════
-
-  dry-run-simulation:
-    name: 📊 Dry Run Simulation
-    runs-on: ubuntu-latest
-    needs: pre-release-validation
-    if: inputs.dry_run == true
-
-    steps:
-      - name: 📦 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: 📋 Install Dependencies
-        run: npm ci
-
-      - name: 🏗️ Build Project
-        run: npm run build
-
-      - name: 📥 Download Pre-Release Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: pre-release-artifacts
-          path: artifacts/
-
-      - name: 📊 Dry Run Report
-        run: |
-          echo "══════════════════════════════════════════════════════════════"
-          echo "🎯 DRY RUN SIMULATION REPORT"
-          echo "══════════════════════════════════════════════════════════════"
-          echo ""
-          echo "📊 Release Information:"
-          echo "  Current Version: ${{ needs.pre-release-validation.outputs.current-version }}"
-          echo "  Next Version:    ${{ needs.pre-release-validation.outputs.next-version }}"
-          echo "  Release Type:    ${{ github.event.inputs.release_type }}"
-          if [ "${{ github.event.inputs.release_type }}" = "prerelease" ]; then
-            echo "  Prerelease ID:   ${{ github.event.inputs.prerelease_identifier }}"
-          fi
-          echo ""
-          echo "🔧 Actions that would be performed:"
-          echo "  1. ✅ Version bump in package.json"
-          echo "  2. ✅ Update/create CHANGELOG.md"
-          echo "  3. ✅ Commit changes"
-          echo "  4. ✅ Create git tag: v${{ needs.pre-release-validation.outputs.next-version }}"
-          echo "  5. ✅ Build and pack npm package"
-          echo "  6. ✅ Publish to NPM registry"
-          echo "  7. ✅ Push changes to GitHub"
-          echo "  8. ✅ Create GitHub release"
-          echo ""
-          echo "📦 Package Analysis:"
-          npm pack --dry-run 2>&1 | tail -30
-          echo ""
-          echo "📋 Changelog Entry Preview:"
-          echo "──────────────────────────────────────────────────────────────"
-          cat artifacts/changelog-entry.md
-          echo "──────────────────────────────────────────────────────────────"
-          echo ""
-          echo "🎯 To execute this release, re-run with dry_run=false"
-
-  # ═══════════════════════════════════════════════════════════════
-  # 📢 POST-RELEASE NOTIFICATIONS
+  # 📢 POST-RELEASE
   # ═══════════════════════════════════════════════════════════════
 
   post-release:
-    name: 📢 Post-Release
+    name: 📢 Release Complete
     runs-on: ubuntu-latest
-    needs: [pre-release-validation, execute-release]
-    if: always() && needs.execute-release.result == 'success'
+    needs: [validate, publish, github-release]
+    if: always() && needs.publish.result == 'success'
 
     steps:
       - name: 🎯 Release Summary
@@ -432,15 +272,10 @@ jobs:
           echo "🎉 RELEASE SUCCESSFUL"
           echo "══════════════════════════════════════════════════════════════"
           echo ""
-          echo "📦 Package: threadts-universal@${{ needs.pre-release-validation.outputs.next-version }}"
+          echo "📦 Package: threadts-universal@${{ needs.validate.outputs.version }}"
           echo ""
           echo "🔗 Links:"
           echo "  NPM:     https://npmjs.com/package/threadts-universal"
-          echo "  GitHub:  https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-validation.outputs.next-version }}"
-          echo ""
-          echo "📊 Release Details:"
-          echo "  Previous: ${{ needs.pre-release-validation.outputs.current-version }}"
-          echo "  New:      ${{ needs.pre-release-validation.outputs.next-version }}"
-          echo "  Type:     ${{ github.event.inputs.release_type }}"
+          echo "  GitHub:  https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate.outputs.version }}"
           echo ""
           echo "══════════════════════════════════════════════════════════════"
