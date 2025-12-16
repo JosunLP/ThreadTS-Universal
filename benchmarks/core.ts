@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Core Performance Benchmarks
- * Fokussierte Tests auf echte Parallelisierungs-Fähigkeiten
+ * Focused tests for real parallelization capabilities
  */
 
 import { ThreadTS } from '../src/core/threadts';
@@ -33,7 +33,7 @@ async function main() {
   const results: BenchmarkResult[] = [];
 
   if (threadts.isSupported()) {
-    // Worker-basierte Tests
+    // Worker-based tests
     results.push(await testWorkerOverhead());
     results.push(await testParallelArrayProcessing());
     results.push(await testCPUIntensiveTask());
@@ -70,13 +70,13 @@ async function main() {
     results.push(await testES2023GroupByObject());
     results.push(await testES2023PipelineFindLast());
   } else {
-    // Fallback-Tests für Plattformen ohne Worker
+    // Fallback tests for platforms without Worker support
     results.push(await testSequentialProcessing());
     results.push(await testAsynchronousProcessing());
     results.push(await testMemoryEfficiency());
   }
 
-  // Ergebnisse ausgeben
+  // Print results
   console.log('\n📊 Benchmark Results:');
   console.log('═'.repeat(70));
   console.log(
@@ -106,7 +106,7 @@ async function main() {
   }
 }
 
-// Worker-basierte Tests
+// Worker-based tests
 async function testWorkerOverhead(): Promise<BenchmarkResult> {
   const task = (x: number) => x * 2;
 
@@ -117,7 +117,7 @@ async function testWorkerOverhead(): Promise<BenchmarkResult> {
   return {
     name: 'Worker Overhead',
     time,
-    passed: time < 50, // Max 50ms für Worker-Setup
+    passed: time < 50, // Max 50ms for worker setup
     details: 'Init cost',
   };
 }
@@ -133,7 +133,7 @@ async function testParallelArrayProcessing(): Promise<BenchmarkResult> {
   return {
     name: 'Parallel Array Map',
     time,
-    passed: time < 1000, // Max 1s für 1k items
+    passed: time < 1000, // Max 1s for 1k items
     details: '1k items',
   };
 }
@@ -151,7 +151,7 @@ async function testCPUIntensiveTask(): Promise<BenchmarkResult> {
   return {
     name: 'CPU Intensive Task',
     time,
-    passed: time < 5000, // Max 5s für Fibonacci(30)
+    passed: time < 5000, // Max 5s for Fibonacci(30)
     details: 'Fibonacci(30)',
   };
 }
@@ -173,12 +173,12 @@ async function testBatchProcessing(): Promise<BenchmarkResult> {
   return {
     name: 'Batch Processing',
     time,
-    passed: time < 3000, // Max 3s für 2k items
+    passed: time < 3000, // Max 3s for 2k items
     details: '2k batched',
   };
 }
 
-// Tests für neue Array-Methoden
+// Tests for new array methods
 async function testFindOperations(): Promise<BenchmarkResult> {
   const data = Array.from({ length: 10000 }, (_, i) => i);
   const targetIndex = 7500; // Element near the end
@@ -230,7 +230,7 @@ async function testSomeEveryOperations(): Promise<BenchmarkResult> {
   };
 }
 
-// Tests für neue Array-Methoden (flatMap, groupBy, partition)
+// Tests for new array methods (flatMap, groupBy, partition)
 async function testFlatMapOperation(): Promise<BenchmarkResult> {
   const data = Array.from({ length: 1000 }, (_, i) => i + 1);
 
@@ -1164,7 +1164,7 @@ async function testES2023PipelineFindLast(): Promise<BenchmarkResult> {
   };
 }
 
-// Fallback-Tests für Plattformen ohne Worker
+// Fallback tests for platforms without Worker support
 async function testSequentialProcessing(): Promise<BenchmarkResult> {
   const data = Array.from({ length: 1000 }, (_, i) => i);
   const computeFn = (x: number) => Math.sqrt(x * x + 1);
@@ -1176,7 +1176,7 @@ async function testSequentialProcessing(): Promise<BenchmarkResult> {
   return {
     name: 'Sequential Processing',
     time,
-    passed: time < 100, // Max 100ms für sequential
+    passed: time < 100, // Max 100ms for sequential
     details: '1k items',
   };
 }
@@ -1196,7 +1196,7 @@ async function testAsynchronousProcessing(): Promise<BenchmarkResult> {
   return {
     name: 'Async Processing',
     time,
-    passed: time < 50, // Max 50ms für 10 async tasks
+    passed: time < 50, // Max 50ms for 10 async tasks
     details: '10 parallel',
   };
 }
@@ -1205,7 +1205,7 @@ async function testMemoryEfficiency(): Promise<BenchmarkResult> {
   const initialMemory = process.memoryUsage().heapUsed;
 
   const { time } = await measureTime(async () => {
-    // Erstelle und verarbeite große Arrays
+    // Create and process large arrays
     const largeArrays = Array.from({ length: 10 }, () =>
       Array.from({ length: 10000 }, (_, i) => i)
     );
@@ -1224,5 +1224,5 @@ async function testMemoryEfficiency(): Promise<BenchmarkResult> {
   };
 }
 
-// Script-Ausführung
+// Script execution
 main().catch(console.error);

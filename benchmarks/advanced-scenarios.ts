@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Advanced Performance Benchmarks
- * Umfassende Performance-Tests mit Real-World-Szenarien
+ * Comprehensive performance tests with real-world scenarios
  */
 
 import { ThreadTS } from '../src/core/threadts';
@@ -25,7 +25,7 @@ async function measureTime<T>(
   return { result, time };
 }
 
-// Real-World Benchmark-Szenarien
+// Real-world benchmark scenarios
 class AdvancedBenchmarks {
   /**
    * Image Processing Simulation (CPU-intensive)
@@ -59,7 +59,7 @@ class AdvancedBenchmarks {
     const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
     const overhead = threadtsTime - nativeTime;
-    const passed = overhead < 50; // Max 50ms Overhead für Image Processing
+    const passed = overhead < 50; // Max 50ms overhead for image processing
 
     return {
       name: 'Image Processing (1920x1080)',
@@ -119,7 +119,7 @@ class AdvancedBenchmarks {
     const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
     const overhead = threadtsTime - nativeTime;
-    const passed = overhead < 100; // Max 100ms Overhead für JSON Processing
+    const passed = overhead < 100; // Max 100ms overhead for JSON processing
 
     return {
       name: 'JSON Processing (10k records)',
@@ -184,7 +184,7 @@ class AdvancedBenchmarks {
     const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
     const overhead = threadtsTime - nativeTime;
-    const passed = overhead < 25; // Max 25ms Overhead für Crypto
+    const passed = overhead < 25; // Max 25ms overhead for crypto
 
     return {
       name: 'Cryptographic Hashing (1k items)',
@@ -228,7 +228,7 @@ class AdvancedBenchmarks {
     const { time: threadtsTime } = await measureTime(threadtsProcessing);
 
     const overhead = threadtsTime - nativeTime;
-    const passed = overhead < 10; // Max 10ms Overhead für Math
+    const passed = overhead < 10; // Max 10ms overhead for math
 
     return {
       name: 'Mathematical Computation (50k ops)',
@@ -378,7 +378,7 @@ async function main() {
     }
   }
 
-  // Ergebnisse ausgeben
+  // Print results
   console.log('\n📊 Advanced Benchmark Results:');
   console.log('═'.repeat(85));
   console.log(

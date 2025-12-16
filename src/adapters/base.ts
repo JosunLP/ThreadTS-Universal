@@ -552,31 +552,31 @@ export function isWorkerInstance(obj: unknown): obj is WorkerInstance {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Konfiguration für Web-API-basierte Worker (Browser, Deno, Bun).
+ * Configuration for Web-API-based workers (Browser, Deno, Bun).
  *
- * Diese Konfiguration erweitert die Basiskonfiguration um
- * Web-Worker-spezifische Optionen.
+ * This configuration extends the base configuration with
+ * web-worker-specific options.
  */
 export interface WebWorkerConfig extends BaseWorkerConfig {
-  /** Worker-Name für Debugging (optional) */
+  /** Worker name for debugging (optional) */
   workerName?: string;
-  /** Worker-Typ: 'classic' oder 'module' */
+  /** Worker type: 'classic' or 'module' */
   workerType?: 'classic' | 'module';
 }
 
 /**
- * Abstrakte Basisklasse für Web-API-basierte Worker.
+ * Abstract base class for Web-API-based workers.
  *
- * Diese Klasse implementiert die gemeinsame Logik für Browser-, Deno-
- * und Bun-Worker, die alle die Web Worker API verwenden. Sie abstrahiert:
+ * This class implements the shared logic for Browser, Deno,
+ * and Bun workers, all of which use the Web Worker API. It abstracts:
  *
- * - Blob-URL-Erstellung und -Bereinigung
- * - Event-Handler-Setup (message, error, messageerror)
- * - Timeout- und Abort-Signal-Handling
- * - Transferable-Objects-Unterstützung
+ * - Blob URL creation and cleanup
+ * - Event handler setup (message, error, messageerror)
+ * - Timeout and abort-signal handling
+ * - Transferable objects support
  *
- * Subklassen müssen nur die Worker-Erstellung mit plattformspezifischen
- * Optionen implementieren.
+ * Subclasses only need to implement worker creation with platform-specific
+ * options.
  *
  * @abstract
  * @extends AbstractWorkerInstance
@@ -591,20 +591,20 @@ export interface WebWorkerConfig extends BaseWorkerConfig {
  * ```
  */
 export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
-  /** Der aktive Web Worker */
+  /** The active web worker */
   protected worker: Worker | null = null;
 
-  /** Die Blob-URL des Worker-Scripts */
+  /** The blob URL of the worker script */
   protected workerUrl: string | null = null;
 
-  /** Web-Worker-spezifische Konfiguration */
+  /** Web-worker-specific configuration */
   protected readonly webConfig: Required<WebWorkerConfig>;
 
   /**
-   * Erstellt eine neue Web-Worker-Instanz.
+   * Creates a new web worker instance.
    *
-   * @param platform - Die Plattform-ID
-   * @param config - Optionale Konfiguration
+   * @param platform - The platform id
+   * @param config - Optional configuration
    */
   constructor(platform: Platform, config: WebWorkerConfig = {}) {
     super(platform, config);
@@ -616,18 +616,18 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
   }
 
   /**
-   * Führt die plattformspezifische Worker-Ausführung durch.
+   * Performs the platform-specific worker execution.
    *
-   * Implementiert das Template-Method-Pattern: Die gemeinsame Logik
-   * (Blob-Erstellung, Event-Handling) ist hier implementiert, während
-   * Subklassen nur die Worker-Options anpassen.
+   * Implements the Template Method pattern: shared logic
+   * (blob creation, event handling) is implemented here, while
+   * subclasses only adjust the worker options.
    *
-   * @template T - Der erwartete Rückgabetyp
-   * @param workerScript - Das serialisierte Worker-Script
-   * @param data - Die zu übergebenden Daten
-   * @param options - Ausführungsoptionen
-   * @param startTime - Startzeitpunkt der Ausführung
-   * @returns Promise mit dem Ausführungsergebnis
+   * @template T - The expected return type
+   * @param workerScript - The serialized worker script
+   * @param data - The data to pass
+   * @param options - Execution options
+   * @param startTime - Execution start timestamp
+   * @returns Promise with the execution result
    */
   protected async performPlatformExecution<T>(
     workerScript: string,
@@ -635,7 +635,7 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
     options: ThreadOptions,
     startTime: number
   ): Promise<ThreadResult<T>> {
-    // Erstelle Blob-URL für den Worker
+    // Create a blob URL for the worker
     const blob = new Blob([workerScript], { type: 'application/javascript' });
     this.workerUrl = URL.createObjectURL(blob);
 
@@ -644,8 +644,8 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
       let isResolved = false;
 
       /**
-       * Hilfsfunktion zum Auflösen des Promise.
-       * Verhindert mehrfache Auflösung und räumt Ressourcen auf.
+       * Helper for resolving the promise.
+       * Prevents multiple resolution and cleans up resources.
        */
       const safeResolve = (result: ThreadResult<T>) => {
         if (isResolved) return;
@@ -655,8 +655,8 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
       };
 
       /**
-       * Hilfsfunktion zum Ablehnen des Promise.
-       * Verhindert mehrfache Auflösung und räumt Ressourcen auf.
+       * Helper for rejecting the promise.
+       * Prevents multiple resolution and cleans up resources.
        */
       const safeReject = (error: Error) => {
         if (isResolved) return;
@@ -665,7 +665,7 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
         reject(error);
       };
 
-      // Erstelle Worker mit plattformspezifischen Optionen
+      // Create worker with platform-specific options
       try {
         const workerOptions = this.createPlatformWorkerOptions();
         this.worker = new Worker(this.workerUrl!, workerOptions);
@@ -719,7 +719,7 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
         safeReject(new WorkerError(`Worker error: ${event.message}`));
       };
 
-      // MessageError-Handler (für Serialisierungsfehler)
+      // MessageError handler (for serialization errors)
       if ('onmessageerror' in this.worker) {
         this.worker.onmessageerror = (event: MessageEvent) => {
           safeReject(
@@ -728,30 +728,30 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
         };
       }
 
-      // Sende Daten an den Worker
+      // Send data to the worker
       this.postMessageToWorker(data, options.transferable);
     });
   }
 
   /**
-   * Erstellt plattformspezifische Worker-Optionen.
+   * Creates platform-specific worker options.
    *
-   * Subklassen überschreiben diese Methode, um plattformspezifische
-   * Optionen wie Deno-Permissions oder Bun-Credentials hinzuzufügen.
+   * Subclasses override this method to add platform-specific
+   * options such as Deno permissions or Bun credentials.
    *
-   * @returns Worker-Optionen für new Worker()
+   * @returns Worker options for new Worker()
    * @abstract
    */
   protected abstract createPlatformWorkerOptions(): WorkerOptions;
 
   /**
-   * Sendet eine Nachricht an den Worker.
+   * Sends a message to the worker.
    *
-   * Kann von Subklassen überschrieben werden für plattformspezifisches
-   * Verhalten (z.B. optimierte Transferables).
+   * Can be overridden by subclasses for platform-specific
+   * behavior (e.g. optimized transferables).
    *
-   * @param data - Die zu sendenden Daten
-   * @param transferable - Optionale Transferable-Objekte
+   * @param data - The data to send
+   * @param transferable - Optional transferable objects
    */
   protected postMessageToWorker(
     data: unknown,
@@ -769,23 +769,23 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
   }
 
   /**
-   * Räumt Web-Worker-Ressourcen auf.
+   * Cleans up web worker resources.
    *
-   * @param timeoutId - Optionale Timeout-ID zum Löschen
+   * @param timeoutId - Optional timeout id to clear
    */
   protected cleanupWebWorker(timeoutId?: ReturnType<typeof setTimeout>): void {
-    // Worker terminieren
+    // Terminate worker
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
     }
 
-    // Timeout löschen
+    // Clear timeout
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
 
-    // Blob-URL freigeben
+    // Release blob URL
     if (this.workerUrl) {
       URL.revokeObjectURL(this.workerUrl);
       this.workerUrl = null;
@@ -793,9 +793,9 @@ export abstract class AbstractWebWorkerInstance extends AbstractWorkerInstance {
   }
 
   /**
-   * Bereinigt plattformspezifische Worker-Ressourcen.
+   * Cleans up platform-specific worker resources.
    *
-   * Implementierung der abstrakten Methode aus AbstractWorkerInstance.
+   * Implementation of the abstract method from AbstractWorkerInstance.
    */
   protected async cleanupPlatformWorker(): Promise<void> {
     this.cleanupWebWorker();

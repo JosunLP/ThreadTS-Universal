@@ -1,9 +1,9 @@
 /**
  * ThreadTS Universal - Bun Worker Adapter
  *
- * Implementiert Worker-Unterstützung für Bun-Umgebungen.
- * Nutzt Bun-spezifische Optimierungen wie High-Precision-Timing
- * und native Garbage Collection.
+ * Implements worker support for Bun environments.
+ * Uses Bun-specific optimizations like high-precision timing
+ * and native garbage collection.
  *
  * @module adapters/bun
  * @author ThreadTS Universal Team
@@ -13,38 +13,38 @@ import { WorkerInstance } from '../types';
 import { AbstractWebWorkerInstance, AbstractWorkerAdapter } from './base';
 
 /**
- * Bun-Worker-Optionen.
+ * Bun worker options.
  */
 interface BunWorkerOptions extends WorkerOptions {
-  /** Credential-Handling für Cross-Origin-Requests */
+  /** Credential handling for cross-origin requests */
   credentials?: 'omit' | 'same-origin' | 'include';
 }
 
 /**
- * Bun-Runtime-Namespace für Typprüfung.
+ * Bun runtime namespace for type checking.
  *
- * Bun bietet zusätzliche APIs für Performance und System-Interaktion.
+ * Bun provides additional APIs for performance and system interaction.
  */
 interface BunGlobal {
   Bun: {
-    /** Bun-Versionsnummer */
+    /** Bun version number */
     version: string;
-    /** Bun Git-Revision */
+    /** Bun git revision */
     revision: string;
-    /** Umgebungsvariablen */
+    /** Environment variables */
     env: Record<string, string | undefined>;
-    /** Pfad zum Hauptmodul */
+    /** Path to the main module */
     main: string;
-    /** Kommandozeilenargumente */
+    /** Command-line arguments */
     argv: string[];
     /**
-     * Findet ein Binary im PATH.
-     * @param binary - Name des Binaries
-     * @returns Vollständiger Pfad oder null
+     * Finds a binary on the PATH.
+     * @param binary - Binary name
+     * @returns Full path or null
      */
     which(binary: string): string | null;
     /**
-     * Führt einen Subprozess synchron aus.
+     * Executes a subprocess synchronously.
      */
     spawnSync(
       cmd: string[],
@@ -63,26 +63,26 @@ interface BunGlobal {
       stderr: Buffer;
     };
     /**
-     * Löst Garbage Collection aus.
-     * @param force - Erzwingt sofortige Collection
+     * Triggers garbage collection.
+     * @param force - Forces immediate collection
      */
     gc(force?: boolean): void;
     /**
-     * Gibt aktuelle Zeit in Nanosekunden zurück.
-     * Höhere Präzision als performance.now()
+     * Returns the current time in nanoseconds.
+     * Higher precision than performance.now().
      */
     nanoseconds(): number;
     /**
-     * Allokiert unsicheren Speicher ohne Initialisierung.
-     * @param size - Größe in Bytes
+     * Allocates unsafe memory without initialization.
+     * @param size - Size in bytes
      */
     allocUnsafe(size: number): Uint8Array;
     /**
-     * Schreibt Daten in einen File-Descriptor.
+     * Writes data to a file descriptor.
      */
     write(fd: number, data: string | Uint8Array): number;
     /**
-     * File-System-Router für Next.js-Style Routing.
+     * File system router for Next.js-style routing.
      */
     FileSystemRouter: new (options: { dir: string; style?: 'nextjs' }) => {
       match(pathname: string): { filePath: string; kind: string } | null;
@@ -91,13 +91,13 @@ interface BunGlobal {
 }
 
 /**
- * Worker-Adapter für Bun-Umgebungen.
+ * Worker adapter for Bun environments.
  *
- * Unterstützt:
- * - High-Performance Workers mit Bun-Optimierungen
- * - Nanosekunden-präzises Timing
- * - Native Garbage Collection
- * - Modul-Worker mit ES Module Syntax
+ * Supports:
+ * - High-performance workers with Bun optimizations
+ * - Nanosecond-precision timing
+ * - Native garbage collection
+ * - Module workers with ES module syntax
  *
  * @extends AbstractWorkerAdapter
  *
@@ -123,9 +123,9 @@ export class BunWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Gibt die Bun-Versionsnummer zurück.
+   * Returns the Bun version number.
    *
-   * @returns Bun-Version oder null wenn nicht verfügbar
+   * @returns Bun version or null if not available
    *
    * @example
    * ```typescript
@@ -139,9 +139,9 @@ export class BunWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Gibt die Bun-Git-Revision zurück.
+   * Returns the Bun git revision.
    *
-   * @returns Bun-Revision oder null wenn nicht verfügbar
+   * @returns Bun revision or null if not available
    */
   getBunRevision(): string | null {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -149,15 +149,15 @@ export class BunWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Löst Garbage Collection aus (Bun-spezifisches Feature).
+   * Triggers garbage collection (Bun-specific feature).
    *
-   * Nützlich für Memory-Profiling oder nach speicherintensiven Operationen.
+   * Useful for memory profiling or after memory-intensive operations.
    *
-   * @param force - Erzwingt sofortige Collection (Standard: false)
+   * @param force - Forces immediate collection (default: false)
    *
    * @example
    * ```typescript
-   * // Nach großer Operation:
+   * // After a large operation:
    * adapter.gc(true);
    * ```
    */
@@ -169,11 +169,11 @@ export class BunWorkerAdapter extends AbstractWorkerAdapter {
   }
 
   /**
-   * Gibt die aktuelle Zeit in Nanosekunden zurück.
+   * Returns the current time in nanoseconds.
    *
-   * Höhere Präzision als performance.now() für Performance-Messungen.
+   * Higher precision than performance.now() for performance measurements.
    *
-   * @returns Zeit in Nanosekunden
+   * @returns Time in nanoseconds
    *
    * @example
    * ```typescript
@@ -190,34 +190,34 @@ export class BunWorkerAdapter extends AbstractWorkerAdapter {
 }
 
 /**
- * Bun-Worker-Instanz.
+ * Bun worker instance.
  *
- * Erweitert AbstractWebWorkerInstance mit Bun-spezifischen Features:
- * - Nanosekunden-Timing für präzise Performance-Messungen
- * - Native Garbage Collection Unterstützung
- * - Optimiertes Transferable-Object Handling
+ * Extends AbstractWebWorkerInstance with Bun-specific features:
+ * - Nanosecond timing for precise performance measurements
+ * - Native garbage collection support
+ * - Optimized transferable-object handling
  *
  * @extends AbstractWebWorkerInstance
  */
 class BunWorkerInstance extends AbstractWebWorkerInstance {
   /**
-   * Erstellt eine neue Bun-Worker-Instanz.
+   * Creates a new Bun worker instance.
    *
-   * @param _script - Initiales Script (wird bei execute() überschrieben)
+   * @param _script - Initial script (overridden by execute())
    */
   constructor(_script: string) {
     super('bun', {
-      workerName: undefined, // Wird automatisch generiert
-      workerType: 'module', // Bun bevorzugt Module-Worker
+      workerName: undefined, // Auto-generated
+      workerType: 'module', // Bun prefers module workers
     });
   }
 
   /**
-   * Erstellt Bun-spezifische Worker-Optionen.
+   * Creates Bun-specific worker options.
    *
-   * Konfiguriert:
-   * - Modul-Worker (ES Module Syntax)
-   * - credentials: 'omit' für Sicherheit
+   * Configures:
+   * - Module workers (ES module syntax)
+   * - credentials: 'omit' for security
    *
    * @returns BunWorkerOptions
    */
@@ -225,14 +225,14 @@ class BunWorkerInstance extends AbstractWebWorkerInstance {
     return {
       type: 'module',
       name: this.id,
-      credentials: 'omit', // Sicherheit: Keine Credentials inkludieren
+      credentials: 'omit', // Security: do not include credentials
     };
   }
 
   /**
-   * Gibt Bun-spezifische Worker-Informationen zurück.
+   * Returns Bun-specific worker information.
    *
-   * @returns Objekt mit Worker-ID, Bun-Version und Fähigkeiten
+   * @returns Object with worker ID, Bun version, and capabilities
    *
    * @example
    * ```typescript
@@ -262,9 +262,9 @@ class BunWorkerInstance extends AbstractWebWorkerInstance {
   }
 
   /**
-   * Erzwingt Garbage Collection für diesen Worker.
+   * Forces garbage collection for this worker.
    *
-   * Nutzt Buns native GC-API für sofortige Speicherfreigabe.
+   * Uses Bun's native GC API for immediate memory reclamation.
    */
   forceGC(): void {
     const bun = (globalThis as unknown as BunGlobal).Bun;
@@ -274,11 +274,11 @@ class BunWorkerInstance extends AbstractWebWorkerInstance {
   }
 
   /**
-   * Gibt Zeit mit hoher Präzision in Nanosekunden zurück.
+   * Returns high-precision time in nanoseconds.
    *
-   * Nutzt Buns nanoseconds() für maximale Präzision.
+   * Uses Bun's nanoseconds() for maximum precision.
    *
-   * @returns Zeit in Nanosekunden
+   * @returns Time in nanoseconds
    */
   getHighPrecisionTime(): number {
     const bun = (globalThis as unknown as BunGlobal).Bun;

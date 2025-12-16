@@ -1,28 +1,28 @@
 /**
  * ThreadTS Universal - Array Helper Utilities
  *
- * Gemeinsame Array-Operationen, die an mehreren Stellen in der Bibliothek
- * wiederverwendet werden. Folgt dem DRY-Prinzip (Don't Repeat Yourself).
+ * Shared array operations reused in multiple places in the library.
+ * Follows the DRY principle (Don't Repeat Yourself).
  *
  * @module utils/array-helpers
  * @author ThreadTS Universal Team
  */
 
 /**
- * Fisher-Yates (Knuth) Shuffle Algorithmus.
+ * Fisher-Yates (Knuth) shuffle algorithm.
  *
- * Mischt ein Array in-place mit gleichmäßiger Zufallsverteilung.
- * Zeit-Komplexität: O(n), Speicher-Komplexität: O(1)
+ * Shuffles an array in-place with a uniform random distribution.
+ * Time complexity: O(n), space complexity: O(1)
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das zu mischende Array (wird modifiziert)
- * @returns Das gleiche Array, gemischt
+ * @template T - Array element type
+ * @param array - Array to shuffle (mutated)
+ * @returns The same array, shuffled
  *
  * @example
  * ```typescript
  * const arr = [1, 2, 3, 4, 5];
  * fisherYatesShuffle(arr);
- * console.log(arr); // z.B. [3, 1, 5, 2, 4]
+ * console.log(arr); // e.g. [3, 1, 5, 2, 4]
  * ```
  */
 export function fisherYatesShuffle<T>(array: T[]): T[] {
@@ -34,21 +34,21 @@ export function fisherYatesShuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Erstellt eine gemischte Kopie eines Arrays.
+ * Creates a shuffled copy of an array.
  *
- * Im Gegensatz zu {@link fisherYatesShuffle} modifiziert diese Funktion
- * das Original-Array nicht.
+ * Unlike {@link fisherYatesShuffle}, this function does not mutate the
+ * original array.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das zu mischende Array (wird nicht modifiziert)
- * @returns Ein neues, gemischtes Array
+ * @template T - Array element type
+ * @param array - Array to shuffle (not mutated)
+ * @returns A new, shuffled array
  *
  * @example
  * ```typescript
  * const arr = [1, 2, 3, 4, 5];
  * const shuffled = shuffleCopy(arr);
- * console.log(arr);      // [1, 2, 3, 4, 5] - unverändert
- * console.log(shuffled); // z.B. [3, 1, 5, 2, 4]
+ * console.log(arr);      // [1, 2, 3, 4, 5] - unchanged
+ * console.log(shuffled); // e.g. [3, 1, 5, 2, 4]
  * ```
  */
 export function shuffleCopy<T>(array: T[]): T[] {
@@ -56,21 +56,21 @@ export function shuffleCopy<T>(array: T[]): T[] {
 }
 
 /**
- * Nimmt eine zufällige Stichprobe von n Elementen aus einem Array.
+ * Takes a random sample of n elements from an array.
  *
- * Verwendet Fisher-Yates Shuffle für effiziente Zufallsauswahl.
- * Gibt höchstens array.length Elemente zurück.
+ * Uses Fisher-Yates shuffle for efficient random selection.
+ * Returns at most array.length elements.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das Array, aus dem Stichproben genommen werden
- * @param count - Anzahl der zu entnehmenden Elemente
- * @returns Array mit zufällig ausgewählten Elementen
+ * @template T - Array element type
+ * @param array - Array to sample from
+ * @param count - Number of elements to sample
+ * @returns Array of randomly selected elements
  *
  * @example
  * ```typescript
  * const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
  * const sample = randomSample(arr, 3);
- * console.log(sample); // z.B. [7, 2, 9]
+ * console.log(sample); // e.g. [7, 2, 9]
  * ```
  */
 export function randomSample<T>(array: T[], count: number): T[] {
@@ -82,12 +82,12 @@ export function randomSample<T>(array: T[], count: number): T[] {
 }
 
 /**
- * Teilt ein Array in Chunks (Teilarrays) der angegebenen Größe.
+ * Splits an array into chunks (sub-arrays) of a given size.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das zu teilende Array
- * @param size - Größe jedes Chunks (muss > 0 sein)
- * @returns Array von Chunks
+ * @template T - Array element type
+ * @param array - Array to split
+ * @param size - Size of each chunk (must be > 0)
+ * @returns Array of chunks
  *
  * @example
  * ```typescript
@@ -108,13 +108,13 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
 }
 
 /**
- * Erstellt gleitende Fenster über ein Array.
+ * Creates sliding windows over an array.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das Array, über das Fenster erstellt werden
- * @param size - Größe jedes Fensters
- * @param step - Schrittweite zwischen Fenstern (Standard: 1)
- * @returns Array von Fenstern
+ * @template T - Array element type
+ * @param array - Array to create windows over
+ * @param size - Window size
+ * @param step - Step between windows (default: 1)
+ * @returns Array of windows
  *
  * @example
  * ```typescript
@@ -138,12 +138,12 @@ export function slidingWindow<T>(array: T[], size: number, step = 1): T[][] {
 }
 
 /**
- * Interleaved (verschränkt) zwei Arrays.
+ * Interleaves (weaves) two arrays.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array1 - Erstes Array
- * @param array2 - Zweites Array
- * @returns Verschränktes Array
+ * @template T - Array element type
+ * @param array1 - First array
+ * @param array2 - Second array
+ * @returns Interleaved array
  *
  * @example
  * ```typescript
@@ -163,15 +163,15 @@ export function interleaveArrays<T>(array1: T[], array2: T[]): T[] {
 }
 
 /**
- * Rotiert ein Array um n Positionen.
+ * Rotates an array by n positions.
  *
- * Positive n rotiert nach rechts (Ende -> Anfang),
- * negative n rotiert nach links (Anfang -> Ende).
+ * Positive n rotates right (end -> start),
+ * negative n rotates left (start -> end).
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das zu rotierende Array
- * @param positions - Anzahl der Positionen (positiv = rechts, negativ = links)
- * @returns Neues rotiertes Array
+ * @template T - Array element type
+ * @param array - Array to rotate
+ * @param positions - Positions to rotate (positive = right, negative = left)
+ * @returns New rotated array
  *
  * @example
  * ```typescript
@@ -189,13 +189,13 @@ export function rotateArray<T>(array: T[], positions: number): T[] {
 }
 
 /**
- * Findet eindeutige Elemente basierend auf einer Schlüsselfunktion.
+ * Finds unique elements based on a key function.
  *
- * @template T - Der Typ der Array-Elemente
- * @template K - Der Typ des Schlüssels
- * @param array - Das zu durchsuchende Array
- * @param keyFn - Funktion zur Extraktion des Vergleichsschlüssels
- * @returns Array mit eindeutigen Elementen (erstes Vorkommen wird behalten)
+ * @template T - Array element type
+ * @template K - Key type
+ * @param array - Array to scan
+ * @param keyFn - Function that extracts the comparison key
+ * @returns Array of unique elements (keeps the first occurrence)
  *
  * @example
  * ```typescript
@@ -222,12 +222,12 @@ export function uniqueBy<T, K>(array: T[], keyFn: (item: T) => K): T[] {
 }
 
 /**
- * Findet eindeutige Elemente mit JSON-Stringifizierung als Schlüssel.
+ * Finds unique elements using JSON stringification as the key.
  *
- * @template T - Der Typ der Array-Elemente
- * @param array - Das zu durchsuchende Array
- * @param keyFn - Optionale Funktion zur Extraktion des zu stringifizierenden Werts
- * @returns Array mit eindeutigen Elementen
+ * @template T - Array element type
+ * @param array - Array to scan
+ * @param keyFn - Optional function to extract the value to stringify
+ * @returns Array of unique elements
  */
 export function uniqueByJson<T>(array: T[], keyFn?: (item: T) => unknown): T[] {
   const seen = new Set<string>();

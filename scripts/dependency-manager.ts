@@ -34,13 +34,13 @@ class DependencyManager {
   }
 
   /**
-   * Scannt alle Dependencies auf Updates
+   * Scans all dependencies for available updates
    */
   async scanDependencies(): Promise<DependencyInfo[]> {
     console.log('🔍 Scanning dependencies for updates...');
 
     try {
-      // npm outdated für Update-Info
+      // npm outdated provides update information
       const outdated = execSync('npm outdated --json', {
         cwd: this.projectRoot,
         encoding: 'utf8',
@@ -56,7 +56,7 @@ class DependencyManager {
           latest: (info as any).latest,
           wanted: (info as any).wanted,
           location: (info as any).location || 'direct',
-          security: 'safe', // Wird durch Security-Scan aktualisiert
+          security: 'safe', // Updated by the security scan
         });
       }
 
@@ -90,7 +90,7 @@ class DependencyManager {
   }
 
   /**
-   * Führt Security-Audit durch
+   * Runs a security audit
    */
   async performSecurityAudit(
     dependencies: DependencyInfo[]
@@ -106,7 +106,7 @@ class DependencyManager {
       const auditData = JSON.parse(auditResult);
       const vulnerabilities = auditData.vulnerabilities || {};
 
-      // Security-Status für Dependencies setzen
+      // Apply security status to dependencies
       return dependencies.map((dep) => {
         if (vulnerabilities[dep.name]) {
           const vuln = vulnerabilities[dep.name];
@@ -125,7 +125,7 @@ class DependencyManager {
   }
 
   /**
-   * Erstellt Update-Empfehlung
+   * Generates an update recommendation
    */
   generateRecommendation(
     dependencies: DependencyInfo[]
@@ -151,7 +151,7 @@ class DependencyManager {
   }
 
   /**
-   * Führt automatische Updates durch (nur sichere)
+   * Performs automatic updates (safe updates only)
    */
   async performAutomaticUpdates(
     dependencies: DependencyInfo[]
@@ -179,11 +179,11 @@ class DependencyManager {
   }
 
   private isSafeUpdate(dep: DependencyInfo): boolean {
-    // Nur Patch- und Minor-Updates automatisch durchführen
+    // Only perform patch and minor updates automatically
     const currentParts = dep.current.split('.').map(Number);
     const wantedParts = dep.wanted.split('.').map(Number);
 
-    // Major-Update = Breaking Change
+    // Major update = breaking change
     if (wantedParts[0] > currentParts[0]) {
       return false;
     }
@@ -192,7 +192,7 @@ class DependencyManager {
   }
 
   /**
-   * Erstellt Update-Report
+   * Creates an update report
    */
   async generateReport(): Promise<UpdateReport> {
     const dependencies = await this.scanDependencies();
@@ -208,7 +208,7 @@ class DependencyManager {
       recommendation,
     };
 
-    // Report speichern
+    // Persist report
     const reportPath = path.join(
       this.projectRoot,
       'reports',
@@ -221,7 +221,7 @@ class DependencyManager {
   }
 
   /**
-   * Zeigt Report-Zusammenfassung
+   * Displays a report summary
    */
   displayReport(report: UpdateReport): void {
     console.log('\n📋 Dependency Update Report');
@@ -278,11 +278,11 @@ async function main() {
   const manager = new DependencyManager();
 
   try {
-    // Report generieren
+    // Generate report
     const report = await manager.generateReport();
     manager.displayReport(report);
 
-    // Automatische Updates bei sicherer Empfehlung
+    // Automatic updates when recommendation is safe
     if (report.recommendation === 'proceed') {
       const updated = await manager.performAutomaticUpdates(report.updates);
 
@@ -290,7 +290,7 @@ async function main() {
         console.log(`\n✅ Successfully updated ${updated.length} packages:`);
         updated.forEach((pkg) => console.log(`  - ${pkg}`));
 
-        // Tests nach Update ausführen
+        // Run tests after updates
         console.log('\n🧪 Running tests after updates...');
         try {
           execSync('npm test', { cwd: process.cwd(), stdio: 'inherit' });

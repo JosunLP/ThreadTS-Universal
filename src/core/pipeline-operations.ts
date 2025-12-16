@@ -123,7 +123,7 @@ export async function executeIntermediateOperation(
     }
 
     case 'unique': {
-      // Verwendet JSON-Stringifizierung für Vergleich (tiefe Gleichheit)
+      // Uses JSON stringification for comparison (deep equality)
       return uniqueByJson(
         data,
         op.fn as ((item: unknown) => unknown) | undefined
@@ -131,12 +131,12 @@ export async function executeIntermediateOperation(
     }
 
     case 'distinct': {
-      // Verwendet strikte Gleichheit oder benutzerdefinierte Schlüsselfunktion
-      // Im Gegensatz zu 'unique' wird hier keine JSON-Serialisierung verwendet
+      // Uses strict equality or a custom key function
+      // Unlike 'unique', no JSON serialization is used here
       if (op.fn) {
         return uniqueBy(data, op.fn as (item: unknown) => unknown);
       }
-      // Ohne Schlüsselfunktion: verwende Set für primitive Werte
+      // Without a key function: use Set for primitive values
       return [...new Set(data)];
     }
 
@@ -196,12 +196,12 @@ export async function executeIntermediateOperation(
     }
 
     case 'shuffle': {
-      // Fisher-Yates shuffle - verwendet Utility-Funktion
+      // Fisher-Yates shuffle - uses utility function
       return shuffleCopy(data);
     }
 
     case 'sample': {
-      // Random sample of n elements - verwendet Utility-Funktion
+      // Random sample of n elements - uses utility function
       return randomSample(data, op.count ?? 1);
     }
 
@@ -250,7 +250,7 @@ export async function executeIntermediateOperation(
     }
 
     case 'rotate': {
-      // Rotate array by n positions - verwendet Utility-Funktion
+      // Rotate array by n positions - uses utility function
       return rotateArray(data, op.count ?? 0);
     }
 

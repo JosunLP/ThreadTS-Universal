@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Memory Leak Detection Tests
- * Automatisierte Überwachung auf Memory-Leaks im Worker-Pool
+ * Automated monitoring for memory leaks in the worker pool
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -13,7 +13,7 @@ describe('Memory Leak Detection', () => {
   beforeEach(async () => {
     threadts = ThreadTS.getInstance();
 
-    // Mehrfache Garbage Collection für stabilere Baseline in CI
+    // Multiple garbage-collection passes for a more stable baseline in CI
     if (typeof global !== 'undefined' && (global as any).gc) {
       for (let i = 0; i < 3; i++) {
         (global as any).gc();
@@ -21,7 +21,7 @@ describe('Memory Leak Detection', () => {
       }
     }
 
-    // Baseline Memory-Usage ermitteln
+    // Determine baseline memory usage
     if (typeof process !== 'undefined' && process.memoryUsage) {
       initialMemory = process.memoryUsage().heapUsed;
     } else if (
@@ -35,17 +35,17 @@ describe('Memory Leak Detection', () => {
   });
 
   afterEach(async () => {
-    // Cleanup nach jedem Test - sichere Terminierung
+    // Cleanup after each test - safe termination
     try {
       if (threadts) {
         await threadts.terminate();
       }
     } catch (error) {
-      // Ignoriere Fehler wenn bereits terminiert
+      // Ignore errors if already terminated
       console.log('ThreadTS already terminated or cleanup error:', error);
     }
 
-    // Force Garbage Collection wenn verfügbar
+    // Force garbage collection if available
     if (typeof global !== 'undefined' && (global as any).gc) {
       (global as any).gc();
     }
@@ -54,24 +54,24 @@ describe('Memory Leak Detection', () => {
   it('should not leak memory after multiple worker executions', async () => {
     const iterations = 100;
 
-    // Mehrfache Worker-Ausführung
+    // Execute workers multiple times
     for (let i = 0; i < iterations; i++) {
       await threadts.run((x: number) => x * 2, i);
 
-      // Periodic Garbage Collection
+      // Periodic garbage collection
       if (i % 10 === 0 && typeof global !== 'undefined' && (global as any).gc) {
         (global as any).gc();
       }
     }
 
-    // Finale Garbage Collection vor Memory-Check
+    // Final garbage collection before the memory check
     if (typeof global !== 'undefined' && (global as any).gc) {
       (global as any).gc();
       await new Promise((resolve) => setTimeout(resolve, 50));
       (global as any).gc();
     }
 
-    // Memory-Usage nach Verarbeitung prüfen
+    // Check memory usage after processing
     let finalMemory: number;
     if (typeof process !== 'undefined' && process.memoryUsage) {
       finalMemory = process.memoryUsage().heapUsed;
@@ -84,9 +84,9 @@ describe('Memory Leak Detection', () => {
       finalMemory = 0;
     }
 
-    // Memory-Increase sollte minimal sein - erhöhte Toleranz für CI
+    // Memory increase should be minimal - increased tolerance for CI environments
     const memoryIncrease = finalMemory - initialMemory;
-    const maxAllowedIncrease = 10 * 1024 * 1024; // 10MB statt 5MB für CI-Umgebungen
+    const maxAllowedIncrease = 10 * 1024 * 1024; // 10MB instead of 5MB for CI environments
 
     console.log(
       `Memory increase (100 iterations): ${Math.round(memoryIncrease / 1024 / 1024)}MB (max allowed: ${Math.round(maxAllowedIncrease / 1024 / 1024)}MB)`
@@ -96,73 +96,73 @@ describe('Memory Leak Detection', () => {
   });
 
   it('should clean up worker pool properly', async () => {
-    // Worker-Pool mit mehreren Aufgaben belasten
+    // Put the worker pool under load with multiple tasks
     const tasks = Array.from({ length: 50 }, (_, i) =>
       threadts.run((x: number) => x ** 2, i)
     );
 
     await Promise.all(tasks);
 
-    // Längere Wartezeit für Worker-Cleanup (asynchrone Operationen)
+    // Longer wait time for worker cleanup (async operations)
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Pool-Statistiken prüfen
+    // Check pool statistics
     const stats = threadts.getStats();
 
-    // Da Node.js möglicherweise worker-threads nicht unterstützt,
-    // prüfen wir auf die Gesamtzahl der Worker
+    // Since Node.js may not support worker_threads in some environments,
+    // we check the total worker count
     const totalWorkers = stats.activeWorkers + stats.idleWorkers;
     expect(totalWorkers).toBeGreaterThanOrEqual(0);
 
-    // In einer echten Worker-Umgebung sollten aktive Worker 0 sein
-    // In einer Fallback-Umgebung können Worker-Statistiken anders sein
+    // In a real worker environment, active workers should be 0.
+    // In a fallback environment, worker statistics can differ.
     if (totalWorkers > 0) {
-      expect(stats.activeWorkers).toBeLessThanOrEqual(1); // Maximal 1 aktiver Worker
+      expect(stats.activeWorkers).toBeLessThanOrEqual(1); // At most 1 active worker
     }
   });
 
   it('should handle worker termination gracefully', async () => {
-    // Worker starten
+    // Start workers
     const task1 = threadts.run((x: number) => x * 2, 10);
     const task2 = threadts.run((x: number) => x * 3, 20);
 
-    // Während Ausführung terminieren
+    // Terminate while execution is in progress
     const terminatePromise = threadts.terminate();
 
-    // Tasks sollten graceful abgebrochen werden (resolve statt reject)
+    // Tasks should be cancelled gracefully (resolve instead of reject)
     const results = await Promise.allSettled([task1, task2, terminatePromise]);
 
-    // Alle Promises sollten erfolgreich abgeschlossen werden
+    // All promises should complete successfully
     expect(results.every((result) => result.status === 'fulfilled')).toBe(true);
   });
 
   it('should prevent circular reference memory leaks', async () => {
-    // Objekt mit zirkulären Referenzen erstellen
+    // Create an object with circular references
     const circularObj: any = { name: 'test' };
     circularObj.self = circularObj;
 
-    // Worker sollte mit Serialization-Error fehlschlagen
+    // The worker should fail with a serialization error
     await expect(
       threadts.run((obj: any) => obj.name, circularObj)
     ).rejects.toThrow();
 
-    // Memory sollte nicht geleakt sein
+    // Memory should not be leaked
     const stats = threadts.getStats();
     expect(stats.activeWorkers).toBe(0);
   });
 
-  // Memory-Test mit CI-spezifischen Anpassungen
+  // Memory test with CI-specific adjustments
   it('should handle large data transfers without excessive memory buildup', async () => {
-    // Dynamische Parameter basierend auf Umgebung
+    // Dynamic parameters based on the environment
     const isCI =
       process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-    const arraySize = isCI ? 25_000 : 100_000; // Kleinere Arrays in CI
-    const iterations = isCI ? 2 : 5; // Weniger Iterationen in CI
-    const delayMs = isCI ? 200 : 100; // Mehr Zeit für GC in CI
+    const arraySize = isCI ? 25_000 : 100_000; // Smaller arrays in CI
+    const iterations = isCI ? 2 : 5; // Fewer iterations in CI
+    const delayMs = isCI ? 200 : 100; // More time for GC in CI
 
     const largeArray = new Array(arraySize).fill(0).map((_, i) => i);
 
-    // Worker-Pool für bessere Kontrolle explizit erstellen
+    // Create the worker pool explicitly for better control
     const testThreadTS = ThreadTS.getInstance();
 
     for (let i = 0; i < iterations; i++) {
@@ -171,22 +171,22 @@ describe('Memory Leak Detection', () => {
         largeArray
       );
 
-      // Explizite Garbage Collection nach jeder Iteration
+      // Explicit garbage collection after each iteration
       if (typeof global !== 'undefined' && (global as any).gc) {
         (global as any).gc();
       }
 
-      // Erweiterte Pause für Worker-Cleanup
+      // Extended pause for worker cleanup
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
-    // Worker-Pool terminieren
+    // Terminate worker pool
     await testThreadTS.terminate();
 
-    // Ausreichend Zeit für Worker-Cleanup
+    // Give enough time for worker cleanup
     await new Promise((resolve) => setTimeout(resolve, isCI ? 1000 : 500));
 
-    // Mehrfache Garbage Collection vor Memory-Check
+    // Multiple garbage-collection passes before the memory check
     if (typeof global !== 'undefined' && (global as any).gc) {
       const gcRounds = isCI ? 8 : 5;
       for (let i = 0; i < gcRounds; i++) {
@@ -195,7 +195,7 @@ describe('Memory Leak Detection', () => {
       }
     }
 
-    // Memory-Usage messen
+    // Measure memory usage
     let currentMemory: number;
     if (typeof process !== 'undefined' && process.memoryUsage) {
       currentMemory = process.memoryUsage().heapUsed;
@@ -210,8 +210,8 @@ describe('Memory Leak Detection', () => {
 
     const memoryIncrease = currentMemory - initialMemory;
 
-    // Adaptive Toleranz basierend auf Umgebung
-    const maxAllowedIncrease = isCI ? 400 * 1024 * 1024 : 75 * 1024 * 1024; // 400MB in CI, 75MB lokal
+    // Adaptive tolerance based on environment
+    const maxAllowedIncrease = isCI ? 400 * 1024 * 1024 : 75 * 1024 * 1024; // 400MB in CI, 75MB locally
 
     console.log(
       `Memory increase: ${Math.round(memoryIncrease / 1024 / 1024)}MB (max allowed: ${Math.round(maxAllowedIncrease / 1024 / 1024)}MB) [CI: ${isCI}, Array size: ${arraySize.toLocaleString()}, Iterations: ${iterations}]`

@@ -15,11 +15,11 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Aktiviere Web Workers falls möglich
+        // Enable Web Workers where possible
         launchOptions: {
-          // Die folgenden Flags deaktivieren Browser-Sicherheitsfeatures und
-          // sind ausschließlich für Playwright-Tests gedacht, damit Worker-
-          // basierte Szenarien ohne CORS-/Mischinhalts-Restriktionen laufen.
+          // The following flags disable browser security features and are
+          // intended ONLY for Playwright tests so worker-based scenarios can run
+          // without CORS / mixed-content restrictions.
           args: [
             '--enable-web-workers',
             '--allow-running-insecure-content',
@@ -40,6 +40,6 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
   ],
-  // Global setup entfernt da es Browser-spezifische Probleme in CI/CD verursacht
-  // Capability-Detection erfolgt jetzt direkt in den Tests
+  // Global setup removed because it caused browser-specific issues in CI/CD.
+  // Capability detection is now done directly in the tests.
 });

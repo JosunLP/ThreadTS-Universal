@@ -1,12 +1,12 @@
 /**
  * ThreadTS Universal - Performance Tests
- * Lightweight Performance-Tests für die Kernfunktionalität
+ * Lightweight performance tests for core functionality
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import threadts, { ThreadTS } from '../src';
 
-// Mock für Test-Umgebung
+// Mock for test environment
 vi.mock('../src/utils/platform', async () => {
   const actual = await vi.importActual('../src/utils/platform');
   return {
@@ -33,10 +33,10 @@ describe('🚀 Performance Tests', () => {
     Reflect.set(ThreadTS, '_instance', null);
   });
 
-  test('sollte minimalen Overhead haben', async () => {
+  test('should have minimal overhead', async () => {
     const startTime = Date.now();
 
-    // 10 einfache Operationen
+    // 10 simple operations
     const promises = Array.from({ length: 10 }, (_, i) =>
       threadts.run((x: number) => x * 2, i)
     );
@@ -46,10 +46,10 @@ describe('🚀 Performance Tests', () => {
 
     expect(results).toHaveLength(10);
     expect(results).toEqual(Array.from({ length: 10 }, (_, i) => i * 2));
-    expect(duration).toBeLessThan(1000); // Sollte unter 1 Sekunde sein
+    expect(duration).toBeLessThan(1000); // Should be under 1 second
   });
 
-  test('sollte Batch-Verarbeitung effizient handhaben', async () => {
+  test('should handle batch processing efficiently', async () => {
     const startTime = Date.now();
 
     const largeBatch = Array.from({ length: 50 }, (_, i) => ({
@@ -62,25 +62,25 @@ describe('🚀 Performance Tests', () => {
 
     expect(results).toHaveLength(50);
     expect(results.every((task) => task.success)).toBe(true);
-    expect(duration).toBeLessThan(2000); // Batch sollte effizient sein
+    expect(duration).toBeLessThan(2000); // Batch should be efficient
   });
 
-  test('sollte Pool-Management performant sein', async () => {
+  test('should keep pool management fast', async () => {
     const instance = ThreadTS.getInstance();
 
-    // Pool-Statistiken sollten sofort verfügbar sein
+    // Pool stats should be available immediately
     const startTime = Date.now();
     const stats = instance.getStats();
     const duration = Date.now() - startTime;
 
     expect(stats).toBeDefined();
-    expect(duration).toBeLessThan(10); // Stats sollten sehr schnell sein
+    expect(duration).toBeLessThan(10); // Stats should be very fast
   });
 
-  test('sollte Memory-Management korrekt funktionieren', async () => {
+  test('should manage memory correctly', async () => {
     const instance = ThreadTS.getInstance();
 
-    // Viele kleine Tasks ausführen
+    // Run many small tasks
     for (let i = 0; i < 20; i++) {
       await instance.run((x: number) => x, i);
     }
@@ -88,7 +88,7 @@ describe('🚀 Performance Tests', () => {
     const stats = instance.getStats();
     expect(stats.completedTasks).toBeGreaterThanOrEqual(0);
 
-    // Cleanup sollte ohne Fehler funktionieren
+    // Cleanup should work without errors
     await instance.terminate();
     expect(true).toBe(true);
   });

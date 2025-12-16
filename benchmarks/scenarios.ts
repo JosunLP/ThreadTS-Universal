@@ -1,6 +1,6 @@
 /**
  * ThreadTS Universal - Real-World Scenarios Benchmark
- * Praktische Anwendungsfälle für Performance-Validierung
+ * Practical use cases for performance validation
  */
 
 import { ThreadTS } from '../src/core/threadts';
@@ -46,11 +46,11 @@ async function imageProcessingScenario() {
 
   const start = performance.now();
 
-  // Simuliere Bildverarbeitung (Brightness Adjustment) mit ThreadTS
+  // Simulate image processing (brightness adjustment) with ThreadTS
   const processedData = await threadts.map(
     imageData,
     (pixel: number) => {
-      // Simuliere komplexe Pixelverarbeitung
+      // Simulate complex pixel processing
       const brightness = 1.2;
       const adjusted = Math.min(255, pixel * brightness);
       return Math.floor(adjusted);
@@ -85,7 +85,7 @@ async function dataAnalysisScenario() {
 
   const start = performance.now();
 
-  // Direkte Datenanalyse ohne Worker
+  // Direct data analysis without workers
   const analysis = {
     totalSales: Math.round(
       salesData.reduce((sum, item) => sum + item.amount, 0)
@@ -103,7 +103,7 @@ async function dataAnalysisScenario() {
     recordCount: salesData.length,
   };
 
-  // Runde die Category-Totals
+  // Round the category totals
   Object.keys(analysis.categoryTotals).forEach((key) => {
     analysis.categoryTotals[key] = Math.round(analysis.categoryTotals[key]);
   });
@@ -275,5 +275,5 @@ async function pipelineScenario() {
   console.log(`   Chunks created: ${complexResult.length}`);
 }
 
-// Script-Ausführung
+// Script execution
 main().catch(console.error);
