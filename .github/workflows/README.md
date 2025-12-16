@@ -2,7 +2,7 @@
 
 This directory contains the comprehensive CI/CD pipeline for the ThreadTS Universal project.
 
-## 📋 **Workflow Overview**
+## 📋 **Workflow overview**
 
 ### **1. 🚀 CI/CD Pipeline** (`ci-cd.yml`)
 
@@ -71,9 +71,9 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
   - Dry Run Simulation
   - Post-Release Notifications
 
-## 🔧 **Setup and Configuration**
+## 🔧 **Setup and configuration**
 
-### **Required GitHub Secrets**
+### **Required GitHub secrets**
 
 ```bash
 # NPM Publishing
@@ -84,7 +84,7 @@ SNYK_TOKEN=<your-snyk-token>
 CODECOV_TOKEN=<your-codecov-token>
 ```
 
-### **Branch Protection Rules**
+### **Branch protection rules**
 
 ```yaml
 main:
@@ -98,7 +98,7 @@ main:
   require_code_owner_reviews: true
 ```
 
-## 📊 **Workflow Matrix**
+## 📊 **Workflow matrix**
 
 | Workflow      | Trigger | Duration | Artifacts          | Environment |
 | ------------- | ------- | -------- | ------------------ | ----------- |
@@ -108,9 +108,9 @@ main:
 | Compatibility | Weekly  | ~20min   | Platform Reports   | testing     |
 | Release       | Manual  | ~8min    | Packages, Releases | production  |
 
-## 🎯 **Best Practices**
+## 🎯 **Best practices**
 
-### **Workflow Optimization**
+### **Workflow optimization**
 
 - Parallelize where possible
 - Artifact caching for faster builds
@@ -131,16 +131,16 @@ main:
 - Comprehensive logging
 - Trend analysis
 
-## 📈 **Metrics and Reporting**
+## 📈 **Metrics and reporting**
 
-### **Automated Reports**
+### **Automated reports**
 
 - **Code Coverage:** Codecov Integration
 - **Performance Trends:** Benchmark History
 - **Security Status:** Vulnerability Dashboard
 - **Compatibility Matrix:** Platform Support Overview
 
-### **Badge Integration:**
+### **Badge integration:**
 
 ```markdown
 ![CI/CD](https://github.com/JosunLP/ThreadTS-Universal/workflows/CI%2FCD%20Pipeline/badge.svg)
@@ -150,7 +150,7 @@ main:
 
 ## 🚨 **Troubleshooting**
 
-### **Common Issues**
+### **Common issues**
 
 #### Workflow failures
 
@@ -170,7 +170,7 @@ main:
 - Version conflicts
 - Branch protection rules
 
-### **Debug Commands**
+### **Debug commands**
 
 ```bash
 # Local workflow simulation
@@ -186,9 +186,9 @@ npm run benchmark:all
 npm run test:all
 ```
 
-## 🔄 **Maintenance and Updates**
+## 🔄 **Maintenance and updates**
 
-### **Monthly Tasks**
+### **Monthly tasks**
 
 - [ ] Update GitHub Actions versions
 - [ ] Dependency security review
