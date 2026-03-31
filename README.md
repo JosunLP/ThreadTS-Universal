@@ -1557,4 +1557,4 @@ const any = await threadts.some(array, test);
 
 **Make parallel computing as simple as writing synchronous code. Experience the future of JavaScript parallelism with ThreadTS Universal.**
 
-[![Star on GitHub](https://img.shields.io/github/stars/threadts/universal?style=social)](https://github.com/JosunLP/ThreadTS-Universal)
+[![Star on GitHub](https://img.shields.io/github/stars/JosunLP/ThreadTS-Universal?style=social)](https://github.com/JosunLP/ThreadTS-Universal)
