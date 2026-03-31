@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 
 /**
  * ThreadTS Universal - Automated Dependencies Update Check
@@ -40,48 +40,18 @@ class DependencyManager {
     console.log('🔍 Scanning dependencies for updates...');
 
     try {
-      // npm outdated provides update information
-      const outdated = execSync('npm outdated --json', {
+      const outdated = execSync('bun outdated --json', {
         cwd: this.projectRoot,
         encoding: 'utf8',
       });
 
-      const outdatedData = JSON.parse(outdated);
-      const dependencies: DependencyInfo[] = [];
-
-      for (const [name, info] of Object.entries(outdatedData as any)) {
-        dependencies.push({
-          name,
-          current: (info as any).current,
-          latest: (info as any).latest,
-          wanted: (info as any).wanted,
-          location: (info as any).location || 'direct',
-          security: 'safe', // Updated by the security scan
-        });
-      }
-
-      return dependencies;
+      return this.parseOutdatedOutput(outdated);
     } catch (error: any) {
-      // npm outdated returns exit code 1 when updates are available
       if (error.stdout) {
         try {
-          const outdatedData = JSON.parse(error.stdout);
-          const dependencies: DependencyInfo[] = [];
-
-          for (const [name, info] of Object.entries(outdatedData as any)) {
-            dependencies.push({
-              name,
-              current: (info as any).current,
-              latest: (info as any).latest,
-              wanted: (info as any).wanted,
-              location: (info as any).location || 'direct',
-              security: 'safe',
-            });
-          }
-
-          return dependencies;
+          return this.parseOutdatedOutput(error.stdout);
         } catch (parseError) {
-          console.warn('⚠️ Could not parse npm outdated output');
+          console.warn('⚠️ Could not parse bun outdated output');
           return [];
         }
       }
@@ -98,24 +68,23 @@ class DependencyManager {
     console.log('🛡️ Performing security audit...');
 
     try {
-      const auditResult = execSync('npm audit --json', {
+      const auditResult = execSync('bun audit --json', {
         cwd: this.projectRoot,
         encoding: 'utf8',
       });
 
       const auditData = JSON.parse(auditResult);
-      const vulnerabilities = auditData.vulnerabilities || {};
 
       // Apply security status to dependencies
       return dependencies.map((dep) => {
-        if (vulnerabilities[dep.name]) {
-          const vuln = vulnerabilities[dep.name];
-          if (vuln.severity === 'critical' || vuln.severity === 'high') {
-            dep.security = 'critical';
-          } else if (vuln.severity === 'moderate' || vuln.severity === 'low') {
-            dep.security = 'warning';
-          }
+        const severity = this.getAuditSeverity(auditData, dep.name);
+
+        if (severity === 'critical' || severity === 'high') {
+          dep.security = 'critical';
+        } else if (severity === 'moderate' || severity === 'low') {
+          dep.security = 'warning';
         }
+
         return dep;
       });
     } catch (error) {
@@ -164,7 +133,7 @@ class DependencyManager {
           console.log(
             `📦 Updating ${dep.name}: ${dep.current} → ${dep.wanted}`
           );
-          execSync(`npm update ${dep.name}`, {
+          execSync(`bun update --latest ${dep.name}`, {
             cwd: this.projectRoot,
             stdio: 'pipe',
           });
@@ -189,6 +158,73 @@ class DependencyManager {
     }
 
     return true;
+  }
+
+  private parseOutdatedOutput(output: string): DependencyInfo[] {
+    const parsed = JSON.parse(output);
+
+    if (Array.isArray(parsed)) {
+      return parsed.map((entry: any) => ({
+        name: entry.name,
+        current: entry.current,
+        latest: entry.latest,
+        wanted: entry.wanted || entry.latest,
+        location: entry.location || 'direct',
+        security: 'safe',
+      }));
+    }
+
+    return Object.entries(parsed as Record<string, any>).map(
+      ([name, info]) => ({
+        name,
+        current: info.current,
+        latest: info.latest,
+        wanted: info.wanted || info.latest,
+        location: info.location || 'direct',
+        security: 'safe',
+      })
+    );
+  }
+
+  private getAuditSeverity(
+    auditData: any,
+    dependencyName: string
+  ): string | undefined {
+    const directMatch = auditData?.vulnerabilities?.[dependencyName];
+    if (directMatch?.severity) {
+      return directMatch.severity;
+    }
+
+    const advisories = auditData?.advisories;
+    if (advisories && typeof advisories === 'object') {
+      for (const advisory of Object.values(advisories) as any[]) {
+        if (advisory?.module_name === dependencyName && advisory?.severity) {
+          return advisory.severity;
+        }
+      }
+    }
+
+    const packages = auditData?.packages;
+    if (packages && typeof packages === 'object') {
+      for (const pkg of Object.values(packages) as any[]) {
+        const issues = pkg?.issues || pkg?.vulnerabilities;
+        if (!issues) {
+          continue;
+        }
+
+        const normalizedIssues = Array.isArray(issues)
+          ? issues
+          : Object.values(issues as Record<string, any>);
+
+        for (const issue of normalizedIssues) {
+          if (issue?.name === dependencyName && issue?.severity) {
+            return issue.severity;
+          }
+        }
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -293,11 +329,22 @@ async function main() {
         // Run tests after updates
         console.log('\n🧪 Running tests after updates...');
         try {
-          execSync('npm test', { cwd: process.cwd(), stdio: 'inherit' });
+          execSync('bun run test', { cwd: process.cwd(), stdio: 'inherit' });
           console.log('✅ All tests passed after updates');
         } catch (error) {
           console.log('❌ Tests failed after updates - reverting...');
-          execSync('git checkout -- package-lock.json', { cwd: process.cwd() });
+          const revertTargets = ['package.json', 'bun.lock'].filter((file) =>
+            fs.existsSync(path.join(process.cwd(), file))
+          );
+
+          if (fs.existsSync(path.join(process.cwd(), 'bun.lockb'))) {
+            revertTargets.push('bun.lockb');
+          }
+
+          execSync(`git checkout -- ${revertTargets.join(' ')}`, {
+            cwd: process.cwd(),
+            stdio: 'inherit',
+          });
         }
       }
     }
@@ -307,7 +354,7 @@ async function main() {
   }
 }
 
-// CLI execution - directly execute when imported by tsx
+// CLI execution - directly execute when run with Bun
 main().catch(console.error);
 
 export { DependencyManager };

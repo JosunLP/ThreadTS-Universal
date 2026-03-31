@@ -58,6 +58,11 @@ console.log(found); // 4
 ### Installation
 
 ```bash
+bun add threadts-universal
+```
+
+```bash
+# alternativ mit npm
 npm install threadts-universal
 ```
 
@@ -1354,16 +1359,16 @@ console.log('Memory:', getMemoryInfo());
 
 ```bash
 # Run all tests
-npm test
+bun run test
 
 # Browser tests
-npm run test:browser
+bun run test:browser
 
 # Node.js tests
-npm run test:node
+bun run test:node
 
 # Performance benchmarks
-npm run test:performance
+bun run benchmark:all
 ```
 
 ## 🏗️ Project Architecture
@@ -1504,9 +1509,9 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ```bash
 git clone https://github.com/JosunLP/ThreadTS-Universal.git
 cd universal
-npm install
-npm run build
-npm test
+bun install
+bun run build
+bun run test
 ```
 
 ## 📄 License

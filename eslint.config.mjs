@@ -1,5 +1,4 @@
 import eslint from '@eslint/js';
-import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -9,12 +8,9 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'module',
-      globals: {
-        ...globals.node,
-        ...globals.browser,
-      },
     },
     rules: {
+      'no-undef': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',

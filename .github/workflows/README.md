@@ -66,7 +66,7 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
   - Pre-Release Validation
   - Automated Version Bumping
   - Changelog Generation
-  - NPM Publishing
+  - Bun Publishing to npmjs
   - GitHub Release Creation
   - Dry Run Simulation
   - Post-Release Notifications
@@ -76,7 +76,7 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 ### **Required GitHub secrets**
 
 ```bash
-# NPM Publishing
+# npm Registry Publishing
 NPM_TOKEN=<your-npm-token>
 
 # Security Scanning (optional)
@@ -177,13 +177,13 @@ main:
 act -j quality-gate
 
 # Dependency check
-npm run deps:check
+bun run deps:check
 
 # Performance test
-npm run benchmark:all
+bun run benchmark:all
 
 # Platform test
-npm run test:all
+bun run test:all
 ```
 
 ## 🔄 **Maintenance and updates**

@@ -10,6 +10,7 @@ on:
 
 env:
   NODE_VERSION: "24"
+  BUN_VERSION: "1.3.11"
 
 jobs:
   package-test:
@@ -24,13 +25,17 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 📦 Pack Package
         run: npm pack
@@ -40,18 +45,17 @@ jobs:
           # Create temporary directory and test installation
           mkdir -p /tmp/package-test
           cd /tmp/package-test
-          npm init -y
+          bun init -y
           echo "console.log('Dummy-Test erfolgreich');" > test.js
-          npm pkg set scripts.test="node test.js"
-          npm test
-          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
+          node test.js
+          bun add $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test CommonJS import
           echo "const threadts = require('threadts-universal'); console.log('CommonJS import successful:', typeof threadts);" > test-cjs.js
           node test-cjs.js
 
           # Configure package.json for ES modules and test ES import
-          npm pkg set type=module
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.type='module'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
           echo "import threadts from 'threadts-universal'; console.log('ES import successful:', typeof threadts);" > test-esm.mjs
           node test-esm.mjs
 

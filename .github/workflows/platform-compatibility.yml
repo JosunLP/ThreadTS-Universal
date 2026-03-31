@@ -24,7 +24,7 @@ on:
 env:
   NODE_VERSION: "24"
   DENO_VERSION: "v2.5.1"
-  BUN_VERSION: "1.3.3"
+  BUN_VERSION: "1.3.11"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -56,25 +56,29 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 🎭 Install Playwright
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: bunx playwright install --with-deps ${{ matrix.browser }}
 
       - name: 🔍 Verify Playwright Installation
         run: |
           echo "Verifying Playwright browser installation for ${{ matrix.browser }}..."
-          npx playwright --version
+          bunx playwright --version
           echo "✅ Playwright browser ${{ matrix.browser }} is ready"
 
       - name: 🧪 Run Browser Tests
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: bunx playwright test --project=${{ matrix.browser }}
         env:
           PLAYWRIGHT_HTML_REPORT: playwright-report-${{ matrix.browser }}
 
@@ -220,16 +224,20 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: node node_modules/vite/bin/vite.js build
 
       - name: 🧪 Run Node.js Tests
-        run: npm test
+        run: node node_modules/vitest/vitest.mjs run
 
       - name: 🔍 Worker Threads Test
         run: |
@@ -346,12 +354,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies & Build
         run: |
-          npm ci
-          npm run build
+          bun install --frozen-lockfile
+          bun run build
 
       - name: 🧪 Run Deno Tests
         run: |
@@ -483,17 +495,19 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
 
       - name: 📋 Install Dependencies & Build
         run: |
-          npm ci
-          npm run build
+          bun install --frozen-lockfile
+          bun run build
 
       - name: 🧪 Install Dependencies with Bun
         run: |
           echo "Testing Bun package management..."
-          bun install
+          bun install --frozen-lockfile
+
+      - name: 🧪 Run Project Test Suite with Bun
+        run: bun run test
 
       - name: 🧪 Run Bun Tests
         run: |
@@ -665,10 +679,8 @@ jobs:
           | 🌐 Chrome | ✅ | Latest | ✅ Web Workers | Full support |
           | 🌐 Safari | ✅ | Latest | ✅ Web Workers | Full support |
           | 🌐 Firefox | ✅ | Latest | ✅ Web Workers | Full support |
-          | 🟢 Node.js 16 | ✅ | v16.x | ✅ Worker Threads | Minimum version |
-          | 🟢 Node.js 18 | ✅ | v18.x | ✅ Worker Threads | Recommended |
-          | 🟢 Node.js 20 | ✅ | v20.x | ✅ Worker Threads | Latest LTS |
-          | 🟢 Node.js 21 | ✅ | v21.x | ✅ Worker Threads | Current |
+          | 🟢 Node.js 22 | ✅ | v22.x | ✅ Worker Threads | Supported |
+          | 🟢 Node.js 24 | ✅ | v24.x | ✅ Worker Threads | Recommended |
           | 🦕 Deno | ✅ | ${{ env.DENO_VERSION }} | ✅ Web Workers | Secure runtime |
           | 🥟 Bun | ✅ | ${{ env.BUN_VERSION }} | ✅ Workers | High performance |
 
@@ -740,8 +752,8 @@ jobs:
       - name: 📊 Update Compatibility Badge
         run: |
           # Generate compatibility badge
-          TOTAL_PLATFORMS=9
-          SUPPORTED_PLATFORMS=9  # Assuming all tests pass
+          TOTAL_PLATFORMS=7
+          SUPPORTED_PLATFORMS=7  # Assuming all tests pass
 
           PERCENTAGE=$((SUPPORTED_PLATFORMS * 100 / TOTAL_PLATFORMS))
 
@@ -767,7 +779,7 @@ jobs:
 
 # This workflow provides:
 # ✅ Cross-browser testing (Chrome, Safari, Firefox)
-# ✅ Multi-version Node.js testing (16, 18, 20, 21)
+# ✅ Multi-version Node.js testing (22, 24)
 # ✅ Multi-OS testing (Ubuntu, Windows, macOS)
 # ✅ Deno compatibility verification
 # ✅ Bun compatibility verification

@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "10"
+  BUN_VERSION: "1.3.11"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -32,27 +32,31 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 🧹 Lint Code
-        run: npm run lint
+        run: bun run lint
 
       - name: 🎨 Check Code Formatting
-        run: npm run format -- --check
+        run: bun run format:check
 
       - name: 🔒 Security Audit
-        run: npm audit --audit-level=high
+        run: bun audit
         continue-on-error: true
 
       - name: 📊 Generate Bundle Analysis
         run: |
-          npx bundlesize
+          bunx bundlesize
           echo "Bundle size check completed"
 
       - name: 🎯 Quality Assessment
@@ -109,26 +113,30 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: node node_modules/vite/bin/vite.js build
 
       - name: 🧪 Run Unit Tests
-        run: npm test
+        run: node node_modules/vitest/vitest.mjs run
         env:
           CI: true
 
       - name: 🧠 Memory Leak Detection
-        run: npm run test:memory
+        run: node node_modules/vitest/vitest.mjs run tests/memory-leaks.test.ts
         if: matrix.extended
         continue-on-error: true
 
       - name: ⚡ Performance Benchmarks
-        run: npm run benchmark:all
+        run: bun run benchmark:all
         if: matrix.extended
         continue-on-error: true
 
@@ -158,25 +166,29 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 🎭 Install Playwright
-        run: npx playwright install --with-deps
+        run: bunx playwright install --with-deps
 
       - name: 🔍 Verify Playwright Installation
         run: |
           echo "Verifying Playwright browser installation..."
-          npx playwright --version
+          bunx playwright --version
           echo "✅ Playwright browsers are ready"
 
       - name: 🧪 Run Browser Tests
-        run: npm run test:browser
+        run: bun run test:browser
 
       - name: 📸 Upload Browser Test Results
         uses: actions/upload-artifact@v4
@@ -208,13 +220,17 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🛡️ Run Dependency Check
-        run: npm run deps:check
+        run: bun run deps:check
 
       - name: 🔍 CodeQL Analysis
         uses: github/codeql-action/init@v3
@@ -223,7 +239,7 @@ jobs:
           queries: security-extended
 
       - name: 🏗️ Build for Analysis
-        run: npm run build
+        run: bun run build
 
       - name: 📊 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -256,22 +272,26 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 📖 Generate API Documentation
-        run: npm run docs:generate
+        run: bun run docs:generate
 
       - name: 🔍 Validate Examples
         run: |
           echo "Validating code examples in documentation..."
           # Run example validation (if implemented)
-          find examples/ -name "*.ts" -exec npx tsc --noEmit {} \;
+          find examples/ -name "*.ts" -exec bunx tsc --noEmit {} \;
 
       - name: 📤 Deploy Documentation
         uses: peaceiris/actions-gh-pages@v3
@@ -307,26 +327,30 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
           registry-url: "https://registry.npmjs.org"
 
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 🎭 Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: bunx playwright install --with-deps
 
       - name: 🔍 Verify Playwright Installation
         run: |
           echo "Verifying Playwright browser installation..."
-          npx playwright --version
+          bunx playwright --version
           echo "✅ Playwright browsers are ready"
 
       - name: 🧪 Final Test Suite
-        run: npm run test:all
+        run: bun run test:all
 
       - name: 📈 Version Bump
         run: |
@@ -336,7 +360,7 @@ jobs:
           BUMP_TYPE="${{ needs.quality-gate.outputs.version-bump }}"
           echo "Performing $BUMP_TYPE version bump"
 
-          npm run release:$BUMP_TYPE
+          bun run release:$BUMP_TYPE
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -383,18 +407,22 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏥 Run Health Check
-        run: npm run health:check
+        run: bun run health:check
 
       - name: 📊 Performance Regression Check
         run: |
           echo "Running performance regression analysis..."
-          npm run benchmark:all > benchmark-results.txt
+          bun run benchmark:all > benchmark-results.txt
 
           # Store results for trend analysis
           echo "$(date -Iseconds): $(cat benchmark-results.txt)" >> performance-history.log
@@ -425,13 +453,17 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build Project
-        run: npm run build
+        run: bun run build
 
       - name: 📦 Pack Package
         run: npm pack
@@ -441,8 +473,8 @@ jobs:
           # Create temporary directory and test installation
           mkdir -p /tmp/package-test
           cd /tmp/package-test
-          npm init -y
-          npm install $GITHUB_WORKSPACE/threadts-universal-*.tgz
+          bun init -y
+          bun add $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test basic import
           echo "import threadts from 'threadts-universal'; console.log('Import successful');" > test.mjs
@@ -462,7 +494,7 @@ jobs:
 
 # This workflow provides:
 # ✅ Multi-OS testing (Ubuntu, Windows, macOS)
-# ✅ Multi-Node.js version support (16, 18, 20, 21)
+# ✅ Multi-Node.js version support (22, 24)
 # ✅ Browser compatibility testing (Chrome, Safari)
 # ✅ Security scanning (CodeQL, Snyk)
 # ✅ Automated releases with semantic versioning
