@@ -338,7 +338,7 @@ jobs:
               ## 🔧 Recommended Actions
 
               1. Review the vulnerabilities listed above
-              2. Run \`bun run deps:update\` to apply the managed updates
+              2. Run \`bun run deps:check --mode=security\` to apply targeted security updates
               3. For manual fixes, update affected packages
               4. Run full test suite after applying fixes
               5. Monitor for additional security advisories

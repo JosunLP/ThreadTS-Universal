@@ -28,6 +28,19 @@ interface UpdateReport {
 
 type UpdateMode = 'auto' | 'security' | 'patch' | 'minor' | 'major' | 'all';
 
+const VALID_UPDATE_MODES: UpdateMode[] = [
+  'auto',
+  'security',
+  'patch',
+  'minor',
+  'major',
+  'all',
+];
+
+function isUpdateMode(value: string): value is UpdateMode {
+  return VALID_UPDATE_MODES.includes(value as UpdateMode);
+}
+
 interface CliOptions {
   mode: UpdateMode;
   reportOnly: boolean;
@@ -415,13 +428,7 @@ function parseCliOptions(args: string[]): CliOptions {
 
     if (arg.startsWith('--mode=')) {
       const candidate = arg.slice('--mode='.length);
-      if (
-        candidate === 'security' ||
-        candidate === 'patch' ||
-        candidate === 'minor' ||
-        candidate === 'major' ||
-        candidate === 'all'
-      ) {
+      if (isUpdateMode(candidate)) {
         mode = candidate;
       } else {
         console.warn(`⚠️ Unknown update mode "${candidate}", using automatic mode.`);
@@ -512,7 +519,7 @@ async function main(args = process.argv.slice(2)) {
 }
 
 // CLI execution - only run when this module is the entrypoint
-if (import.meta.main) {
+if ((import.meta as ImportMeta & { main?: boolean }).main) {
   main().catch(console.error);
 }
 
