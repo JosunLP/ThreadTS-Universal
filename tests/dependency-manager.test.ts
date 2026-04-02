@@ -13,11 +13,13 @@ vi.mock('child_process', () => ({
 import { DependencyManager } from '../scripts/dependency-manager';
 
 describe('DependencyManager', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     execFileSyncMock.mockReset();
     execSyncMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -30,7 +32,6 @@ describe('DependencyManager', () => {
 
   test('returns an empty list for empty outdated output', async () => {
     const manager = new DependencyManager();
-    const warnSpy = vi.spyOn(console, 'warn');
     execSyncMock.mockReturnValue('   \n\t');
 
     await expect(manager.scanDependencies()).resolves.toEqual([]);
@@ -41,7 +42,6 @@ describe('DependencyManager', () => {
 
   test('returns an empty list for invalid outdated output', async () => {
     const manager = new DependencyManager();
-    const warnSpy = vi.spyOn(console, 'warn');
     execSyncMock.mockReturnValue('not json');
 
     await expect(manager.scanDependencies()).resolves.toEqual([]);
@@ -50,7 +50,6 @@ describe('DependencyManager', () => {
 
   test('returns an empty list for unexpected outdated JSON types', async () => {
     const manager = new DependencyManager();
-    const warnSpy = vi.spyOn(console, 'warn');
     execSyncMock.mockReturnValue('null');
 
     await expect(manager.scanDependencies()).resolves.toEqual([]);
