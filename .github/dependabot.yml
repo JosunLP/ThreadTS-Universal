@@ -3,7 +3,7 @@
 version: 2
 updates:
   # ═══════════════════════════════════════════════════════════════
-  # 📦 NPM DEPENDENCIES
+  # 📦 JAVASCRIPT PACKAGE DEPENDENCIES
   # ═══════════════════════════════════════════════════════════════
 
   - package-ecosystem: 'npm'
@@ -20,9 +20,6 @@ updates:
       prefix: '🔄 chore(deps)'
       include: 'scope'
 
-    # Reviewer und Assignees
-    reviewers:
-      - 'threadts-team'
     assignees:
       - 'senior-maintainer'
 
@@ -30,7 +27,7 @@ updates:
     labels:
       - 'dependencies'
       - 'automated'
-      - 'npm'
+      - 'bun'
 
     # Konfiguration für verschiedene Dependency-Typen
     groups:
@@ -57,7 +54,6 @@ updates:
         patterns:
           - '@typescript-eslint/*'
           - 'bundlesize'
-          - 'tsx'
 
     # Update-Limits
     open-pull-requests-limit: 5
@@ -88,9 +84,6 @@ updates:
     commit-message:
       prefix: '🔄 chore(actions)'
       include: 'scope'
-
-    reviewers:
-      - 'threadts-team'
 
     labels:
       - 'github-actions'

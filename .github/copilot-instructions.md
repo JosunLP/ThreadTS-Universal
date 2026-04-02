@@ -22,10 +22,10 @@ ThreadTS Universal is a universal parallel-computing library for Browser/Node/De
 
 ## Tests & commands (match package.json)
 
-- Build: `npm run build` (Vite → dual ESM/CJS in `dist/`).
-- Unit tests: `npm run test` (Vitest). Pool config is in `vitest.config.ts` (`pool: 'forks'`, `singleFork: true`).
-- Browser tests: `npm run test:browser` (Playwright, config in `playwright.config.ts`).
-- Memory tests: `npm run test:memory` (use `npm run test:memory:local` to enable `--expose-gc`).
+- Build: `bun run build` (Vite → dual ESM/CJS in `dist/`).
+- Unit tests: `bun run test` (Vitest). Pool config is in `vitest.config.ts` (`pool: 'forks'`, `singleFork: true`).
+- Browser tests: `bun run test:browser` (Playwright, config in `playwright.config.ts`).
+- Memory tests: `bun run test:memory` (use `bun run test:memory:local` to enable `--expose-gc`).
 
 ## Testing conventions
 

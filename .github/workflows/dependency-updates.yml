@@ -12,6 +12,7 @@ on:
         default: "patch"
         type: choice
         options:
+          - security
           - patch
           - minor
           - major
@@ -19,6 +20,7 @@ on:
 
 env:
   NODE_VERSION: "24"
+  BUN_VERSION: "1.3.11"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -41,22 +43,32 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🔍 Check for Updates
         id: check-updates
         run: |
           echo "Checking for available updates..."
 
-          # Use our custom dependency manager
-          UPDATE_RESULT=$(npm run deps:check)
+          # Use our custom dependency manager in report-only mode
+          UPDATE_RESULT=$(bun run deps:check --report-only)
           echo "$UPDATE_RESULT"
 
+          if [ ! -f reports/dependency-update.json ]; then
+            echo "Dependency report was not generated."
+            exit 1
+          fi
+
           # Check if updates are available
-          if echo "$UPDATE_RESULT" | grep -q "Updates available"; then
+          TOTAL_UPDATES=$(jq -r '.totalDependencies // 0' reports/dependency-update.json)
+          if [ "$TOTAL_UPDATES" -gt 0 ]; then
             echo "has-updates=true" >> $GITHUB_OUTPUT
           else
             echo "has-updates=false" >> $GITHUB_OUTPUT
@@ -65,8 +77,7 @@ jobs:
       - name: 🛡️ Security Audit
         id: check-security
         run: |
-          AUDIT_RESULT=$(npm audit --json || true)
-          VULNERABILITY_COUNT=$(echo "$AUDIT_RESULT" | jq -r '.metadata.vulnerabilities.total // 0')
+          VULNERABILITY_COUNT=$(jq -r '.securityIssues // 0' reports/dependency-update.json)
           echo "count=$VULNERABILITY_COUNT" >> $GITHUB_OUTPUT
 
           if [ "$VULNERABILITY_COUNT" -gt 0 ]; then
@@ -86,10 +97,21 @@ jobs:
           SUMMARY="${SUMMARY}**Update Type:** ${{ github.event.inputs.update_type || 'patch' }}\n\n"
 
           # Add outdated packages info
-          OUTDATED=$(npm outdated --json || echo '{}')
-          if [ "$OUTDATED" != "{}" ]; then
+          OUTDATED=$(bun outdated --json 2>/dev/null || true)
+          if [ -z "$OUTDATED" ]; then
+            OUTDATED='[]'
+          fi
+          if [ "$OUTDATED" != "[]" ] && [ "$OUTDATED" != "{}" ]; then
             SUMMARY="${SUMMARY}### 📦 Outdated Packages\n\n"
-            echo "$OUTDATED" | jq -r 'to_entries[] | "- **\(.key)**: \(.value.current) → \(.value.latest)"' >> summary.tmp
+            echo "$OUTDATED" | jq -r '
+              if type == "array" then
+                .[] | "- **\(.name)**: \(.current) → \(.latest)"
+              elif type == "object" then
+                to_entries[] | "- **\(.key)**: \(.value.current) → \(.value.latest)"
+              else
+                empty
+              end
+            ' >> summary.tmp
             SUMMARY="${SUMMARY}$(cat summary.tmp)\n\n"
           fi
 
@@ -118,10 +140,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🔄 Perform Updates
         run: |
@@ -132,36 +158,36 @@ jobs:
           case $UPDATE_TYPE in
             "security")
               echo "Applying security updates only..."
-              npm audit fix --force
+              bun run deps:check --mode=security
               ;;
             "patch")
               echo "Applying patch updates..."
-              npm update --save --save-exact
+              bun run deps:check --mode=patch
               ;;
             "minor")
               echo "Applying minor updates..."
-              npx npm-check-updates -u --target minor
-              npm install
+              bun run deps:check --mode=minor
               ;;
             "major")
               echo "⚠️ Applying major updates (proceed with caution)..."
-              npx npm-check-updates -u
-              npm install
+              bun run deps:check --mode=major
               ;;
             "all")
               echo "Applying all available updates..."
-              npm audit fix --force
-              npx npm-check-updates -u
-              npm install
+              bun run deps:check --mode=all
+              ;;
+            *)
+              echo "Unknown update type: $UPDATE_TYPE"
+              exit 1
               ;;
           esac
 
       - name: 🧪 Run Tests After Updates
         run: |
           echo "Running tests to verify updates..."
-          npm run build
-          npm test
-          npm run test:memory
+          bun run build
+          bun run test
+          bun run test:memory
 
       - name: 📊 Generate Update Report
         run: |
@@ -260,27 +286,30 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📋 Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: 🔍 Detailed Security Analysis
         run: |
           echo "Performing detailed security analysis..."
 
-          # Generate detailed security report
-          npm audit --json > security-report.json || true
+          bun run deps:check --report-only || true
 
-          # Parse and format security report
-          cat security-report.json | jq -r '
-            if .vulnerabilities then
-              .vulnerabilities | to_entries[] |
-              "🚨 **\(.key)**: \(.value.severity) - \(.value.title)"
+          jq -r '
+            if (.updates // [] | map(select(.security != "safe")) | length) > 0 then
+              .updates[]
+              | select(.security != "safe")
+              | "🚨 **\(.name)**: \(.security) - \(.current) → \(.latest)"
             else
               "✅ No vulnerabilities found"
             end
-          ' > security-summary.txt
+          ' reports/dependency-update.json > security-summary.txt
 
       - name: 📧 Log Security Alert
         run: |
@@ -314,7 +343,7 @@ jobs:
               ## 🔧 Recommended Actions
 
               1. Review the vulnerabilities listed above
-              2. Run \`npm audit fix\` to apply automatic fixes
+              2. Run \`bun run deps:check --mode=security\` to apply targeted security updates
               3. For manual fixes, update affected packages
               4. Run full test suite after applying fixes
               5. Monitor for additional security advisories
