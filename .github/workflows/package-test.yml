@@ -51,8 +51,8 @@ jobs:
           bun add $GITHUB_WORKSPACE/threadts-universal-*.tgz
 
           # Test CommonJS import
-          echo "const threadts = require('threadts-universal'); console.log('CommonJS import successful:', typeof threadts);" > test-cjs.js
-          node test-cjs.js
+          echo "const threadts = require('threadts-universal'); console.log('CommonJS import successful:', typeof threadts);" > test-cjs.cjs
+          node test-cjs.cjs
 
           # Configure package.json for ES modules and test ES import
           node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.type='module'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
