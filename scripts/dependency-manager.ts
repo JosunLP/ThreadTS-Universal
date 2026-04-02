@@ -540,6 +540,9 @@ async function main(args = process.argv.slice(2)) {
             );
           }
 
+          console.error(
+            '❌ Post-update tests failed after dependency updates; propagating failure.'
+          );
           throw error;
         }
       } else {
