@@ -9,6 +9,7 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
       outDir: 'dist',
       insertTypesEntry: true,
+      rollupTypes: true,
     }),
   ],
   build: {

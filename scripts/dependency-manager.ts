@@ -270,11 +270,15 @@ class DependencyManager {
     currentVersion: string,
     targetVersion: string
   ): 'patch' | 'minor' | 'major' | 'none' | 'unknown' {
+    const normalizedCurrentVersion = this.normalizeVersionString(currentVersion);
+    const normalizedTargetVersion = this.normalizeVersionString(targetVersion);
     const currentParts = this.parseVersion(currentVersion);
     const targetParts = this.parseVersion(targetVersion);
 
     if (!currentParts || !targetParts) {
-      return currentVersion === targetVersion ? 'none' : 'unknown';
+      return normalizedCurrentVersion === normalizedTargetVersion
+        ? 'none'
+        : 'unknown';
     }
 
     if (targetParts[0] > currentParts[0]) {
@@ -289,17 +293,41 @@ class DependencyManager {
       return 'patch';
     }
 
+    if (
+      currentParts[3] &&
+      !targetParts[3] &&
+      currentParts[0] === targetParts[0] &&
+      currentParts[1] === targetParts[1] &&
+      currentParts[2] === targetParts[2]
+    ) {
+      return 'patch';
+    }
+
     return 'none';
   }
 
-  private parseVersion(version: string): [number, number, number] | null {
-    const match = version.match(/(\d+)\.(\d+)\.(\d+)/);
+  private parseVersion(
+    version: string
+  ): [number, number, number, string | null] | null {
+    const normalized = this.normalizeVersionString(version);
+    const match = normalized.match(
+      /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
+    );
 
     if (!match) {
       return null;
     }
 
-    return [Number(match[1]), Number(match[2]), Number(match[3])];
+    return [
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3]),
+      match[4] ?? null,
+    ];
+  }
+
+  private normalizeVersionString(version: string): string {
+    return version.trim().replace(/^[~^<>=\s]+/, '');
   }
 
   private getAuditSeverity(

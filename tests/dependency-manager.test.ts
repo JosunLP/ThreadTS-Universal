@@ -155,4 +155,33 @@ describe('DependencyManager', () => {
     expect(updated).toEqual([]);
     expect(execFileSyncMock).not.toHaveBeenCalled();
   });
+
+  test('treats prerelease to stable updates as patch updates in patch mode', async () => {
+    const manager = new DependencyManager();
+    execSyncMock.mockReturnValue('');
+
+    const updated = await manager.performAutomaticUpdates(
+      [
+        {
+          name: 'prerelease-package',
+          current: '1.2.3-beta.1',
+          wanted: '1.2.3',
+          latest: '1.2.3',
+          location: 'direct',
+          security: 'safe',
+        },
+      ],
+      'patch'
+    );
+
+    expect(updated).toEqual(['prerelease-package']);
+    expect(execFileSyncMock).toHaveBeenCalledWith(
+      'bun',
+      ['update', 'prerelease-package@1.2.3'],
+      expect.objectContaining({
+        cwd: process.cwd(),
+        stdio: 'pipe',
+      })
+    );
+  });
 });

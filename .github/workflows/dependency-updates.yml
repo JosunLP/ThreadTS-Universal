@@ -294,7 +294,7 @@ jobs:
         run: |
           echo "Performing detailed security analysis..."
 
-          bun run deps:check || true
+          bun run deps:check --report-only || true
 
           jq -r '
             if (.updates // [] | map(select(.security != "safe")) | length) > 0 then
