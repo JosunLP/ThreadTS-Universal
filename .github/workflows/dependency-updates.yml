@@ -58,8 +58,13 @@ jobs:
           echo "Checking for available updates..."
 
           # Use our custom dependency manager in report-only mode
-          UPDATE_RESULT=$(bun run deps:check --report-only || true)
+          UPDATE_RESULT=$(bun run deps:check --report-only)
           echo "$UPDATE_RESULT"
+
+          if [ ! -f reports/dependency-update.json ]; then
+            echo "Dependency report was not generated."
+            exit 1
+          fi
 
           # Check if updates are available
           TOTAL_UPDATES=$(jq -r '.totalDependencies // 0' reports/dependency-update.json)

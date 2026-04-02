@@ -59,6 +59,57 @@ describe('DependencyManager', () => {
     );
   });
 
+  test('maps valid array outdated output to dependency info', async () => {
+    const manager = new DependencyManager();
+    execSyncMock.mockReturnValue(
+      JSON.stringify([
+        {
+          name: 'array-package',
+          current: '1.0.0',
+          latest: '1.2.0',
+          wanted: '1.1.0',
+          location: 'dependencies',
+        },
+      ])
+    );
+
+    await expect(manager.scanDependencies()).resolves.toEqual([
+      {
+        name: 'array-package',
+        current: '1.0.0',
+        latest: '1.2.0',
+        wanted: '1.1.0',
+        location: 'dependencies',
+        security: 'safe',
+      },
+    ]);
+  });
+
+  test('maps valid object outdated output to dependency info', async () => {
+    const manager = new DependencyManager();
+    execSyncMock.mockReturnValue(
+      JSON.stringify({
+        'object-package': {
+          current: '2.0.0',
+          latest: '3.0.0',
+          wanted: '2.1.0',
+          location: 'devDependencies',
+        },
+      })
+    );
+
+    await expect(manager.scanDependencies()).resolves.toEqual([
+      {
+        name: 'object-package',
+        current: '2.0.0',
+        latest: '3.0.0',
+        wanted: '2.1.0',
+        location: 'devDependencies',
+        security: 'safe',
+      },
+    ]);
+  });
+
   test('applies only patch updates in patch mode using the wanted version', async () => {
     const manager = new DependencyManager();
     execSyncMock.mockReturnValue('');

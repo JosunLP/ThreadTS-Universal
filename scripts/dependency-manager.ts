@@ -68,12 +68,7 @@ class DependencyManager {
       return this.parseOutdatedOutput(outdated);
     } catch (error: any) {
       if (error.stdout) {
-        try {
-          return this.parseOutdatedOutput(error.stdout);
-        } catch (parseError) {
-          console.warn('⚠️ Could not parse bun outdated output');
-          return [];
-        }
+        return this.parseOutdatedOutput(String(error.stdout));
       }
       return [];
     }
