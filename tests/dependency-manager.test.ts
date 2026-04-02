@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-const { execSyncMock } = vi.hoisted(() => ({
+const { execFileSyncMock, execSyncMock } = vi.hoisted(() => ({
+  execFileSyncMock: vi.fn(),
   execSyncMock: vi.fn(),
 }));
 
 vi.mock('child_process', () => ({
+  execFileSync: execFileSyncMock,
   execSync: execSyncMock,
 }));
 
@@ -12,6 +14,7 @@ import { DependencyManager } from '../scripts/dependency-manager';
 
 describe('DependencyManager', () => {
   beforeEach(() => {
+    execFileSyncMock.mockReset();
     execSyncMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -45,6 +48,17 @@ describe('DependencyManager', () => {
     expect(warnSpy).toHaveBeenCalled();
   });
 
+  test('returns an empty list for unexpected outdated JSON types', async () => {
+    const manager = new DependencyManager();
+    const warnSpy = vi.spyOn(console, 'warn');
+    execSyncMock.mockReturnValue('null');
+
+    await expect(manager.scanDependencies()).resolves.toEqual([]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      '⚠️ bun outdated --json returned an unexpected JSON shape; assuming no outdated dependencies.'
+    );
+  });
+
   test('applies only patch updates in patch mode using the wanted version', async () => {
     const manager = new DependencyManager();
     execSyncMock.mockReturnValue('');
@@ -72,9 +86,10 @@ describe('DependencyManager', () => {
     );
 
     expect(updated).toEqual(['patch-only']);
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    expect(execSyncMock).toHaveBeenCalledWith(
-      'bun update patch-only@1.2.4',
+    expect(execFileSyncMock).toHaveBeenCalledTimes(1);
+    expect(execFileSyncMock).toHaveBeenCalledWith(
+      'bun',
+      ['update', 'patch-only@1.2.4'],
       expect.objectContaining({
         cwd: process.cwd(),
         stdio: 'pipe',
@@ -109,9 +124,10 @@ describe('DependencyManager', () => {
     );
 
     expect(updated).toEqual(['vulnerable-package']);
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    expect(execSyncMock).toHaveBeenCalledWith(
-      'bun update vulnerable-package@2.0.0',
+    expect(execFileSyncMock).toHaveBeenCalledTimes(1);
+    expect(execFileSyncMock).toHaveBeenCalledWith(
+      'bun',
+      ['update', 'vulnerable-package@2.0.0'],
       expect.objectContaining({
         cwd: process.cwd(),
         stdio: 'pipe',
@@ -137,6 +153,6 @@ describe('DependencyManager', () => {
     );
 
     expect(updated).toEqual([]);
-    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(execFileSyncMock).not.toHaveBeenCalled();
   });
 });

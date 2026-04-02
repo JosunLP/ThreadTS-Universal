@@ -5,7 +5,7 @@
  * Autonomous dependency management with security scanning
  */
 
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -155,7 +155,7 @@ class DependencyManager {
           console.log(
             `📦 Updating ${dep.name}: ${dep.current} → ${targetVersion}`
           );
-          execSync(`bun update ${dep.name}@${targetVersion}`, {
+          execFileSync('bun', ['update', `${dep.name}@${targetVersion}`], {
             cwd: this.projectRoot,
             stdio: 'pipe',
           });
@@ -203,6 +203,13 @@ class DependencyManager {
       console.warn(
         '⚠️ Failed to parse bun outdated --json output; assuming no outdated dependencies.',
         error
+      );
+      return [];
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      console.warn(
+        '⚠️ bun outdated --json returned an unexpected JSON shape; assuming no outdated dependencies.'
       );
       return [];
     }
