@@ -529,10 +529,18 @@ async function main(args = process.argv.slice(2)) {
             revertTargets.push('bun.lockb');
           }
 
-          execSync(`git checkout -- ${revertTargets.join(' ')}`, {
-            cwd: process.cwd(),
-            stdio: 'inherit',
-          });
+          if (revertTargets.length > 0) {
+            execFileSync('git', ['checkout', '--', ...revertTargets], {
+              cwd: process.cwd(),
+              stdio: 'inherit',
+            });
+          } else {
+            console.warn(
+              '⚠️ No dependency lock or package files found to revert; skipping git checkout.'
+            );
+          }
+
+          throw error;
         }
       } else {
         console.log('\nℹ️ No dependencies matched the selected update mode.');
