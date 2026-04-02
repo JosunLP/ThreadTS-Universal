@@ -26,6 +26,13 @@ interface UpdateReport {
   recommendation: 'proceed' | 'review' | 'halt';
 }
 
+type UpdateMode = 'auto' | 'security' | 'patch' | 'minor' | 'major' | 'all';
+
+interface CliOptions {
+  mode: UpdateMode;
+  reportOnly: boolean;
+}
+
 class DependencyManager {
   private projectRoot: string;
 
@@ -123,17 +130,19 @@ class DependencyManager {
    * Performs automatic updates (safe updates only)
    */
   async performAutomaticUpdates(
-    dependencies: DependencyInfo[]
+    dependencies: DependencyInfo[],
+    mode: UpdateMode = 'auto'
   ): Promise<string[]> {
     const updated: string[] = [];
 
     for (const dep of dependencies) {
-      if (dep.security === 'safe' && this.isSafeUpdate(dep)) {
+      const targetVersion = this.getTargetVersion(dep, mode);
+      if (targetVersion) {
         try {
           console.log(
-            `📦 Updating ${dep.name}: ${dep.current} → ${dep.wanted}`
+            `📦 Updating ${dep.name}: ${dep.current} → ${targetVersion}`
           );
-          execSync(`bun update --latest ${dep.name}`, {
+          execSync(`bun update ${dep.name}@${targetVersion}`, {
             cwd: this.projectRoot,
             stdio: 'pipe',
           });
@@ -149,8 +158,12 @@ class DependencyManager {
 
   private isSafeUpdate(dep: DependencyInfo): boolean {
     // Only perform patch and minor updates automatically
-    const currentParts = dep.current.split('.').map(Number);
-    const wantedParts = dep.wanted.split('.').map(Number);
+    const currentParts = this.parseVersion(dep.current);
+    const wantedParts = this.parseVersion(dep.wanted);
+
+    if (!currentParts || !wantedParts) {
+      return false;
+    }
 
     // Major update = breaking change
     if (wantedParts[0] > currentParts[0]) {
@@ -161,7 +174,25 @@ class DependencyManager {
   }
 
   private parseOutdatedOutput(output: string): DependencyInfo[] {
-    const parsed = JSON.parse(output);
+    const trimmed = output.trim();
+
+    if (trimmed === '') {
+      console.warn(
+        '⚠️ bun outdated --json returned empty output; assuming no outdated dependencies.'
+      );
+      return [];
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (error) {
+      console.warn(
+        '⚠️ Failed to parse bun outdated --json output; assuming no outdated dependencies.',
+        error
+      );
+      return [];
+    }
 
     if (Array.isArray(parsed)) {
       return parsed.map((entry: any) => ({
@@ -184,6 +215,71 @@ class DependencyManager {
         security: 'safe',
       })
     );
+  }
+
+  private getTargetVersion(
+    dep: DependencyInfo,
+    mode: UpdateMode
+  ): string | null {
+    const safeUpdateType = this.getUpdateType(dep.current, dep.wanted);
+    const latestUpdateType = this.getUpdateType(dep.current, dep.latest);
+
+    switch (mode) {
+      case 'auto':
+        return dep.security === 'safe' && this.isSafeUpdate(dep) ? dep.wanted : null;
+      case 'security':
+        return dep.security !== 'safe' && dep.current !== dep.latest
+          ? dep.latest
+          : null;
+      case 'patch':
+        return safeUpdateType === 'patch' ? dep.wanted : null;
+      case 'minor':
+        return safeUpdateType === 'patch' || safeUpdateType === 'minor'
+          ? dep.wanted
+          : null;
+      case 'major':
+        return latestUpdateType === 'major' ? dep.latest : null;
+      case 'all':
+        return dep.current !== dep.latest ? dep.latest : null;
+      default:
+        return null;
+    }
+  }
+
+  private getUpdateType(
+    currentVersion: string,
+    targetVersion: string
+  ): 'patch' | 'minor' | 'major' | 'none' | 'unknown' {
+    const currentParts = this.parseVersion(currentVersion);
+    const targetParts = this.parseVersion(targetVersion);
+
+    if (!currentParts || !targetParts) {
+      return currentVersion === targetVersion ? 'none' : 'unknown';
+    }
+
+    if (targetParts[0] > currentParts[0]) {
+      return 'major';
+    }
+
+    if (targetParts[1] > currentParts[1]) {
+      return 'minor';
+    }
+
+    if (targetParts[2] > currentParts[2]) {
+      return 'patch';
+    }
+
+    return 'none';
+  }
+
+  private parseVersion(version: string): [number, number, number] | null {
+    const match = version.match(/(\d+)\.(\d+)\.(\d+)/);
+
+    if (!match) {
+      return null;
+    }
+
+    return [Number(match[1]), Number(match[2]), Number(match[3])];
   }
 
   private getAuditSeverity(
@@ -307,20 +403,75 @@ class DependencyManager {
   }
 }
 
-async function main() {
+function parseCliOptions(args: string[]): CliOptions {
+  let mode: UpdateMode = 'auto';
+  let reportOnly = false;
+
+  for (const arg of args) {
+    if (arg === '--report-only') {
+      reportOnly = true;
+      continue;
+    }
+
+    if (arg.startsWith('--mode=')) {
+      const candidate = arg.slice('--mode='.length);
+      if (
+        candidate === 'security' ||
+        candidate === 'patch' ||
+        candidate === 'minor' ||
+        candidate === 'major' ||
+        candidate === 'all'
+      ) {
+        mode = candidate;
+      } else {
+        console.warn(`⚠️ Unknown update mode "${candidate}", using automatic mode.`);
+      }
+    }
+  }
+
+  return { mode, reportOnly };
+}
+
+function shouldPerformUpdates(
+  report: UpdateReport,
+  mode: UpdateMode
+): boolean {
+  if (mode === 'security') {
+    return true;
+  }
+
+  if (mode === 'auto') {
+    return report.recommendation === 'proceed';
+  }
+
+  return report.recommendation !== 'halt';
+}
+
+async function main(args = process.argv.slice(2)) {
   console.log('🤖 ThreadTS Universal - Autonomous Dependency Manager');
   console.log('═'.repeat(55));
 
   const manager = new DependencyManager();
+  const options = parseCliOptions(args);
 
   try {
     // Generate report
     const report = await manager.generateReport();
     manager.displayReport(report);
 
+    if (options.reportOnly) {
+      console.log('\n📋 Report-only mode enabled; skipping automatic updates.');
+      return;
+    }
+
+    const shouldUpdate = shouldPerformUpdates(report, options.mode);
+
     // Automatic updates when recommendation is safe
-    if (report.recommendation === 'proceed') {
-      const updated = await manager.performAutomaticUpdates(report.updates);
+    if (shouldUpdate) {
+      const updated = await manager.performAutomaticUpdates(
+        report.updates,
+        options.mode
+      );
 
       if (updated.length > 0) {
         console.log(`\n✅ Successfully updated ${updated.length} packages:`);
@@ -346,7 +497,13 @@ async function main() {
             stdio: 'inherit',
           });
         }
+      } else {
+        console.log('\nℹ️ No dependencies matched the selected update mode.');
       }
+    } else if (options.mode !== 'auto') {
+      console.log(
+        '\n🚫 Skipping updates because the dependency report requires manual intervention.'
+      );
     }
   } catch (error: any) {
     console.error('❌ Dependency scan failed:', error.message);
@@ -354,7 +511,9 @@ async function main() {
   }
 }
 
-// CLI execution - directly execute when run with Bun
-main().catch(console.error);
+// CLI execution - only run when this module is the entrypoint
+if (import.meta.main) {
+  main().catch(console.error);
+}
 
 export { DependencyManager };

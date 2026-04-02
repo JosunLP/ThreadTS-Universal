@@ -12,6 +12,7 @@ on:
         default: "patch"
         type: choice
         options:
+          - security
           - patch
           - minor
           - major
@@ -56,8 +57,8 @@ jobs:
         run: |
           echo "Checking for available updates..."
 
-          # Use our custom dependency manager
-          UPDATE_RESULT=$(bun run deps:check || true)
+          # Use our custom dependency manager in report-only mode
+          UPDATE_RESULT=$(bun run deps:check --report-only || true)
           echo "$UPDATE_RESULT"
 
           # Check if updates are available
@@ -152,23 +153,27 @@ jobs:
           case $UPDATE_TYPE in
             "security")
               echo "Applying security updates only..."
-              bun run deps:check
+              bun run deps:check --mode=security
               ;;
             "patch")
               echo "Applying patch updates..."
-              bun run deps:check
+              bun run deps:check --mode=patch
               ;;
             "minor")
               echo "Applying minor updates..."
-              bun run deps:check
+              bun run deps:check --mode=minor
               ;;
             "major")
               echo "⚠️ Applying major updates (proceed with caution)..."
-              bun update --latest
+              bun run deps:check --mode=major
               ;;
             "all")
               echo "Applying all available updates..."
-              bun update --latest
+              bun run deps:check --mode=all
+              ;;
+            *)
+              echo "Unknown update type: $UPDATE_TYPE"
+              exit 1
               ;;
           esac
 
