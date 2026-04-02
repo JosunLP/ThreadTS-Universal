@@ -91,7 +91,10 @@ jobs:
           SUMMARY="${SUMMARY}**Update Type:** ${{ github.event.inputs.update_type || 'patch' }}\n\n"
 
           # Add outdated packages info
-          OUTDATED=$(bun outdated --json || echo '[]')
+          OUTDATED=$(bun outdated --json 2>/dev/null || true)
+          if [ -z "$OUTDATED" ]; then
+            OUTDATED='[]'
+          fi
           if [ "$OUTDATED" != "[]" ] && [ "$OUTDATED" != "{}" ]; then
             SUMMARY="${SUMMARY}### 📦 Outdated Packages\n\n"
             echo "$OUTDATED" | jq -r '
