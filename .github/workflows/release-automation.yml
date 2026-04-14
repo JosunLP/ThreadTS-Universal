@@ -170,15 +170,12 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            export NPM_CONFIG_TOKEN="$NPM_TOKEN"
-            echo "🔐 Using NPM token authentication for bun publish"
-          elif [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
-            echo "🔐 Using GitHub OIDC trusted publishing for bun publish"
-          else
-            echo "❌ NPM_TOKEN is not configured and OIDC is unavailable"
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "❌ NPM_TOKEN is not configured for bun publish"
             exit 1
           fi
+          export NPM_CONFIG_TOKEN="$NPM_TOKEN"
+          echo "🔐 Using NPM token authentication for bun publish"
 
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
             # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
