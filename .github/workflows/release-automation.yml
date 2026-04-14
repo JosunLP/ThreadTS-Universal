@@ -146,7 +146,7 @@ jobs:
       - name: 📦 Pack Package
         id: pack
         run: |
-          PACKAGE_TARBALL=$(npm pack --ignore-scripts | tail -n1)
+          PACKAGE_TARBALL=$(npm pack --ignore-scripts --json | node -e "const fs = require('node:fs'); const data = JSON.parse(fs.readFileSync(0, 'utf8')); const filename = data[0]?.filename; if (!filename || !filename.endsWith('.tgz')) { process.exit(1); } process.stdout.write(filename);")
           echo "package-tarball=$PACKAGE_TARBALL" >> "$GITHUB_OUTPUT"
           echo "📋 Package contents:"
           tar -tzf "$PACKAGE_TARBALL" | head -30
@@ -192,6 +192,9 @@ jobs:
             PRERELEASE="${VERSION%%+*}"
             PREID="${PRERELEASE#*-}"
             PREID="${PREID%%.*}"
+            if [ -z "$PREID" ] || [[ ! "$PREID" =~ [A-Za-z-] ]]; then
+              PREID="next"
+            fi
             npm publish "$PACKAGE_TARBALL" --tag "$PREID" --provenance --access public
           else
             npm publish "$PACKAGE_TARBALL" --provenance --access public
