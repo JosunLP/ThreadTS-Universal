@@ -39,17 +39,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔐 Validate NPM Token (Early Check)
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "❌ NPM_TOKEN is not configured"
-            echo "   Cannot proceed with release without NPM credentials"
-            exit 1
-          fi
-          echo "✅ NPM Token is configured and ready"
-
       - name: 🏷️ Extract Version from Tag
         id: version
         run: |
