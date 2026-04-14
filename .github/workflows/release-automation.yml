@@ -168,8 +168,12 @@ jobs:
 
       - name: 📤 Publish to NPM
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            export NPM_CONFIG_TOKEN="$NPM_TOKEN"
+          fi
+
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
             # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
             VERSION="${{ needs.validate.outputs.version }}"
