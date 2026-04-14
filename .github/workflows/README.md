@@ -61,14 +61,12 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 
 #### Fully automated release pipeline
 
-- **Trigger:** Manual (workflow_dispatch)
+- **Trigger:** GitHub release publication (`release.published`)
 - **Features:**
   - Pre-Release Validation
-  - Automated Version Bumping
-  - Changelog Generation
-  - Bun Publishing to npmjs
-  - GitHub Release Creation
-  - Dry Run Simulation
+  - npm trusted publishing via GitHub OIDC
+  - npmjs.org deployment after publishing a release
+  - Release asset upload
   - Post-Release Notifications
 
 ## 🔧 **Setup and configuration**
@@ -76,13 +74,20 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 ### **Required GitHub secrets**
 
 ```bash
-# npm Registry Publishing
-NPM_TOKEN=<your-npm-token>
-
 # Security Scanning (optional)
 SNYK_TOKEN=<your-snyk-token>
 CODECOV_TOKEN=<your-codecov-token>
+
+# Still referenced by the legacy CI/CD version-bump/release job in .github/workflows/ci-cd.yml
+NPM_TOKEN=<your-npm-token>
 ```
+
+`release-automation.yml` publishes via npm trusted publishing and does not use `NPM_TOKEN`, but `.github/workflows/ci-cd.yml` still references `secrets.NPM_TOKEN`.
+
+### **Required external configuration**
+
+- Configure `JosunLP/ThreadTS-Universal` as an npm trusted publisher on npmjs.org for the exact workflow path `.github/workflows/release-automation.yml` relative to the repository root.
+- Use the GitHub Actions `release.published` event and the `production` environment in the npm trusted publisher settings.
 
 ### **Branch protection rules**
 
@@ -106,7 +111,7 @@ main:
 | Dependencies  | Weekly  | ~5min    | Update Reports     | maintenance |
 | Performance   | Daily   | ~10min   | Benchmarks         | monitoring  |
 | Compatibility | Weekly  | ~20min   | Platform Reports   | testing     |
-| Release       | Manual  | ~8min    | Packages, Releases | production  |
+| Release       | `release.published` | ~8min    | Packages, Releases | production  |
 
 ## 🎯 **Best practices**
 
@@ -166,7 +171,8 @@ main:
 
 #### Release issues
 
-- NPM token expiration
+- npm trusted publisher configuration mismatch
+- GitHub Release was not published
 - Version conflicts
 - Branch protection rules
 
