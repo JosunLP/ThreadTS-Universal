@@ -77,7 +77,12 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 # Security Scanning (optional)
 SNYK_TOKEN=<your-snyk-token>
 CODECOV_TOKEN=<your-codecov-token>
+
+# Still referenced by the legacy CI/CD version-bump/release job in .github/workflows/ci-cd.yml
+NPM_TOKEN=<your-npm-token>
 ```
+
+`release-automation.yml` publishes via npm trusted publishing and does not use `NPM_TOKEN`, but `.github/workflows/ci-cd.yml` still references `secrets.NPM_TOKEN`.
 
 ### **Required external configuration**
 
