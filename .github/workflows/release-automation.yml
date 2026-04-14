@@ -149,16 +149,7 @@ jobs:
           PACKAGE_TARBALL=$(npm pack --ignore-scripts --json | node -e "const fs = require('node:fs'); const raw = fs.readFileSync(0, 'utf8'); let data; try { data = JSON.parse(raw); } catch (error) { console.error('Failed to parse `npm pack --json` output as JSON.'); console.error('Raw output:', raw); console.error(error instanceof Error ? error.message : String(error)); process.exit(1); } const filename = data[0]?.filename; if (!filename || !filename.endsWith('.tgz')) { console.error('Unexpected `npm pack --json` output: expected an array whose first item has a `.filename` ending in `.tgz`.'); console.error('Parsed value:', JSON.stringify(data)); process.exit(1); } process.stdout.write(filename);")
           echo "package-tarball=$PACKAGE_TARBALL" >> "$GITHUB_OUTPUT"
           echo "📋 Package contents:"
-          python - "$PACKAGE_TARBALL" <<'PY'
-          import sys
-          import tarfile
-          
-          with tarfile.open(sys.argv[1], 'r:gz') as archive:
-              for index, member in enumerate(archive):
-                  if index >= 30:
-                      break
-                  print(member.name)
-          PY
+          tar -tzf "$PACKAGE_TARBALL" | head -30
 
       - name: 📤 Upload Package Artifact
         uses: actions/upload-artifact@v4
