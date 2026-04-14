@@ -76,8 +76,6 @@ jobs:
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
@@ -122,6 +120,8 @@ jobs:
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
