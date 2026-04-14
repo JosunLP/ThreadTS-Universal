@@ -133,6 +133,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
 
+      - name: 🔐 Configure NPM Registry Auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          REGISTRY_HOST="${REGISTRY_URL#https://}"
+          REGISTRY_HOST="${REGISTRY_HOST#http://}"
+          REGISTRY_HOST="${REGISTRY_HOST%/}"
+          printf '//%s/:_authToken=%s\nregistry=%s\n' "$REGISTRY_HOST" "$NODE_AUTH_TOKEN" "$REGISTRY_URL" > "$HOME/.npmrc"
+
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -178,11 +187,8 @@ jobs:
       - name: 📤 Publish to NPM
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           export NPM_CONFIG_TOKEN="$NPM_TOKEN"
-          trap 'rm -f "$HOME/.npmrc"' EXIT
-          printf '//registry.npmjs.org/:_authToken=%s\nregistry=%s\n' "$NODE_AUTH_TOKEN" "$REGISTRY_URL" > "$HOME/.npmrc"
           echo "🔐 Using NPM token authentication for bun publish"
 
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
