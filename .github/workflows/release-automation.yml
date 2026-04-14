@@ -172,6 +172,12 @@ jobs:
         run: |
           if [ -n "$NPM_TOKEN" ]; then
             export NPM_CONFIG_TOKEN="$NPM_TOKEN"
+            echo "🔐 Using NPM token authentication for bun publish"
+          elif [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "🔐 Using GitHub OIDC trusted publishing for bun publish"
+          else
+            echo "❌ NPM_TOKEN is not configured and OIDC is unavailable"
+            exit 1
           fi
 
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
