@@ -75,7 +75,7 @@ jobs:
           echo "✅ Version validated: $TAG_VERSION"
 
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
@@ -128,9 +128,7 @@ jobs:
           fi
 
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
@@ -182,11 +180,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "❌ NPM_TOKEN is not configured for bun publish"
-            exit 1
-          fi
           export NPM_CONFIG_TOKEN="$NPM_TOKEN"
+          trap 'rm -f "$HOME/.npmrc"' EXIT
+          printf '//registry.npmjs.org/:_authToken=%s\nregistry=%s\n' "$NODE_AUTH_TOKEN" "$REGISTRY_URL" > "$HOME/.npmrc"
           echo "🔐 Using NPM token authentication for bun publish"
 
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
