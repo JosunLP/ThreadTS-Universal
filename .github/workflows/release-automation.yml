@@ -75,7 +75,7 @@ jobs:
           echo "✅ Version validated: $TAG_VERSION"
 
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
@@ -118,11 +118,29 @@ jobs:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
 
+      - name: 🔐 Validate NPM Token
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "❌ NPM_TOKEN is not configured for bun publish"
+            exit 1
+          fi
+
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
+
+      - name: 🔐 Configure NPM Registry Auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          REGISTRY_HOST="${REGISTRY_URL#https://}"
+          REGISTRY_HOST="${REGISTRY_HOST#http://}"
+          REGISTRY_HOST="${REGISTRY_HOST%/}"
+          printf '//%s/:_authToken=%s\nregistry=%s\n' "$REGISTRY_HOST" "$NODE_AUTH_TOKEN" "$REGISTRY_URL" > "$HOME/.npmrc"
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -168,8 +186,11 @@ jobs:
 
       - name: 📤 Publish to NPM
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          export NPM_CONFIG_TOKEN="$NPM_TOKEN"
+          echo "🔐 Using NPM token authentication for bun publish"
+
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
             # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
             VERSION="${{ needs.validate.outputs.version }}"
