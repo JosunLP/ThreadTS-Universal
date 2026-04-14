@@ -48,17 +48,23 @@ jobs:
 
           VERSION="${TAG_NAME#v}"
 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "📊 Release version: $VERSION"
 
           # Check if prerelease (contains hyphen like 1.0.0-beta.0)
           if [[ "$VERSION" == *-* ]]; then
-            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+            echo "is-prerelease=true" >> "$GITHUB_OUTPUT"
             echo "📦 This is a prerelease"
           else
-            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "is-prerelease=false" >> "$GITHUB_OUTPUT"
             echo "📦 This is a stable release"
           fi
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: ${{ env.REGISTRY_URL }}
 
       - name: ✅ Validate Tag matches package.json
         run: |
@@ -75,12 +81,6 @@ jobs:
           fi
 
           echo "✅ Version validated: $TAG_VERSION"
-
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: ${{ env.REGISTRY_URL }}
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v2
