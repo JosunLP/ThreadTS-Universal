@@ -81,7 +81,8 @@ CODECOV_TOKEN=<your-codecov-token>
 
 ### **Required external configuration**
 
-- Configure the repository as an npm trusted publisher on npmjs.org for GitHub Actions OIDC publishing.
+- Configure `JosunLP/ThreadTS-Universal` as an npm trusted publisher on npmjs.org for `.github/workflows/release-automation.yml`.
+- Use the GitHub Actions `release.published` event and the `production` environment in the npm trusted publisher settings.
 
 ### **Branch protection rules**
 
