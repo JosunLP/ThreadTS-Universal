@@ -31,7 +31,7 @@
     "test:memory:ci": "vitest run tests/memory-leaks.test.ts",
     "test:memory:local": "vitest run --expose-gc tests/memory-leaks.test.ts",
     "test:all": "bun run test && bun run test:browser && bun run test:memory",
-    "test:pack": "vitest run --exclude=**/memory-leaks.test.ts --exclude=**/browser/**",
+    "test:pack": "vitest run --exclude tests/memory-leaks.test.ts",
     "test:package": "node test-package.cjs",
     "benchmark": "bun run benchmarks/core.ts",
     "benchmark:memory": "bun run benchmarks/advanced.ts",
