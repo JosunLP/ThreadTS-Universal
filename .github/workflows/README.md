@@ -61,14 +61,12 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 
 #### Fully automated release pipeline
 
-- **Trigger:** Manual (workflow_dispatch)
+- **Trigger:** GitHub release publication (`release.published`)
 - **Features:**
   - Pre-Release Validation
-  - Automated Version Bumping
-  - Changelog Generation
-  - Bun Publishing to npmjs
-  - GitHub Release Creation
-  - Dry Run Simulation
+  - npm trusted publishing via GitHub OIDC
+  - npmjs.org deployment after publishing a release
+  - Release asset upload
   - Post-Release Notifications
 
 ## 🔧 **Setup and configuration**
@@ -76,13 +74,14 @@ This directory contains the comprehensive CI/CD pipeline for the ThreadTS Univer
 ### **Required GitHub secrets**
 
 ```bash
-# npm Registry Publishing
-NPM_TOKEN=<your-npm-token>
-
 # Security Scanning (optional)
 SNYK_TOKEN=<your-snyk-token>
 CODECOV_TOKEN=<your-codecov-token>
 ```
+
+### **Required external configuration**
+
+- Configure the repository as an npm trusted publisher on npmjs.org for GitHub Actions OIDC publishing.
 
 ### **Branch protection rules**
 
