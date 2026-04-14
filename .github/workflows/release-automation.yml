@@ -41,7 +41,9 @@ jobs:
         id: version
         run: |
           TAG_NAME="${{ github.event.release.tag_name }}"
-          if ! [[ "$TAG_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+          # SemVer 2.0.0 with a leading "v", optional prerelease, and optional build metadata.
+          SEMVER_WITH_V_REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+          if ! [[ "$TAG_NAME" =~ $SEMVER_WITH_V_REGEX ]]; then
             echo "❌ Release tag must use SemVer 2.0.0 with a leading v (for example v1.2.3, v1.2.3-beta.0, or v1.2.3+build.4)"
             echo "   Received tag: $TAG_NAME"
             exit 1
@@ -177,8 +179,12 @@ jobs:
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
             # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
             VERSION="${{ needs.validate.outputs.version }}"
-            PREID="${VERSION#*-}"
+            PRERELEASE="${VERSION%%+*}"
+            PREID="${PRERELEASE#*-}"
             PREID="${PREID%%.*}"
+            if [ "$PREID" = "$PRERELEASE" ] || [ -z "$PREID" ]; then
+              PREID="next"
+            fi
             npm publish --tag "${PREID:-next}" --provenance --access public
           else
             npm publish --provenance --access public
