@@ -106,7 +106,7 @@ main:
 | Dependencies  | Weekly  | ~5min    | Update Reports     | maintenance |
 | Performance   | Daily   | ~10min   | Benchmarks         | monitoring  |
 | Compatibility | Weekly  | ~20min   | Platform Reports   | testing     |
-| Release       | Manual  | ~8min    | Packages, Releases | production  |
+| Release       | `release.published` | ~8min    | Packages, Releases | production  |
 
 ## 🎯 **Best practices**
 
@@ -166,7 +166,8 @@ main:
 
 #### Release issues
 
-- NPM token expiration
+- npm trusted publisher configuration mismatch
+- GitHub Release was not published
 - Version conflicts
 - Branch protection rules
 

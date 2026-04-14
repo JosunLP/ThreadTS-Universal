@@ -5,11 +5,6 @@ on:
     types:
       - published
 
-permissions:
-  contents: write
-  packages: write
-  id-token: write
-
 concurrency:
   group: release-${{ github.event.release.tag_name }}
   cancel-in-progress: false
@@ -27,6 +22,8 @@ jobs:
   validate:
     name: 🔍 Validate Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       is-prerelease: ${{ steps.version.outputs.is-prerelease }}
@@ -118,6 +115,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     environment: production
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: 📦 Checkout Repository
@@ -144,10 +144,19 @@ jobs:
           path: dist/
 
       - name: 📦 Pack Package
+        id: pack
         run: |
-          npm pack
+          PACKAGE_TARBALL=$(npm pack --ignore-scripts | tail -n1)
+          echo "package-tarball=$PACKAGE_TARBALL" >> "$GITHUB_OUTPUT"
           echo "📋 Package contents:"
-          tar -tzf threadts-universal-*.tgz | head -30
+          tar -tzf "$PACKAGE_TARBALL" | head -30
+
+      - name: 📤 Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: ${{ steps.pack.outputs.package-tarball }}
+          retention-days: 1
 
       - name: 🧪 Test Package Installation
         run: |
@@ -155,7 +164,7 @@ jobs:
           cd /tmp/install-test
           bun init -y
 
-          bun add "$GITHUB_WORKSPACE"/threadts-universal-*.tgz
+          bun add "$GITHUB_WORKSPACE/${{ steps.pack.outputs.package-tarball }}"
 
           # Test ESM import
           cat > test.mjs << 'EOF'
@@ -175,6 +184,7 @@ jobs:
         run: |
           # npm trusted publishing uses the workflow id-token, and setup-node configures npm for the registry.
           echo "🔐 Using npm trusted publishing via GitHub OIDC"
+          PACKAGE_TARBALL="${{ steps.pack.outputs.package-tarball }}"
 
           if [ "${{ needs.validate.outputs.is-prerelease }}" = "true" ]; then
             # Extract prerelease identifier (e.g., "beta" from "1.0.0-beta.0")
@@ -182,12 +192,9 @@ jobs:
             PRERELEASE="${VERSION%%+*}"
             PREID="${PRERELEASE#*-}"
             PREID="${PREID%%.*}"
-            if [ "$PREID" = "$PRERELEASE" ] || [ -z "$PREID" ]; then
-              PREID="next"
-            fi
-            npm publish --tag "${PREID:-next}" --provenance --access public
+            npm publish "$PACKAGE_TARBALL" --tag "$PREID" --provenance --access public
           else
-            npm publish --provenance --access public
+            npm publish "$PACKAGE_TARBALL" --provenance --access public
           fi
           echo "✅ Published threadts-universal@${{ needs.validate.outputs.version }}"
 
@@ -199,21 +206,15 @@ jobs:
     name: 📎 Upload Release Assets
     runs-on: ubuntu-latest
     needs: [validate, publish]
+    permissions:
+      contents: write
 
     steps:
-      - name: 📦 Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 📦 Download Build for Release
+      - name: 📦 Download Package Tarball
         uses: actions/download-artifact@v4
         with:
-          name: dist
-          path: dist/
-
-      - name: 📦 Create Package Tarball
-        run: npm pack --ignore-scripts
+          name: package-tarball
+          path: .
 
       - name: 📎 Upload package tarball to existing release
         uses: softprops/action-gh-release@v3
@@ -230,6 +231,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate, publish, release-assets]
     if: always() && needs.publish.result == 'success'
+    permissions:
+      contents: read
 
     steps:
       - name: 🎯 Release Summary
