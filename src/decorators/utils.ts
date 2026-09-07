@@ -38,9 +38,7 @@ export interface DecoratorContext {
  * Can be the wrapped function or a property descriptor.
  */
 export type DecoratorReturnType<T extends AnyFunction> =
-  | T
-  | PropertyDescriptor
-  | void;
+  T | PropertyDescriptor | void;
 
 /**
  * Helper to create method decorators compatible with both legacy and Stage-3 syntax.

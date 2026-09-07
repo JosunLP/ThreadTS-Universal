@@ -394,8 +394,7 @@ export async function executeTerminalOperation<R>(
     case 'min': {
       if (data.length === 0) return undefined as R;
       const minCompareFn = op.fn as
-        | ((a: unknown, b: unknown) => number)
-        | undefined;
+        ((a: unknown, b: unknown) => number) | undefined;
       return [...data].sort(
         minCompareFn ??
           ((a, b) => {
@@ -408,8 +407,7 @@ export async function executeTerminalOperation<R>(
     case 'max': {
       if (data.length === 0) return undefined as R;
       const maxCompareFn = op.fn as
-        | ((a: unknown, b: unknown) => number)
-        | undefined;
+        ((a: unknown, b: unknown) => number) | undefined;
       return [...data].sort(
         maxCompareFn ??
           ((a, b) => {
