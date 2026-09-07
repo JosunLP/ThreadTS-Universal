@@ -1221,9 +1221,7 @@ export class ThreadTS extends EventTarget {
             const result = await this.run(
               normalized.fn,
               normalized.data as
-                | SerializableData
-                | InternalArgsPayload
-                | undefined,
+                SerializableData | InternalArgsPayload | undefined,
               normalized.options ?? {}
             );
 
