@@ -50,10 +50,10 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -218,10 +218,10 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⚙️ Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
@@ -343,7 +343,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🦕 Setup Deno
         uses: denoland/setup-deno@v2
@@ -351,7 +351,7 @@ jobs:
           deno-version: ${{ env.DENO_VERSION }}
 
       - name: ⚙️ Setup Node.js (for build)
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -484,7 +484,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -492,7 +492,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: ⚙️ Setup Node.js (for build)
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -653,7 +653,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 📥 Download All Test Results
         uses: actions/download-artifact@v4
